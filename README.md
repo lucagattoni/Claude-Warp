@@ -51,6 +51,7 @@ See [docs/guide.md](docs/guide.md) for the full 6-step walkthrough.
 | `/setup-loop-harness` | Per-project configurator — fills CLAUDE.md, creates dirs, writes manifest |
 | `/new-loop "goal"` | Scaffolds a complete loop: SKILL.md + guard + runner + state + trigger |
 | `/harness-sync` | Claude Code changelog monitor — prunes components that have become native |
+| `/claude-warp-update` | Runs harness-sync then scans Claude-Loops for patterns not yet in ClaudeWarp; surfaces prioritised feature gaps |
 
 ---
 

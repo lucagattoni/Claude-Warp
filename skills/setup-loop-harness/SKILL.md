@@ -47,6 +47,7 @@ Detect it: the running skill's path gives the ClaudeWarp root.
 Copy from ClaudeWarp source into target project:
 - `skills/new-loop/SKILL.md` → `.claude/skills/new-loop/SKILL.md`
 - `skills/harness-sync/SKILL.md` → `.claude/skills/harness-sync/SKILL.md`
+- `skills/claude-warp-update/SKILL.md` → `.claude/skills/claude-warp-update/SKILL.md`
 
 ## Phase 4 — Fill CLAUDE.md
 
@@ -85,7 +86,7 @@ Print a summary:
 ClaudeWarp installed ✓
 
 Project : <name> (<type>)
-Skills  : /new-loop, /harness-sync
+Skills  : /new-loop, /harness-sync, /claude-warp-update
 Next    : run /new-loop "your goal here" to scaffold your first loop
           run /harness-sync to check for Claude Code updates
 

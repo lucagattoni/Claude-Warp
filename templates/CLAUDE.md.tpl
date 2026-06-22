@@ -21,6 +21,7 @@ there before writing the SKILL.md.
 **Skills available** (invoke with `/skill-name`):
 - `/new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
 - `/harness-sync` — re-check Claude Code changelog; prune superseded harness components
+- `/claude-warp-update` — run harness-sync then scan Claude-Loops for new patterns to implement
 - `/plan-task "title"` — create a plans/<slug>.md with phases and success criteria
 
 ## Loop conventions
