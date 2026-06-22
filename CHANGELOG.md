@@ -7,15 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [Unreleased]
+## [0.6.0] — 2026-06-22
 
 ### Added
 - `docs/install.md` — full installation guide: prerequisites, what gets created, verify, global install, update, uninstall
 - `docs/usage.md` — full usage guide: loop type selection, single-agent, fan-out, two-part harness, subagents, scheduling, iterating
+- `VERSION` — authoritative version source; `claude-warp-setup` now reads from here instead of the manifest template placeholder
+- `harness-manifest.json.tpl` — added `last_update` field (populated by `/claude-warp-update`)
 
 ### Changed
 - `README.md` — added Install section (prerequisites + one command) and Quick start section (4 key commands); Docs table now covers all three docs
 - `docs/guide.md` — now redirects to `install.md` and `usage.md`
+
+### Fixed
+- `install.sh` — all `setup-loop-harness` references updated to `claude-warp-setup` (was broken since v0.5.0 rename)
+- `skills/claude-warp-setup` — Phase 2 now creates all 7 skill directories; Phase 3 now includes self-copy of `claude-warp-setup`
+- `skills/claude-warp-new-harness` — harness runner now has `MAX_ITER=50` guard and JSON parse failure detection; stale `setup-loop-harness` reference fixed
+- `skills/claude-warp-sync-research` — all `harness-sync` references updated to `claude-warp-sync`; report header fixed
+- `skills/claude-warp-sync` — report header updated; Phase 3 now specifies semver-aware comparison
+- `skills/claude-warp-update` — Phase 3 now guards against 404/network errors before overwriting local skills
+- `templates/harness-manifest.json.tpl` — stale `harness-sync` description corrected to `claude-warp-sync`
+- `templates/loop.SKILL.md.tpl` — removed phantom `harness-manifest.json last_run` step (field does not exist in manifest schema)
+- `templates/CLAUDE.md.tpl` — scheduling section now links to `docs/usage.md` instead of removed `docs/guide.md`
+- `templates/trigger.crontab.tpl` — `/new-loop` reference updated to `/claude-warp-new-loop`
+- `templates/run-fanout.sh.tpl` — added git concurrency warning with worktree guidance for tasks that write shared files
+- `.gitignore` — `CLAUDE_WARP_UPDATE_LOG.md` added (runtime artifact, not source)
 
 ---
 
