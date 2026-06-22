@@ -19,12 +19,12 @@ When designing a new loop, consult `docs/failure-patterns.md` and `docs/building
 there before writing the SKILL.md.
 
 **Skills available** (invoke with `/skill-name`):
-- `/new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
-- `/harness-sync` — re-check Claude Code changelog; prune superseded harness components
-- `/claude-warp-update` — run harness-sync then scan Claude-Loops for new patterns to implement
-- `/new-agent "role"` — scaffold a specialized subagent in `.claude/agents/` with persona, model, and tool constraints
-- `/new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
-- `/plan-task "title"` — create a plans/<slug>.md with phases and success criteria
+- `/claude-warp-new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
+- `/claude-warp-new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
+- `/claude-warp-new-agent "role"` — scaffold a specialized subagent in `.claude/agents/`
+- `/claude-warp-sync` — re-check Claude Code changelog; prune superseded harness components
+- `/claude-warp-update` — pull the latest ClaudeWarp skills from the source repo into this project
+- `/claude-warp-sync-research` — scan Claude-Loops for new patterns worth implementing in ClaudeWarp
 
 ## Loop conventions
 

@@ -13,7 +13,7 @@ git clone https://github.com/lucagattoni/Claude-Warp.git /tmp/claude-warp
 bash /tmp/claude-warp/install.sh
 ```
 
-`install.sh` copies the installer skill and runs `claude -p "/setup-loop-harness"`,
+`install.sh` copies the installer skill and runs `claude -p "/claude-warp-setup"`,
 which configures everything autonomously.
 
 **What gets created:**
@@ -46,7 +46,7 @@ ClaudeWarp provides three scaffolding paths depending on goal complexity:
 For daily digests, monitors, audits, and anything that fits in one context window:
 
 ```bash
-claude -p '/new-loop "check GitHub Issues daily and summarise new ones"'
+claude -p '/claude-warp-new-loop "check GitHub Issues daily and summarise new ones"'
 ```
 
 Creates:
@@ -65,7 +65,7 @@ issues, PRs, URLs). `new-loop` selects `run-fanout.sh.tpl` automatically when
 the goal is batch-shaped:
 
 ```bash
-claude -p '/new-loop "migrate all Python files in src/ to async/await"'
+claude -p '/claude-warp-new-loop "migrate all Python files in src/ to async/await"'
 ```
 
 Creates the same files as above, but the runner dispatches one `claude` process per
@@ -77,7 +77,7 @@ For large, multi-stage goals that span many context windows and require a planne
 to break the work into bounded units before execution:
 
 ```bash
-claude -p '/new-harness "refactor the auth module to use the new token provider"'
+claude -p '/claude-warp-new-harness "refactor the auth module to use the new token provider"'
 ```
 
 Creates:
@@ -96,7 +96,7 @@ To re-task the harness without changing its rules: edit `PROMPT.md` and commit.
 For loops that need independent reviewers, security auditors, or domain specialists:
 
 ```bash
-claude -p '/new-agent "security reviewer: audits diffs for injection flaws and auth issues"'
+claude -p '/claude-warp-new-agent "security reviewer: audits diffs for injection flaws and auth issues"'
 ```
 
 Creates `.claude/agents/<name>.md` with persona, model, and tool constraints.
@@ -172,7 +172,7 @@ Timestamps use local system time — confirm your OS timezone with `date` before
 As Claude Code ships new features, some harness components become redundant. Run:
 
 ```bash
-claude -p "/harness-sync"
+claude -p "/claude-warp-sync"
 ```
 
 This re-reads the Claude Code changelog, marks superseded components in
@@ -189,14 +189,14 @@ claude -p "/claude-warp-update"
 
 ## Making the installer globally available (optional)
 
-After your first install, run this once to make `/setup-loop-harness` available in
+After your first install, run this once to make `/claude-warp-setup` available in
 all future projects without cloning ClaudeWarp again:
 
 ```bash
-cp -r .claude/skills/setup-loop-harness ~/.claude/skills/
+cp -r .claude/skills/claude-warp-setup ~/.claude/skills/
 ```
 
 Then in any new project:
 ```bash
-claude -p "/setup-loop-harness"
+claude -p "/claude-warp-setup"
 ```

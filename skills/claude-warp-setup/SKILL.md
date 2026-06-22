@@ -1,5 +1,5 @@
 ---
-name: setup-loop-harness
+name: claude-warp-setup
 description: Configure ClaudeWarp in the current project — fills templates, creates dirs, writes harness-manifest.json, and commits
 ---
 
@@ -28,8 +28,8 @@ Set up the ClaudeWarp loop harness in the current project directory.
 ## Phase 2 — Create directory structure
 
 ```bash
-mkdir -p .claude/skills/new-loop
-mkdir -p .claude/skills/harness-sync
+mkdir -p .claude/skills/claude-warp-new-loop
+mkdir -p .claude/skills/claude-warp-sync
 mkdir -p scripts
 mkdir -p plans
 mkdir -p docs
@@ -45,11 +45,13 @@ The ClaudeWarp skills source directory is the repo where this skill lives.
 Detect it: the running skill's path gives the ClaudeWarp root.
 
 Copy from ClaudeWarp source into target project:
-- `skills/new-loop/SKILL.md` → `.claude/skills/new-loop/SKILL.md`
-- `skills/harness-sync/SKILL.md` → `.claude/skills/harness-sync/SKILL.md`
+- `skills/claude-warp-new-loop/SKILL.md` → `.claude/skills/claude-warp-new-loop/SKILL.md`
+- `skills/claude-warp-sync/SKILL.md` → `.claude/skills/claude-warp-sync/SKILL.md`
 - `skills/claude-warp-update/SKILL.md` → `.claude/skills/claude-warp-update/SKILL.md`
-- `skills/new-agent/SKILL.md` → `.claude/skills/new-agent/SKILL.md`
-- `skills/new-harness/SKILL.md` → `.claude/skills/new-harness/SKILL.md`
+- `skills/claude-warp-new-agent/SKILL.md` → `.claude/skills/claude-warp-new-agent/SKILL.md`
+- `skills/claude-warp-new-harness/SKILL.md` → `.claude/skills/claude-warp-new-harness/SKILL.md`
+- `skills/claude-warp-sync-research/SKILL.md` → `.claude/skills/claude-warp-sync-research/SKILL.md`
+
 
 ## Phase 4 — Fill CLAUDE.md
 
@@ -88,11 +90,13 @@ Print a summary:
 ClaudeWarp installed ✓
 
 Project : <name> (<type>)
-Skills  : /new-loop, /harness-sync, /claude-warp-update, /new-agent, /new-harness
-Next    : run /new-loop "your goal here" to scaffold your first loop
-          run /harness-sync to check for Claude Code updates
+Skills  : /claude-warp-new-loop, /claude-warp-sync, /claude-warp-update,
+          /claude-warp-new-agent, /claude-warp-new-harness, /claude-warp-sync-research
+Next    : run /claude-warp-new-loop "your goal here" to scaffold your first loop
+          run /claude-warp-sync to check for Claude Code updates
+          run /claude-warp-update to pull the latest ClaudeWarp skills
 
 To make skills globally available in all future projects (optional):
-  cp -r .claude/skills/setup-loop-harness ~/.claude/skills/
+  cp -r .claude/skills/claude-warp-setup ~/.claude/skills/
 ```
 (Do NOT write to ~/.claude/ — print the command only.)

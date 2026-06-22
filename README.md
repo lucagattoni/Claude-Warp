@@ -20,12 +20,13 @@ It is intentionally thin. Anything Claude Code already handles — subagents, wo
 
 | Skill | What it does |
 |---|---|
-| `/setup-loop-harness` | Per-project installer |
-| `/new-loop "goal"` | Scaffold a single-agent loop |
-| `/new-harness "goal"` | Scaffold a two-part harness (initializer + coding agent) for multi-stage goals |
-| `/new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
-| `/harness-sync` | Prune harness components superseded by Claude Code |
-| `/claude-warp-update` | Check Claude-Loops for new patterns to implement |
+| `/claude-warp-setup` | Per-project installer |
+| `/claude-warp-new-loop "goal"` | Scaffold a single-agent loop |
+| `/claude-warp-new-harness "goal"` | Scaffold a two-part harness (initializer + coding agent) for multi-stage goals |
+| `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
+| `/claude-warp-sync` | Prune harness components superseded by Claude Code |
+| `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub into this project |
+| `/claude-warp-sync-research` | Scan Claude-Loops on GitHub for new patterns worth implementing in ClaudeWarp |
 
 ---
 
@@ -46,4 +47,4 @@ It is intentionally thin. Anything Claude Code already handles — subagents, wo
 
 ## Design
 
-ClaudeWarp is designed to shrink over time. Each harness component tracks a `native_since` field in `harness-manifest.json`. When `/harness-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.
+ClaudeWarp is designed to shrink over time. Each harness component tracks a `native_since` field in `harness-manifest.json`. When `/claude-warp-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.

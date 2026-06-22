@@ -7,7 +7,7 @@ Architecture, skills in depth, and templates reference.
 ## Native vs harness
 
 ClaudeWarp installs only what Claude Code does not already provide. This boundary
-is tracked in `harness-manifest.json` and kept current by `/harness-sync`.
+is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 
 | Capability | Where it lives | Status |
 |---|---|---|
@@ -20,11 +20,11 @@ is tracked in `harness-manifest.json` and kept current by `/harness-sync`.
 | **Scheduling guards** | `scripts/guard-<name>.sh` | **Harness** |
 | **External trigger** | `scripts/run-<name>.sh` + crontab snippet | **Harness** |
 | **Cross-run structured state** | `<NAME>_LOG.md` + dedup logic | **Harness** |
-| **Changelog monitor / self-pruner** | `/harness-sync` | **Harness** |
-| **Loop scaffolder** | `/new-loop`, `/new-harness` | **Harness** |
-| **Agent scaffolder** | `/new-agent` | **Harness** |
+| **Changelog monitor / self-pruner** | `/claude-warp-sync` | **Harness** |
+| **Loop scaffolder** | `/claude-warp-new-loop`, `/claude-warp-new-harness` | **Harness** |
+| **Agent scaffolder** | `/claude-warp-new-agent` | **Harness** |
 
-When a harness row becomes native, `/harness-sync` marks it `superseded`,
+When a harness row becomes native, `/claude-warp-sync` marks it `superseded`,
 logs a migration note in `HARNESS_SYNC_LOG.md`, and adds a deprecation notice
 to the affected skill.
 
@@ -32,17 +32,17 @@ to the affected skill.
 
 ## Skills
 
-### `/setup-loop-harness`
+### `/claude-warp-setup`
 
 Per-project installer. Detects project type (Node / Python / Go / Rust / generic),
 fills `CLAUDE.md` with real context, creates directory structure, writes
 `harness-manifest.json`, and commits.
 
-Install path: `skills/setup-loop-harness/SKILL.md`
+Install path: `skills/claude-warp-setup/SKILL.md`
 
 ---
 
-### `/new-loop "goal"`
+### `/claude-warp-new-loop "goal"`
 
 Scaffolds a complete single-agent loop from a one-line goal description.
 
@@ -65,11 +65,11 @@ Scaffolds a complete single-agent loop from a one-line goal description.
 | `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
-Install path: `skills/new-loop/SKILL.md`
+Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---
 
-### `/new-harness "goal"`
+### `/claude-warp-new-harness "goal"`
 
 Scaffolds a two-part harness for goals too large for a single loop. Based on
 Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
@@ -90,11 +90,11 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 | `PROMPT.md` | Current work unit — edit to re-task without changing rules (anchor file) |
 | `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done |
 
-Install path: `skills/new-harness/SKILL.md`
+Install path: `skills/claude-warp-new-harness/SKILL.md`
 
 ---
 
-### `/new-agent "role"`
+### `/claude-warp-new-agent "role"`
 
 Scaffolds a specialized subagent definition for use inside loops and harnesses.
 
@@ -110,11 +110,11 @@ Scaffolds a specialized subagent definition for use inside loops and harnesses.
 |---|---|
 | `.claude/agents/<name>.md` | Subagent definition with frontmatter and persona |
 
-Install path: `skills/new-agent/SKILL.md`
+Install path: `skills/claude-warp-new-agent/SKILL.md`
 
 ---
 
-### `/harness-sync`
+### `/claude-warp-sync`
 
 Synchronises the harness against the current Claude Code version.
 
@@ -125,24 +125,39 @@ Synchronises the harness against the current Claude Code version.
 5. Adds deprecation notices to affected skill files
 6. Commits if anything changed
 
-Install path: `skills/harness-sync/SKILL.md`
+Install path: `skills/claude-warp-sync/SKILL.md`
 
 ---
 
 ### `/claude-warp-update`
 
-Checks for ClaudeWarp improvements from [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops).
+Pulls the latest ClaudeWarp skills from GitHub into this project.
 
-1. Runs `/harness-sync` as a preliminary step
-2. Pulls the latest Claude-Loops repo
-3. Reads the full topic index and recent news findings
-4. Compares against the current ClaudeWarp inventory
-5. Rates each gap High / Medium / Low
-6. Appends findings to `CLAUDE_WARP_UPDATE_LOG.md` and prints a summary
+1. Reads `harness-manifest.json` for the current installed version
+2. Fetches the skills directory listing from the ClaudeWarp GitHub repo
+3. For each installed skill: fetches the remote SKILL.md and compares with local
+4. Applies updates, installs new skills, and reports orphans (removed upstream)
+5. Updates `harness-manifest.json` version and commits
+
+Install path: `skills/claude-warp-update/SKILL.md`
+
+---
+
+### `/claude-warp-sync-research`
+
+Developer-facing tool — scans [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops)
+on GitHub for patterns not yet implemented in ClaudeWarp. Run from the ClaudeWarp
+source repo, not from installed projects.
+
+1. Runs `/claude-warp-sync` as a preliminary step
+2. Fetches the ClaudeLoops topic index and latest news digest from GitHub
+3. Fetches the ClaudeWarp skills and templates inventory from GitHub
+4. Rates each gap High / Medium / Low
+5. Appends findings to `CLAUDE_WARP_UPDATE_LOG.md` and prints a summary
 
 Does not implement anything — surfaces findings only.
 
-Install path: `skills/claude-warp-update/SKILL.md`
+Install path: `skills/claude-warp-sync-research/SKILL.md`
 
 ---
 
@@ -150,33 +165,33 @@ Install path: `skills/claude-warp-update/SKILL.md`
 
 | Template | Used by | Purpose |
 |---|---|---|
-| `CLAUDE.md.tpl` | `setup-loop-harness` | Base loop engineering context for a project |
-| `loop.SKILL.md.tpl` | `new-loop` | Loop skill skeleton: guard → state → work → verify → write → stop |
-| `guard.sh.tpl` | `new-loop` | Run-once-per-day / weekday-only guard script |
-| `run-headless.sh.tpl` | `new-loop` | Single-agent headless runner with `--max-turns` and `--max-budget-usd` |
-| `run-fanout.sh.tpl` | `new-loop` | Parallel fan-out runner: one agent per item, concurrency cap, per-item logs |
-| `trigger.crontab.tpl` | `new-loop` | Reference cron entry (not installed — paste into `crontab -e`) |
-| `harness-manifest.json.tpl` | `setup-loop-harness` | Version + components registry |
-| `VISION.md.tpl` | `new-harness` | Anchor file: high-level goal and success criteria |
-| `AGENTS.md.tpl` | `new-harness` | Anchor file: agent roles and handoff protocol |
-| `PROMPT.md.tpl` | `new-harness` | Anchor file: current work unit; edit to re-task the loop |
+| `CLAUDE.md.tpl` | `claude-warp-setup` | Base loop engineering context for a project |
+| `loop.SKILL.md.tpl` | `claude-warp-new-loop` | Loop skill skeleton: guard → state → work → verify → write → stop |
+| `guard.sh.tpl` | `claude-warp-new-loop` | Run-once-per-day / weekday-only guard script |
+| `run-headless.sh.tpl` | `claude-warp-new-loop` | Single-agent headless runner with `--max-turns` and `--max-budget-usd` |
+| `run-fanout.sh.tpl` | `claude-warp-new-loop` | Parallel fan-out runner: one agent per item, concurrency cap, per-item logs |
+| `trigger.crontab.tpl` | `claude-warp-new-loop` | Reference cron entry (not installed — paste into `crontab -e`) |
+| `harness-manifest.json.tpl` | `claude-warp-setup` | Version + components registry |
+| `VISION.md.tpl` | `claude-warp-new-harness` | Anchor file: high-level goal and success criteria |
+| `AGENTS.md.tpl` | `claude-warp-new-harness` | Anchor file: agent roles and handoff protocol |
+| `PROMPT.md.tpl` | `claude-warp-new-harness` | Anchor file: current work unit; edit to re-task the loop |
 
 ---
 
 ## Loop anatomy
 
-Every loop scaffolded by `/new-loop` follows this phase sequence:
+Every loop scaffolded by `/claude-warp-new-loop` follows this phase sequence:
 
 ```
 Phase 1 — Guard check     prevent duplicate runs
 Phase 2 — Load state      read STATE_FILE; recover IN_PROGRESS tasks
-Phase 3 — Do the work     goal-specific logic (expanded by /new-loop)
+Phase 3 — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
 Phase 3b — Verify         run check command; iterate on failure
 Phase 4 — Write results   append dated entry to STATE_FILE; commit
 Stopping condition        SUCCESS / SKIP / FAILURE defined per loop
 ```
 
-Every harness scaffolded by `/new-harness` follows this flow:
+Every harness scaffolded by `/claude-warp-new-harness` follows this flow:
 
 ```
 Initializer (once)  →  features.json populated

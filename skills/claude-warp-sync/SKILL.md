@@ -1,5 +1,5 @@
 ---
-name: harness-sync
+name: claude-warp-sync
 description: Re-check the Claude Code changelog and prune harness components that have become native; update harness-manifest.json with current CC version
 ---
 
@@ -80,7 +80,7 @@ Write back to `harness-manifest.json`:
 
 ```bash
 git add harness-manifest.json HARNESS_SYNC_LOG.md .claude/skills/
-git commit -m "chore(harness-sync): CC v<CC_VERSION>, <N> components checked, <M> superseded"
+git commit -m "chore(claude-warp-sync): CC v<CC_VERSION>, <N> components checked, <M> superseded"
 ```
 If nothing changed: log "harness up to date, no changes" and skip the commit.
 
@@ -92,5 +92,5 @@ harness-sync complete ✓
 Claude Code version : <CC_VERSION>
 Components checked  : <N>
 Superseded          : <M> (see HARNESS_SYNC_LOG.md)
-Next sync           : tomorrow (or run /harness-sync anytime)
+Next sync           : tomorrow (or run /claude-warp-sync anytime)
 ```

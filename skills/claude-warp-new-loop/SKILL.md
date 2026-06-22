@@ -1,5 +1,5 @@
 ---
-name: new-loop
+name: claude-warp-new-loop
 description: Scaffold a new loop from a one-line goal — creates SKILL.md, guard script, headless runner, state file, and trigger snippet
 ---
 

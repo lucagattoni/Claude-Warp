@@ -1,5 +1,5 @@
 ---
-name: new-agent
+name: claude-warp-new-agent
 description: Scaffold a specialized subagent definition in .claude/agents/ — sets name, description, model, tools, and persona from a one-line role description
 ---
 

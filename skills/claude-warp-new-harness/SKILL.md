@@ -1,5 +1,5 @@
 ---
-name: new-harness
+name: claude-warp-new-harness
 description: Scaffold a two-part harness for complex multi-stage goals — an initializer agent that produces a JSON feature list, and a coding agent that executes tasks with git-based recovery
 ---
 
