@@ -1,10 +1,6 @@
 # ClaudeWarp
 
-> The loop harness for Claude Code. Scaffold, guard, and schedule autonomous loops in any project — one command.
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/install.sh)
-```
+> The loop harness for Claude Code. Scaffold, guard, and schedule autonomous loops in any project.
 
 ---
 
@@ -16,17 +12,51 @@ It is intentionally thin. Anything Claude Code already handles — subagents, wo
 
 ---
 
+## Install
+
+**Prerequisites:** Claude Code installed, and a git repository as your working directory.
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/install.sh)
+```
+
+This runs `/claude-warp-setup` autonomously: detects your project type, fills `CLAUDE.md` and `harness-manifest.json`, installs all skills under `.claude/skills/`, and commits everything in one go.
+
+→ Full installation guide: [docs/install.md](docs/install.md)
+
+---
+
+## Quick start
+
+```bash
+# Scaffold a daily loop from a one-line goal
+claude -p '/claude-warp-new-loop "summarise new GitHub Issues every morning"'
+
+# Test it before scheduling
+bash scripts/run-<slug>.sh
+
+# Wire to cron (paste the generated snippet)
+crontab -e
+
+# Keep skills up to date
+claude -p "/claude-warp-update"
+```
+
+→ Full usage guide: [docs/usage.md](docs/usage.md)
+
+---
+
 ## Skills
 
 | Skill | What it does |
 |---|---|
 | `/claude-warp-setup` | Per-project installer |
-| `/claude-warp-new-loop "goal"` | Scaffold a single-agent loop |
-| `/claude-warp-new-harness "goal"` | Scaffold a two-part harness (initializer + coding agent) for multi-stage goals |
+| `/claude-warp-new-loop "goal"` | Scaffold a single-agent loop or fan-out loop |
+| `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for multi-stage goals |
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
 | `/claude-warp-sync` | Prune harness components superseded by Claude Code |
-| `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub into this project |
-| `/claude-warp-sync-research` | Scan Claude-Loops on GitHub for new patterns worth implementing in ClaudeWarp |
+| `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub |
+| `/claude-warp-sync-research` | Scan Claude-Loops for new patterns to implement in ClaudeWarp |
 
 ---
 
@@ -34,7 +64,8 @@ It is intentionally thin. Anything Claude Code already handles — subagents, wo
 
 | Document | Contents |
 |---|---|
-| [docs/guide.md](docs/guide.md) | Step-by-step: install → scaffold → run → schedule |
+| [docs/install.md](docs/install.md) | Prerequisites, install command, verification, update, uninstall |
+| [docs/usage.md](docs/usage.md) | Loop types, scheduling, iterating, keeping the harness current |
 | [docs/loop-harness.md](docs/loop-harness.md) | Architecture: native vs harness boundary, skills in depth, templates reference |
 
 ---
