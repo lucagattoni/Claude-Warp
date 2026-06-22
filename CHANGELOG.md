@@ -11,6 +11,16 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [0.4.0] — 2026-06-22
+
+### Added
+- `templates/run-fanout.sh.tpl` — parallel fan-out runner: generates a task list then dispatches one `claude` process per item with a configurable concurrency cap, per-item log files, and a pass/fail summary; `new-loop` now selects this template over `run-headless.sh.tpl` for batch/multi-item goals
+- `templates/VISION.md.tpl` — Anchor File Pattern: high-level goal and success criteria
+- `templates/AGENTS.md.tpl` — Anchor File Pattern: role definitions and handoff protocol for multi-agent setups
+- `templates/PROMPT.md.tpl` — Anchor File Pattern: current work unit; edit to re-task the loop without touching rules or goal; `new-harness` now scaffolds all three anchor files alongside the session-init
+
+---
+
 ## [0.3.0] — 2026-06-22
 
 ### Added
