@@ -18,6 +18,7 @@ ClaudeWarp installs **only the layer Claude Code does not provide natively**:
 | Prevent duplicate runs | `scripts/guard-<slug>.sh` (run-once-per-day) |
 | Run unattended | `scripts/run-<slug>.sh` → wire to cron / launchd |
 | Stay current as Claude Code evolves | `/harness-sync` — reads the CC changelog and prunes superseded components automatically |
+| Keep ClaudeWarp itself up to date | `/claude-warp-update` — runs harness-sync then scans Claude-Loops for new patterns to implement |
 
 Everything Claude Code already handles natively (subagents, worktrees, scheduling runtime, `/code-review`, memory) is **not** reimplemented here — it's just documented and referenced.
 
