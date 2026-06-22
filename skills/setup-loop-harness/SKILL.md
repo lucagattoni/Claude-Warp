@@ -7,9 +7,9 @@ Set up the ClaudeWarp loop harness in the current project directory.
 
 ## Phase 1 — Detect project
 
-1. Get the exact Irish time:
+1. Get the exact local time:
    ```bash
-   TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z'
+   date '+%Y-%m-%d %H:%M %Z'
    ```
 2. Detect project type by checking for these files in order:
    - `package.json` → `node`
@@ -65,7 +65,7 @@ under a `## ClaudeWarp` heading rather than overwriting.
 Read `templates/harness-manifest.json.tpl` from ClaudeWarp source.
 Replace all placeholders:
 - `{{HARNESS_VERSION}}` → ClaudeWarp version
-- `{{INSTALLED_AT}}` → Irish time from Phase 1
+- `{{INSTALLED_AT}}` → local time from Phase 1
 - `{{PROJECT_NAME}}`, `{{PROJECT_TYPE}}`, `{{REPO_ROOT}}` → from Phase 1
 - `{{CC_VERSION}}` → Claude Code version from Phase 1
 

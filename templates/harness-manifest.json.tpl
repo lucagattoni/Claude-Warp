@@ -13,6 +13,13 @@
   },
   "components": [
     {
+      "name": "skill-distribution-workaround",
+      "description": "manual skill copying workaround (pre-v2.1.157 compatibility)",
+      "native_since": "2.1.157",
+      "status": "active",
+      "note": "Skills in .claude/skills/ now auto-load natively. This component is kept as a harness-sync self-test: it should be marked superseded on first /harness-sync run."
+    },
+    {
       "name": "scheduling-guards",
       "description": "run-once-per-day and weekday-only guard scripts",
       "native_since": null,

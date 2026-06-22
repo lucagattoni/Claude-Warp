@@ -1,14 +1,11 @@
 # Cron trigger for loop: {{SKILL_NAME}}
-# Runs at {{CRON_SCHEDULE}} Irish time (IST = UTC+1 summer, UTC+0 winter).
+# Runs at {{CRON_SCHEDULE}} local system time.
 #
 # To install: run `crontab -e` and paste the line below.
 # Verify with: crontab -l
 #
-# Note: cron uses UTC. Adjust the hour when DST changes (late Mar / late Oct).
-# Summer (IST = UTC+1): subtract 1 from your target IST hour for the UTC value.
-# Winter (GMT = UTC+0): use the IST hour directly.
-#
-# Example: 09:00 IST summer = 08:00 UTC → minute=0, hour=8
+# Note: cron uses the OS clock — whatever timezone your system is set to.
+# Confirm with: date (shows current system time and timezone)
 #
 {{CRON_SCHEDULE}} {{REPO_ROOT}}/scripts/run-{{SKILL_SLUG}}.sh >> {{REPO_ROOT}}/logs/cron-{{SKILL_SLUG}}.log 2>&1
 

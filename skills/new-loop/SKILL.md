@@ -17,9 +17,9 @@ Derive from it:
 - `MAX_TURNS` — conservative estimate based on goal complexity (default 30)
 - `ALLOWED_TOOLS` — minimum tool set needed (default: `"Read,Edit,WebFetch"`)
 
-Get Irish time:
+Get local time:
 ```bash
-TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z'
+date '+%Y-%m-%d %H:%M %Z'
 ```
 
 ## Phase 2 — Create files
@@ -76,7 +76,7 @@ Read `harness-manifest.json`. Append to the `loops` array:
   "slug": "<SKILL_SLUG>",
   "name": "<SKILL_NAME>",
   "state_file": "<STATE_FILE>",
-  "created_at": "<IST_DATE>"
+  "created_at": "<LOCAL_TIMESTAMP>"
 }
 ```
 Write back.

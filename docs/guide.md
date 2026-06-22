@@ -81,7 +81,7 @@ bash scripts/run-<slug>.sh
 
 Check the log:
 ```bash
-cat logs/<slug>-$(TZ='Europe/Dublin' date '+%Y%m%d').log
+cat logs/<slug>-$(date '+%Y%m%d').log
 ```
 
 Test the guard (run twice — second should skip):
@@ -130,8 +130,7 @@ Load it:
 launchctl load ~/Library/LaunchAgents/com.claudewarp.<slug>.plist
 ```
 
-**Note on timezones:** cron/launchd use local system time. If your system is set to UTC,
-adjust the hour. Irish time is UTC+1 (summer) / UTC+0 (winter).
+**Note on timezones:** cron/launchd use local system time — whatever timezone your OS clock is set to. Confirm with `date` before scheduling.
 
 ---
 

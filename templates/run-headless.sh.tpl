@@ -7,9 +7,9 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 mkdir -p logs
-LOG="logs/{{SKILL_SLUG}}-$(TZ='Europe/Dublin' date '+%Y%m%d').log"
+LOG="logs/{{SKILL_SLUG}}-$(date '+%Y%m%d').log"
 
-echo "[$(TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z')] Starting {{SKILL_NAME}}" >> "$LOG"
+echo "[$(date '+%Y-%m-%d %H:%M %Z')] Starting {{SKILL_NAME}}" >> "$LOG"
 
 claude \
   --permission-mode auto \
@@ -18,4 +18,4 @@ claude \
   -p "/{{SKILL_SLUG}}" \
   >> "$LOG" 2>&1
 
-echo "[$(TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z')] Done" >> "$LOG"
+echo "[$(date '+%Y-%m-%d %H:%M %Z')] Done" >> "$LOG"

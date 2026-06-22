@@ -11,7 +11,7 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [0.1.0] — 2026-06-22 IST
+## [0.1.0] — 2026-06-22
 
 ### Added
 - `skills/setup-loop-harness/SKILL.md` — per-project configurator

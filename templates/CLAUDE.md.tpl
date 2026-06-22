@@ -13,6 +13,11 @@
 This project uses Claude Code loop engineering patterns. Key principle: you write loops
 that prompt Claude autonomously — not one-shot prompts.
 
+The conceptual foundation — paradigms, building blocks, failure modes, verification
+patterns — is documented in [Claude-Loops](https://github.com/lucagattoni/Claude-Loops).
+When designing a new loop, consult `docs/failure-patterns.md` and `docs/building-blocks.md`
+there before writing the SKILL.md.
+
 **Skills available** (invoke with `/skill-name`):
 - `/new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
 - `/harness-sync` — re-check Claude Code changelog; prune superseded harness components
@@ -33,7 +38,7 @@ See `templates/trigger.crontab.tpl` and `docs/guide.md` for setup instructions.
 
 ## Timestamps
 
-All timestamps in this project use Irish Standard Time:
+All timestamps use local system time — no timezone override:
 ```bash
-TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z'
+date '+%Y-%m-%d %H:%M %Z'
 ```

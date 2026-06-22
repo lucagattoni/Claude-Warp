@@ -18,7 +18,7 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 1. Read `{{STATE_FILE}}` to find the most recent run entry.
 2. Record `last_run` (ISO date) and `today` from:
    ```bash
-   TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z'
+   date '+%Y-%m-%d %H:%M %Z'
    ```
 
 ## Phase 3 — Do the work
@@ -29,13 +29,13 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 
 1. Append a new dated section to `{{STATE_FILE}}`:
    ```markdown
-   ## YYYY-MM-DD HH:MM IST (run)
+   ## YYYY-MM-DD HH:MM <TZ> (run)
    <!-- findings -->
    ---
    ```
 2. Update `harness-manifest.json` last_run field:
    ```bash
-   TZ='Europe/Dublin' date '+%Y-%m-%dT%H:%M:%S%z'
+   date '+%Y-%m-%dT%H:%M:%S%z'
    ```
 3. Commit changes:
    ```bash

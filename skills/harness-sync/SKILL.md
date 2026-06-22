@@ -7,9 +7,9 @@ Synchronise the ClaudeWarp harness against the current Claude Code version.
 
 ## Phase 1 — Get current state
 
-1. Get Irish time:
+1. Get local time:
    ```bash
-   TZ='Europe/Dublin' date '+%Y-%m-%d %H:%M %Z'
+   date '+%Y-%m-%d %H:%M %Z'
    ```
 2. Get installed Claude Code version:
    ```bash
@@ -58,7 +58,7 @@ For each component now marked superseded (auto-cut policy agreed):
 1. Set `status` → `"superseded"` in `harness-manifest.json`.
 2. Write a migration note to `HARNESS_SYNC_LOG.md`:
    ```markdown
-   ## YYYY-MM-DD HH:MM IST
+   ## YYYY-MM-DD HH:MM <TZ>
    ### Component superseded: <name>
    **Native since:** Claude Code v<version>
    **Migration:** <one sentence on how to use the native feature instead>
@@ -73,7 +73,7 @@ For each component now marked superseded (auto-cut policy agreed):
 
 Write back to `harness-manifest.json`:
 - `claude_code.version_at_install` → preserve (do not overwrite)
-- `claude_code.last_sync` → current IST timestamp
+- `claude_code.last_sync` → current local timestamp
 - Update any `native_since` and `status` fields found in Phase 3–4.
 
 ## Phase 6 — Commit

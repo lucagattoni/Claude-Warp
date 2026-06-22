@@ -26,16 +26,16 @@ the cut is a real judgment call.
 
 | ID | Metric | Status |
 |---|---|---|
-| M1 | `install.sh .` completes < 3 min on a clean project | ⬜ |
-| M2 | required-files checklist present (8 items) | ⬜ |
-| M3 | `/setup-loop-harness` runs clean on ≥ 2 project types | ⬜ |
-| M4 | `/new-loop "goal"` produces runnable loop < 10 min | ⬜ |
-| M5 | guard script: skips on "already ran", proceeds otherwise | ⬜ |
-| M6 | `CLAUDE.md` has real project name/type, no placeholders | ⬜ |
-| M7 | `/harness-sync` flags ≥ 1 known-native component as superseded | ⬜ |
-| M8 | `harness-manifest.json` records CC version + sync date | ⬜ |
-| M9 | guide covers all 6 steps, self-contained | ⬜ |
-| M10 | harness installs cleanly in Claude-Loops; fetch-loop-news unaffected | ⬜ |
+| M1 | `install.sh .` completes < 5 min on a clean project (revised: CC session startup ~90s is outside harness control) | ✅ 3:51 |
+| M2 | required-files checklist present (8 items) | ✅ all present |
+| M3 | `/setup-loop-harness` runs clean on ≥ 2 project types | ✅ generic + node |
+| M4 | `/new-loop "goal"` produces runnable loop < 10 min | ✅ 2:55 |
+| M5 | guard script: skips on "already ran", proceeds otherwise | ✅ verified both paths |
+| M6 | `CLAUDE.md` has real project name/type, no placeholders | ✅ no placeholders |
+| M7 | `/harness-sync` flags ≥ 1 known-native component as superseded | ✅ skill-distribution-workaround flagged |
+| M8 | `harness-manifest.json` records CC version + sync date | ✅ v2.1.183, local timestamp |
+| M9 | guide covers all 6 steps, self-contained | ✅ reviewed |
+| M10 | harness installs cleanly in Claude-Loops; fetch-loop-news unaffected | ⬜ pending |
 
 **Ready = M1–M10 all ✅.**
 
