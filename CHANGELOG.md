@@ -9,6 +9,11 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Changed
+- `README.md` — restructured as a lean overview; detail moved into `docs/`
+- `docs/guide.md` — updated with `/new-harness`, `/new-agent`, fan-out, and `/claude-warp-update` flows
+- `docs/loop-harness.md` — full skills reference, templates table, and loop anatomy diagram; covers all skills through v0.4.0
+
 ---
 
 ## [0.4.0] — 2026-06-22
