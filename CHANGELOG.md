@@ -9,6 +9,14 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Added
+- `docs/install.md` — full installation guide: prerequisites, what gets created, verify, global install, update, uninstall
+- `docs/usage.md` — full usage guide: loop type selection, single-agent, fan-out, two-part harness, subagents, scheduling, iterating
+
+### Changed
+- `README.md` — added Install section (prerequisites + one command) and Quick start section (4 key commands); Docs table now covers all three docs
+- `docs/guide.md` — now redirects to `install.md` and `usage.md`
+
 ---
 
 ## [0.5.0] — 2026-06-22
