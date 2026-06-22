@@ -52,13 +52,9 @@ Run the verification check and read its exit code:
    <!-- findings -->
    ---
    ```
-2. Update `harness-manifest.json` last_run field:
+2. Commit changes:
    ```bash
-   date '+%Y-%m-%dT%H:%M:%S%z'
-   ```
-3. Commit changes:
-   ```bash
-   git add {{STATE_FILE}} harness-manifest.json
+   git add {{STATE_FILE}}
    git commit -m "loop({{SKILL_SLUG}}): run YYYY-MM-DD"
    ```
 

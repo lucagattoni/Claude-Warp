@@ -35,7 +35,8 @@ Write the result to `~/.claude/cache/changelog.md`.
 
 For each component in `harness-manifest.json` `components[]` where `status == "active"`:
 
-Read the component's `native_since` field. If it is non-null and `native_since` ≤ `CC_VERSION`:
+Read the component's `native_since` field. If it is non-null and `native_since` ≤ `CC_VERSION`
+(compare as semver: split on `.` and compare major, minor, patch numerically in order):
 → the component is **superseded** (already handled natively by Claude Code).
 
 Additionally, scan the fetched changelog for evidence that any currently-active component
@@ -87,7 +88,7 @@ If nothing changed: log "harness up to date, no changes" and skip the commit.
 ## Phase 7 — Report
 
 ```
-harness-sync complete ✓
+claude-warp-sync complete ✓
 
 Claude Code version : <CC_VERSION>
 Components checked  : <N>

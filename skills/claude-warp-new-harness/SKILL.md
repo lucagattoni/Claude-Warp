@@ -56,7 +56,7 @@ Read `templates/PROMPT.md.tpl` and fill:
 - `{{CURRENT_TASK}}` → first task description (leave as placeholder if unknown)
 Write to `PROMPT.md`.
 
-(`CLAUDE.md` is already managed by `setup-loop-harness` — do not overwrite it.)
+(`CLAUDE.md` is already managed by `claude-warp-setup` — do not overwrite it.)
 
 ## Phase 3 — Write the feature list schema
 
@@ -182,16 +182,24 @@ if [ "$TASK_COUNT" -eq 0 ]; then
 fi
 
 # Step 2 — coding agent loop
+# MAX_ITER guards against infinite loops when the agent never marks tasks done.
+MAX_ITER=50
+ITER=0
 PENDING=1
-while [ "$PENDING" -gt 0 ]; do
+while [ "$PENDING" -gt 0 ] && [ "$ITER" -lt "$MAX_ITER" ]; do
+  ITER=$((ITER+1))
   PENDING=$(python3 -c "
 import json,sys
 d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo 0)
+print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo -1)
 
+  if [ "$PENDING" -eq -1 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: could not parse $FEATURES — aborting." >> "$LOG"
+    exit 1
+  fi
   if [ "$PENDING" -eq 0 ]; then break; fi
 
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running coding agent ($PENDING tasks remaining)..." >> "$LOG"
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running coding agent (iter $ITER/$MAX_ITER, $PENDING tasks remaining)..." >> "$LOG"
   claude \
     --permission-mode auto \
     --max-turns <MAX_TURNS_WORKER> \
@@ -200,6 +208,11 @@ print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))"
     -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in $FEATURES" \
     >> "$LOG" 2>&1
 done
+
+if [ "$ITER" -ge "$MAX_ITER" ] && [ "$PENDING" -gt 0 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: reached MAX_ITER=$MAX_ITER with $PENDING tasks still pending." >> "$LOG"
+  exit 1
+fi
 
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness complete: <HARNESS_NAME>" >> "$LOG"
 ```

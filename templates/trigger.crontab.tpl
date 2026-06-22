@@ -11,4 +11,4 @@
 
 # --- launchd alternative (macOS) ---
 # Create ~/Library/LaunchAgents/com.claudewarp.{{SKILL_SLUG}}.plist
-# ClaudeWarp can generate this for you: /new-loop will print the plist snippet.
+# ClaudeWarp can generate this for you: /claude-warp-new-loop will print the plist snippet.

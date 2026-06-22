@@ -2,6 +2,11 @@
 # Fan-out runner for: {{SKILL_NAME}}
 # Generates a task list then executes one claude invocation per item in parallel.
 # Usage: bash scripts/run-fanout-{{SKILL_SLUG}}.sh [--dry-run]
+#
+# GIT SAFETY: Parallel agents writing to the same working tree will race on
+# git commits. If items touch different files, this is usually safe. If items
+# may touch the same files, use git worktrees — create one worktree per item and
+# pass the worktree path to each agent. See: git worktree add <path> <branch>
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

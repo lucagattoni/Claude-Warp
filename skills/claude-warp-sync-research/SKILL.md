@@ -5,11 +5,11 @@ description: Developer tool — runs claude-warp-sync first, then scans Claude-L
 
 Check ClaudeWarp for available improvements. Preliminary step: sync against Claude Code. Then scan Claude-Loops for implementable ideas.
 
-## Phase 0 — Prerequisite: run harness-sync
+## Phase 0 — Prerequisite: run claude-warp-sync
 
 Invoke the `/claude-warp-sync` skill inline before doing anything else. Wait for it to complete and record its output — specifically `CC_VERSION` and any superseded components.
 
-If harness-sync fails, note the failure, record `CC_VERSION` as "unknown", and continue.
+If claude-warp-sync fails, note the failure, record `CC_VERSION` as "unknown", and continue.
 
 ## Phase 1 — Get current state
 
@@ -103,8 +103,8 @@ Write findings to `CLAUDE_WARP_UPDATE_LOG.md` in the ClaudeWarp root (append; do
 ```markdown
 ## <RUN_TS>
 
-### harness-sync output
-<paste the harness-sync summary — CC_VERSION, components checked, superseded>
+### claude-warp-sync output
+<paste the claude-warp-sync summary — CC_VERSION, components checked, superseded>
 
 ### Claude-Loops last updated
 <LOOPS_COMMIT sha> (<date>)
@@ -127,14 +127,14 @@ Write findings to `CLAUDE_WARP_UPDATE_LOG.md` in the ClaudeWarp root (append; do
 ---
 ```
 
-If a "High priority" item also maps to a superseded harness-sync component, call that out explicitly — it means Claude Code now handles it natively and no new skill is needed.
+If a "High priority" item also maps to a superseded claude-warp-sync component, call that out explicitly — it means Claude Code now handles it natively and no new skill is needed.
 
 ## Phase 6 — Present summary to user
 
 Print a concise report to the terminal (do not just point to the log file):
 
 ```
-claude-warp-update complete ✓
+claude-warp-sync-research complete ✓
 
 Claude Code version : <CC_VERSION>
 Claude-Loops commit : <short hash> (<date>)

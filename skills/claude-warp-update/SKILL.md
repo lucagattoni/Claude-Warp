@@ -44,7 +44,10 @@ For each skill in `INSTALLED_SKILLS`:
   ```
   WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/skills/<name>/SKILL.md
   ```
-- Compare with local `.claude/skills/<name>/SKILL.md`
+- **If the fetch fails or returns an HTTP error (404, 5xx, network error):** mark as
+  **fetch-failed** — do NOT overwrite the local copy. Log the error and continue.
+- Compare with local `.claude/skills/<name>/SKILL.md` using a line-by-line diff
+  (not LLM judgment — look for actual content differences)
 - If remote differs → mark as **update available**
 - If skill not found in `REMOTE_SKILLS` → mark as **orphan** (removed upstream)
 

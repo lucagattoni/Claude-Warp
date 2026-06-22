@@ -28,8 +28,13 @@ Set up the ClaudeWarp loop harness in the current project directory.
 ## Phase 2 — Create directory structure
 
 ```bash
+mkdir -p .claude/skills/claude-warp-setup
 mkdir -p .claude/skills/claude-warp-new-loop
 mkdir -p .claude/skills/claude-warp-sync
+mkdir -p .claude/skills/claude-warp-update
+mkdir -p .claude/skills/claude-warp-new-agent
+mkdir -p .claude/skills/claude-warp-new-harness
+mkdir -p .claude/skills/claude-warp-sync-research
 mkdir -p scripts
 mkdir -p plans
 mkdir -p docs
@@ -45,6 +50,7 @@ The ClaudeWarp skills source directory is the repo where this skill lives.
 Detect it: the running skill's path gives the ClaudeWarp root.
 
 Copy from ClaudeWarp source into target project:
+- `skills/claude-warp-setup/SKILL.md` → `.claude/skills/claude-warp-setup/SKILL.md`
 - `skills/claude-warp-new-loop/SKILL.md` → `.claude/skills/claude-warp-new-loop/SKILL.md`
 - `skills/claude-warp-sync/SKILL.md` → `.claude/skills/claude-warp-sync/SKILL.md`
 - `skills/claude-warp-update/SKILL.md` → `.claude/skills/claude-warp-update/SKILL.md`
@@ -60,7 +66,7 @@ Replace all placeholders:
 - `{{PROJECT_NAME}}` → detected project name
 - `{{PROJECT_TYPE}}` → detected project type
 - `{{REPO_ROOT}}` → absolute path of project root
-- `{{HARNESS_VERSION}}` → read from ClaudeWarp's own `harness-manifest.json.tpl` version field
+- `{{HARNESS_VERSION}}` → read from ClaudeWarp's `VERSION` file (e.g. `cat templates/../VERSION`)
 
 If a `CLAUDE.md` already exists in the target project, append the ClaudeWarp section
 under a `## ClaudeWarp` heading rather than overwriting.
@@ -69,7 +75,7 @@ under a `## ClaudeWarp` heading rather than overwriting.
 
 Read `templates/harness-manifest.json.tpl` from ClaudeWarp source.
 Replace all placeholders:
-- `{{HARNESS_VERSION}}` → ClaudeWarp version
+- `{{HARNESS_VERSION}}` → ClaudeWarp version (read from `VERSION` file)
 - `{{INSTALLED_AT}}` → local time from Phase 1
 - `{{PROJECT_NAME}}`, `{{PROJECT_TYPE}}`, `{{REPO_ROOT}}` → from Phase 1
 - `{{CC_VERSION}}` → Claude Code version from Phase 1
