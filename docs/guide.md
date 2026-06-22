@@ -13,14 +13,14 @@ git clone https://github.com/lucagattoni/Claude-Warp.git /tmp/claude-warp
 bash /tmp/claude-warp/install.sh
 ```
 
-That's it. `install.sh` copies the installer skill and runs
-`claude -p "/setup-loop-harness"` which configures everything else autonomously.
+`install.sh` copies the installer skill and runs `claude -p "/setup-loop-harness"`,
+which configures everything autonomously.
 
 **What gets created:**
-- `.claude/skills/new-loop/` and `.claude/skills/harness-sync/`
-- `CLAUDE.md` (filled with your project name and type)
-- `harness-manifest.json` (version + component registry)
-- `plans/`, `docs/` directories
+- `.claude/skills/` — all ClaudeWarp skills installed
+- `CLAUDE.md` — filled with your project name and type
+- `harness-manifest.json` — version + component registry
+- `plans/`, `docs/`, `scripts/` directories
 - `logs/` added to `.gitignore`
 - A single commit: `chore: install ClaudeWarp loop harness`
 
@@ -32,48 +32,81 @@ That's it. `install.sh` copies the installer skill and runs
 cat harness-manifest.json
 ```
 
-Check that `project.name` and `project.type` are filled in correctly (not placeholders).
+Check that `project.name` and `project.type` are filled in (not placeholders).
 If anything looks wrong, edit `CLAUDE.md` and `harness-manifest.json` directly.
-
-To check all required files are present:
-```bash
-ls .claude/skills/new-loop/SKILL.md \
-   .claude/skills/harness-sync/SKILL.md \
-   harness-manifest.json \
-   CLAUDE.md \
-   plans/
-```
 
 ---
 
-## Step 3 — Scaffold your first loop
+## Step 3 — Choose your loop type
 
-Describe your goal in one sentence:
+ClaudeWarp provides three scaffolding paths depending on goal complexity:
 
-```
+### Simple loop — single agent, one task per run
+
+For daily digests, monitors, audits, and anything that fits in one context window:
+
+```bash
 claude -p '/new-loop "check GitHub Issues daily and summarise new ones"'
 ```
 
-Or interactively:
-```bash
-claude
-# then type: /new-loop "check GitHub Issues daily and summarise new ones"
-```
-
-`/new-loop` creates:
-- `.claude/skills/<slug>/SKILL.md` — the loop logic
-- `scripts/guard-<slug>.sh` — prevents duplicate runs
-- `scripts/run-<slug>.sh` — headless runner
-- `<SLUG>_LOG.md` — append-only state
+Creates:
+- `.claude/skills/<slug>/SKILL.md` — loop logic with guard, state, verify, and stop phases
+- `scripts/guard-<slug>.sh` — run-once-per-day / weekday guard
+- `scripts/run-<slug>.sh` — headless runner (single agent)
+- `<SLUG>_LOG.md` — append-only state file
 - `scripts/trigger-<slug>.crontab` — cron snippet to review
 
-Review the generated `SKILL.md` and adjust Phase 3 ("Do the work") for your exact use case.
+Review the generated SKILL.md and expand Phase 3 ("Do the work") for your exact use case.
+
+### Fan-out loop — parallel agents, one per item
+
+For batch jobs where the same task runs against many independent items (files,
+issues, PRs, URLs). `new-loop` selects `run-fanout.sh.tpl` automatically when
+the goal is batch-shaped:
+
+```bash
+claude -p '/new-loop "migrate all Python files in src/ to async/await"'
+```
+
+Creates the same files as above, but the runner dispatches one `claude` process per
+item in parallel (concurrency capped at `{{MAX_PARALLEL}}`).
+
+### Two-part harness — initializer + coding agent
+
+For large, multi-stage goals that span many context windows and require a planner
+to break the work into bounded units before execution:
+
+```bash
+claude -p '/new-harness "refactor the auth module to use the new token provider"'
+```
+
+Creates:
+- `.claude/agents/<slug>-initializer.md` — planner agent that produces a JSON task list
+- `<slug>-features.json` — bounded task queue (`pending` → `in_progress` → `done`)
+- `<slug>-session-init.md` — read by the coding agent at the start of every context window
+- `VISION.md`, `AGENTS.md`, `PROMPT.md` — anchor files (goal / roles / current task)
+- `scripts/run-<slug>.sh` — runner: calls initializer once, then loops coding agent until done
+
+To re-task the harness without changing its rules: edit `PROMPT.md` and commit.
 
 ---
 
-## Step 4 — Run it headlessly
+## Step 4 — Add specialized subagents (optional)
 
-Test the runner before scheduling it:
+For loops that need independent reviewers, security auditors, or domain specialists:
+
+```bash
+claude -p '/new-agent "security reviewer: audits diffs for injection flaws and auth issues"'
+```
+
+Creates `.claude/agents/<name>.md` with persona, model, and tool constraints.
+Reference it from a skill step: `"Use a subagent to review the diff…"`
+
+---
+
+## Step 5 — Run headlessly
+
+Test before scheduling:
 
 ```bash
 bash scripts/run-<slug>.sh
@@ -92,7 +125,7 @@ bash scripts/guard-<slug>.sh && echo "clear" || echo "already ran"
 
 ---
 
-## Step 5 — Schedule it
+## Step 6 — Schedule
 
 **crontab (Linux / macOS):**
 ```bash
@@ -130,36 +163,34 @@ Load it:
 launchctl load ~/Library/LaunchAgents/com.claudewarp.<slug>.plist
 ```
 
-**Note on timezones:** cron/launchd use local system time — whatever timezone your OS clock is set to. Confirm with `date` before scheduling.
+Timestamps use local system time — confirm your OS timezone with `date` before scheduling.
 
 ---
 
-## Step 6 — Iterate: verify → fix → re-run
+## Keeping the harness current
 
-After your loop runs, check its output:
-```bash
-cat <SLUG>_LOG.md
-```
+As Claude Code ships new features, some harness components become redundant. Run:
 
-If the loop output needs improvement, edit `.claude/skills/<slug>/SKILL.md` — specifically
-Phase 3. The guard prevents double-runs on the same day; to force a re-run during testing:
-```bash
-# temporarily bypass the guard:
-claude -p "/<slug>"
-```
-
-To check whether your harness is still current with the latest Claude Code:
 ```bash
 claude -p "/harness-sync"
 ```
-This re-reads the Claude Code changelog and logs any components that have become native.
+
+This re-reads the Claude Code changelog, marks superseded components in
+`harness-manifest.json`, and logs migration notes in `HARNESS_SYNC_LOG.md`.
+
+To also check whether new loop engineering patterns from [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops)
+are worth adding to ClaudeWarp:
+
+```bash
+claude -p "/claude-warp-update"
+```
 
 ---
 
 ## Making the installer globally available (optional)
 
-After your first install, run this once to make `/setup-loop-harness` available in all
-future projects without needing to clone ClaudeWarp again:
+After your first install, run this once to make `/setup-loop-harness` available in
+all future projects without cloning ClaudeWarp again:
 
 ```bash
 cp -r .claude/skills/setup-loop-harness ~/.claude/skills/

@@ -8,72 +8,42 @@ bash <(curl -fsSL https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main
 
 ---
 
-## What it does
+## What it is
 
-ClaudeWarp installs **only the layer Claude Code does not provide natively**:
+ClaudeWarp installs the infrastructure layer that Claude Code does not provide natively: loop scaffolding, scheduling guards, headless runners, and a self-pruning mechanism that retires harness components as Claude Code absorbs them.
 
-| What you need | How ClaudeWarp provides it |
-|---|---|
-| Scaffold a loop from a goal | `/new-loop "your goal"` |
-| Prevent duplicate runs | `scripts/guard-<slug>.sh` (run-once-per-day) |
-| Run unattended | `scripts/run-<slug>.sh` → wire to cron / launchd |
-| Stay current as Claude Code evolves | `/harness-sync` — reads the CC changelog and prunes superseded components automatically |
-| Keep ClaudeWarp itself up to date | `/claude-warp-update` — runs harness-sync then scans Claude-Loops for new patterns to implement |
-| Run batch jobs in parallel | `run-fanout.sh.tpl` — fan-out template: generates a task list then dispatches one `claude` process per item with a concurrency cap |
-
-Everything Claude Code already handles natively (subagents, worktrees, scheduling runtime, `/code-review`, memory) is **not** reimplemented here — it's just documented and referenced.
+It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code review, scheduling runtime — is documented and referenced, not reimplemented.
 
 ---
 
-## Quick start
-
-```bash
-# In any git project:
-git clone https://github.com/lucagattoni/Claude-Warp.git /tmp/claude-warp
-bash /tmp/claude-warp/install.sh
-
-# Scaffold your first loop:
-claude -p '/new-loop "check for new issues in my GitHub repo daily"'
-
-# Run it:
-bash scripts/run-check-new-issues.sh
-
-# Keep the harness current:
-claude -p "/harness-sync"
-```
-
-See [docs/guide.md](docs/guide.md) for the full 6-step walkthrough.
-
----
-
-## Skills installed
+## Skills
 
 | Skill | What it does |
 |---|---|
-| `/setup-loop-harness` | Per-project configurator — fills CLAUDE.md, creates dirs, writes manifest |
-| `/new-loop "goal"` | Scaffolds a complete loop: SKILL.md + guard + runner + state + trigger |
-| `/harness-sync` | Claude Code changelog monitor — prunes components that have become native |
-| `/claude-warp-update` | Runs harness-sync then scans Claude-Loops for patterns not yet in ClaudeWarp; surfaces prioritised feature gaps |
-| `/new-agent "role"` | Scaffolds a specialized subagent in `.claude/agents/` with persona, model, and tool constraints |
-| `/new-harness "goal"` | Scaffolds a two-part harness: initializer agent (produces JSON task list) + coding agent (executes tasks with git-based recovery) |
+| `/setup-loop-harness` | Per-project installer |
+| `/new-loop "goal"` | Scaffold a single-agent loop |
+| `/new-harness "goal"` | Scaffold a two-part harness (initializer + coding agent) for multi-stage goals |
+| `/new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
+| `/harness-sync` | Prune harness components superseded by Claude Code |
+| `/claude-warp-update` | Check Claude-Loops for new patterns to implement |
+
+---
+
+## Docs
+
+| Document | Contents |
+|---|---|
+| [docs/guide.md](docs/guide.md) | Step-by-step: install → scaffold → run → schedule |
+| [docs/loop-harness.md](docs/loop-harness.md) | Architecture: native vs harness boundary, skills in depth, templates reference |
 
 ---
 
 ## Companion
 
-ClaudeWarp is the tooling. [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is
-the knowledge base — patterns, failure modes, and building blocks behind loop engineering.
+[ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is the knowledge base behind ClaudeWarp — loop engineering patterns, failure modes, and building blocks.
 
 ---
 
-## Self-pruning design
+## Design
 
-Claude Code ships new features frequently. ClaudeWarp tracks what it provides in
-`harness-manifest.json` with a `components[]` list. Each component has a `native_since`
-field. When `/harness-sync` detects that a component is now native, it:
-
-1. Marks it `"superseded"` in the manifest
-2. Logs a migration note in `HARNESS_SYNC_LOG.md`
-3. Adds a deprecation notice to the affected skill
-
-**ClaudeWarp is designed to shrink over time, not grow.**
+ClaudeWarp is designed to shrink over time. Each harness component tracks a `native_since` field in `harness-manifest.json`. When `/harness-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.
