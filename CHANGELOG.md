@@ -11,6 +11,17 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [0.3.0] — 2026-06-22
+
+### Added
+- `skills/new-agent/SKILL.md` — scaffold a specialized subagent in `.claude/agents/` with persona, model selection, and tool constraints derived from a one-line role description
+- `skills/new-harness/SKILL.md` — scaffold the two-part harness pattern: an initializer agent that produces a bounded JSON task list, and a coding agent that executes tasks one at a time with git-based recovery and cross-context-window session-init resumption
+
+### Fixed
+- `templates/loop.SKILL.md.tpl` — added Phase 3b (Verify) as a non-skippable gate between "Do the work" and "Write results"; `new-loop` now expands this with the concrete check command for the goal
+
+---
+
 ## [0.2.0] — 2026-06-22
 
 ### Added
