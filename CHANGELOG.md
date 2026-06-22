@@ -9,10 +9,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+---
+
+## [0.5.0] — 2026-06-22
+
+### Added
+- `skills/claude-warp-update/SKILL.md` — pulls the latest ClaudeWarp skills from GitHub into an installed project; uses GitHub API + raw content URLs, no local path dependency
+
 ### Changed
-- `README.md` — restructured as a lean overview; detail moved into `docs/`
-- `docs/guide.md` — updated with `/new-harness`, `/new-agent`, fan-out, and `/claude-warp-update` flows
-- `docs/loop-harness.md` — full skills reference, templates table, and loop anatomy diagram; covers all skills through v0.4.0
+- All skills renamed with `claude-warp-` prefix for consistent namespacing:
+  - `setup-loop-harness` → `claude-warp-setup`
+  - `new-loop` → `claude-warp-new-loop`
+  - `new-harness` → `claude-warp-new-harness`
+  - `new-agent` → `claude-warp-new-agent`
+  - `harness-sync` → `claude-warp-sync`
+  - `claude-warp-update` (gap analysis) → `claude-warp-sync-research`
+- `claude-warp-sync-research` now fetches Claude-Loops content and the ClaudeWarp inventory from GitHub instead of local paths — works on any machine
+- `README.md` — restructured as a lean overview with links to docs
+- `docs/guide.md` — updated for all current skills and loop types
+- `docs/loop-harness.md` — full skills and templates reference updated to v0.5.0
 
 ---
 
