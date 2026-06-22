@@ -38,6 +38,9 @@ Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
 
+Expand Phase 3b ("Verify") with the specific check command for this loop. If no
+automated check is available, explain what to inspect manually and why no check exists.
+
 Replace the Stopping condition section with the derived `STOP_CONDITION` sentence,
 preserving the SUCCESS / SKIP / FAILURE structure from the template.
 

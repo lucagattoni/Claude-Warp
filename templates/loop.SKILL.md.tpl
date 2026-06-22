@@ -27,6 +27,23 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 
 <!-- Replace this section with the loop's actual logic -->
 
+## Phase 3b — Verify
+
+Run the verification check and read its exit code:
+```bash
+# Replace with the appropriate check for this loop, e.g.:
+#   npm test
+#   pytest
+#   ruff check .
+#   bash scripts/verify-{{SKILL_SLUG}}.sh
+```
+
+- If the check **passes** (exit 0): proceed to Phase 4.
+- If the check **fails**: read the output, fix the root cause, re-run Phase 3 and
+  Phase 3b. Do not proceed to Phase 4 until the check passes.
+- If no automated check exists for this loop: document why in a `# Verification`
+  comment here, and describe what a human reviewer should inspect.
+
 ## Phase 4 — Write results
 
 1. Append a new dated section to `{{STATE_FILE}}`:

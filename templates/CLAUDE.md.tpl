@@ -22,6 +22,8 @@ there before writing the SKILL.md.
 - `/new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
 - `/harness-sync` — re-check Claude Code changelog; prune superseded harness components
 - `/claude-warp-update` — run harness-sync then scan Claude-Loops for new patterns to implement
+- `/new-agent "role"` — scaffold a specialized subagent in `.claude/agents/` with persona, model, and tool constraints
+- `/new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
 - `/plan-task "title"` — create a plans/<slug>.md with phases and success criteria
 
 ## Loop conventions

@@ -48,6 +48,8 @@ Copy from ClaudeWarp source into target project:
 - `skills/new-loop/SKILL.md` → `.claude/skills/new-loop/SKILL.md`
 - `skills/harness-sync/SKILL.md` → `.claude/skills/harness-sync/SKILL.md`
 - `skills/claude-warp-update/SKILL.md` → `.claude/skills/claude-warp-update/SKILL.md`
+- `skills/new-agent/SKILL.md` → `.claude/skills/new-agent/SKILL.md`
+- `skills/new-harness/SKILL.md` → `.claude/skills/new-harness/SKILL.md`
 
 ## Phase 4 — Fill CLAUDE.md
 
@@ -86,7 +88,7 @@ Print a summary:
 ClaudeWarp installed ✓
 
 Project : <name> (<type>)
-Skills  : /new-loop, /harness-sync, /claude-warp-update
+Skills  : /new-loop, /harness-sync, /claude-warp-update, /new-agent, /new-harness
 Next    : run /new-loop "your goal here" to scaffold your first loop
           run /harness-sync to check for Claude Code updates
 

@@ -53,6 +53,8 @@ See [docs/guide.md](docs/guide.md) for the full 6-step walkthrough.
 | `/new-loop "goal"` | Scaffolds a complete loop: SKILL.md + guard + runner + state + trigger |
 | `/harness-sync` | Claude Code changelog monitor — prunes components that have become native |
 | `/claude-warp-update` | Runs harness-sync then scans Claude-Loops for patterns not yet in ClaudeWarp; surfaces prioritised feature gaps |
+| `/new-agent "role"` | Scaffolds a specialized subagent in `.claude/agents/` with persona, model, and tool constraints |
+| `/new-harness "goal"` | Scaffolds a two-part harness: initializer agent (produces JSON task list) + coding agent (executes tasks with git-based recovery) |
 
 ---
 
