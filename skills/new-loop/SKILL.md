@@ -54,8 +54,17 @@ chmod +x scripts/guard-<SKILL_SLUG>.sh
 
 **2c. Headless runner** — `scripts/run-<SKILL_SLUG>.sh`
 
-Read `templates/run-headless.sh.tpl` and fill:
+If the goal processes a **single context per run** (the common case):
+read `templates/run-headless.sh.tpl` and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+
+If the goal processes **many independent items in parallel** (batch migrations,
+multi-file ops, fan-out analyses):
+read `templates/run-fanout.sh.tpl` instead and fill:
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+- `{{TASK_LIST_COMMAND}}` — command that outputs one item per line (e.g. `find src -name "*.py"`)
+- `{{TASK_PROMPT_PREFIX}}` — prompt prefix passed to each agent (e.g. `"Migrate this file to async/await:"`)
+- `{{MAX_PARALLEL}}` — concurrent agent cap (default 3; max 5 to avoid resource exhaustion)
 
 Make executable:
 ```bash

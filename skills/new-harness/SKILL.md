@@ -28,13 +28,35 @@ Get local time:
 date '+%Y-%m-%d %H:%M %Z'
 ```
 
-## Phase 2 — Create directory structure
+## Phase 2 — Create directory structure and anchor files
 
 ```bash
 mkdir -p .claude/agents
 mkdir -p scripts
 mkdir -p logs
 ```
+
+**Anchor files** — the loop reads all four at startup; updating `PROMPT.md` re-tasks
+the loop without changing its rules or goal:
+
+Read `templates/VISION.md.tpl` and fill:
+- `{{PROJECT_NAME}}` → `HARNESS_NAME`
+- `{{VISION_GOAL}}` → `HARNESS_GOAL`
+- `{{SKILL_SLUG}}` → `HARNESS_SLUG`
+- `{{PROMPT_FILE}}` → `PROMPT.md`
+Write to `VISION.md`.
+
+Read `templates/AGENTS.md.tpl` and fill:
+- `{{PROJECT_NAME}}` → `HARNESS_NAME`
+- `{{HARNESS_SLUG}}`, `{{FEATURES_FILE}}` → `<HARNESS_SLUG>-features.json`
+Write to `AGENTS.md`.
+
+Read `templates/PROMPT.md.tpl` and fill:
+- `{{PROJECT_NAME}}` → `HARNESS_NAME`
+- `{{CURRENT_TASK}}` → first task description (leave as placeholder if unknown)
+Write to `PROMPT.md`.
+
+(`CLAUDE.md` is already managed by `setup-loop-harness` — do not overwrite it.)
 
 ## Phase 3 — Write the feature list schema
 
@@ -208,6 +230,7 @@ Write back.
 git add .claude/agents/<HARNESS_SLUG>-initializer.md \
         <HARNESS_SLUG>-features.json \
         <HARNESS_SLUG>-session-init.md \
+        VISION.md AGENTS.md PROMPT.md \
         scripts/run-<HARNESS_SLUG>.sh \
         harness-manifest.json
 git commit -m "feat(harness): scaffold <HARNESS_SLUG>"
@@ -221,6 +244,7 @@ Two-part harness scaffolded ✓
   Initializer : .claude/agents/<HARNESS_SLUG>-initializer.md
   Feature list: <HARNESS_SLUG>-features.json
   Session init: <HARNESS_SLUG>-session-init.md
+  Anchor files: VISION.md, AGENTS.md, PROMPT.md
   Runner      : scripts/run-<HARNESS_SLUG>.sh
 
 To run:
