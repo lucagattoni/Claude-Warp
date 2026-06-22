@@ -15,6 +15,12 @@ Derive from it:
 - `STATE_FILE` — suggested tracking file name (e.g. `DEP_AUDIT_LOG.md`)
 - `DEFAULT_SCHEDULE` — suggested cron schedule (e.g. `0 9 * * 1-5` for weekday 09:00 UTC)
 - `MAX_TURNS` — conservative estimate based on goal complexity (default 30)
+- `MAX_BUDGET_USD` — hard cost cap per run; default 2.00; increase only for goals that
+  demonstrably require more (complex refactors, large fan-outs)
+- `STOP_CONDITION` — one sentence describing a verifiable signal that the loop has
+  succeeded (e.g. "all tests pass", "state file contains DONE entry for today",
+  "no new items found in source"); must be checkable by reading a file or exit code,
+  not just "looks finished"
 - `ALLOWED_TOOLS` — minimum tool set needed (default: `"Read,Edit,WebFetch"`)
 
 Get local time:
@@ -32,6 +38,9 @@ Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
 
+Replace the Stopping condition section with the derived `STOP_CONDITION` sentence,
+preserving the SUCCESS / SKIP / FAILURE structure from the template.
+
 **2b. Guard script** — `scripts/guard-<SKILL_SLUG>.sh`
 
 Read `templates/guard.sh.tpl` and fill `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{STATE_FILE}}`.
@@ -43,7 +52,7 @@ chmod +x scripts/guard-<SKILL_SLUG>.sh
 **2c. Headless runner** — `scripts/run-<SKILL_SLUG>.sh`
 
 Read `templates/run-headless.sh.tpl` and fill:
-- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{ALLOWED_TOOLS}}`
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
 
 Make executable:
 ```bash

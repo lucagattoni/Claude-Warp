@@ -16,7 +16,9 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 ## Phase 2 — Load state
 
 1. Read `{{STATE_FILE}}` to find the most recent run entry.
-2. Record `last_run` (ISO date) and `today` from:
+2. If the most recent entry is marked `IN_PROGRESS`, treat that task as incomplete
+   and restart it from the beginning before doing anything else.
+3. Record `last_run` (ISO date) and `today` from:
    ```bash
    date '+%Y-%m-%d %H:%M %Z'
    ```
@@ -45,6 +47,11 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 
 ## Stopping condition
 
-This loop exits successfully when Phase 4 completes without error.
-It exits with failure if the guard fires or if Phase 3 produces no actionable output
-after exhausting all sources.
+**Success:** Phase 4 completes and `{{STATE_FILE}}` contains a dated entry marked
+`DONE` for today's run.
+
+**Skip:** Guard script fires (already ran today) — exit 0, log "skipping".
+
+**Failure:** Phase 3 produces no actionable output after exhausting all sources,
+OR any required command exits non-zero — exit 1, mark entry `FAILED` in
+`{{STATE_FILE}}` so the next run does not treat it as IN_PROGRESS.
