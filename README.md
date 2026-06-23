@@ -35,7 +35,10 @@ claude -p '/claude-warp-new-loop "summarise new GitHub Issues every morning"'
 # Test it before scheduling
 bash scripts/run-<slug>.sh
 
-# Wire to cron (paste the generated snippet)
+# Schedule it — cloud-hosted (preferred)
+claude -p "/schedule"
+
+# Or wire to local cron (paste the generated snippet)
 crontab -e
 
 # Keep skills up to date

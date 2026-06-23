@@ -49,7 +49,7 @@ the cut is a real judgment call.
 | M14 | `/claude-warp-new-loop` generates Phase 3b (Verify) with a concrete check command | ✅ |
 | M15 | `/claude-warp-new-harness` scaffolds initializer agent + coding agent + session-init + anchor files | ✅ |
 | M16 | `/claude-warp-new-agent` creates `.claude/agents/<name>.md` with correct model selection | ✅ |
-| M17 | fan-out runner template dispatches parallel agents with concurrency cap | ✅ run-fanout.sh.tpl |
+| M17 | fan-out runner uses `claude --bg --worktree` per item; git-isolated, polled via `claude agents --json` | ✅ run-fanout.sh.tpl |
 | M18 | anchor file templates (VISION, AGENTS, PROMPT) created by `/claude-warp-new-harness` | ✅ |
 | M19 | all skills prefixed `claude-warp-` | ✅ v0.5.0 |
 | M20 | `/claude-warp-update` fetches latest skills from GitHub; no local path dependency | ✅ |

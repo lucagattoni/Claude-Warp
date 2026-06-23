@@ -78,7 +78,12 @@ Creates:
 **Run it:**
 ```bash
 bash scripts/run-<slug>.sh
+
+# If the coding loop stalls (MAX_ITER reached), trigger Inner/Outer Dual Loop:
+bash scripts/run-<slug>.sh --retry
 ```
+
+`--retry` clears the task list, re-invokes the initializer with failure context, and runs one final coding pass with a revised task breakdown.
 
 **Re-task without changing rules:** edit `PROMPT.md` and commit — the next invocation picks it up.
 
