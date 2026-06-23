@@ -61,7 +61,7 @@ Scaffolds a complete single-agent loop from a one-line goal description.
 |---|---|
 | `.claude/skills/<slug>/SKILL.md` | Loop procedure with phases: guard → state → work → verify → write → stop |
 | `scripts/guard-<slug>.sh` | Prevents double-runs (once per day / weekdays only) |
-| `scripts/run-<slug>.sh` | Headless runner; picks `run-headless.sh.tpl` or `run-fanout.sh.tpl` based on goal shape |
+| `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, uses `claude --bg --worktree`) based on goal shape |
 | `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
@@ -88,7 +88,9 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 | `VISION.md` | High-level goal and success criteria (anchor file) |
 | `AGENTS.md` | Role definitions and handoff protocol (anchor file) |
 | `PROMPT.md` | Current work unit — edit to re-task without changing rules (anchor file) |
-| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done |
+| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall |
+
+**`--retry` flag (Inner/Outer Dual Loop):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` clears the task list, re-invokes the initializer with failure context, and runs a final coding pass with a revised task breakdown.
 
 Install path: `skills/claude-warp-new-harness/SKILL.md`
 
@@ -169,7 +171,7 @@ Install path: `skills/claude-warp-sync-research/SKILL.md`
 | `loop.SKILL.md.tpl` | `claude-warp-new-loop` | Loop skill skeleton: guard → state → work → verify → write → stop |
 | `guard.sh.tpl` | `claude-warp-new-loop` | Run-once-per-day / weekday-only guard script |
 | `run-headless.sh.tpl` | `claude-warp-new-loop` | Single-agent headless runner with `--max-turns` and `--max-budget-usd` |
-| `run-fanout.sh.tpl` | `claude-warp-new-loop` | Parallel fan-out runner: one agent per item, concurrency cap, per-item logs |
+| `run-fanout.sh.tpl` | `claude-warp-new-loop` | Parallel fan-out runner: `claude --bg --worktree` per item, git-isolated, polled via `claude agents --json` |
 | `trigger.crontab.tpl` | `claude-warp-new-loop` | Reference cron entry (not installed — paste into `crontab -e`) |
 | `harness-manifest.json.tpl` | `claude-warp-setup` | Version + components registry |
 | `VISION.md.tpl` | `claude-warp-new-harness` | Anchor file: high-level goal and success criteria |
@@ -183,12 +185,13 @@ Install path: `skills/claude-warp-sync-research/SKILL.md`
 Every loop scaffolded by `/claude-warp-new-loop` follows this phase sequence:
 
 ```
-Phase 1 — Guard check     prevent duplicate runs
-Phase 2 — Load state      read STATE_FILE; recover IN_PROGRESS tasks
-Phase 3 — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
-Phase 3b — Verify         run check command; iterate on failure
-Phase 4 — Write results   append dated entry to STATE_FILE; commit
-Stopping condition        SUCCESS / SKIP / FAILURE defined per loop
+Phase 1  — Guard check     prevent duplicate runs
+Phase 2  — Load state      read STATE_FILE; recover IN_PROGRESS tasks
+Phase 3  — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
+Phase 3b — Verify          run check command; iterate on failure
+Phase 3c — Checker         invoke <slug>-checker agent if present (DOER/CHECKER)
+Phase 4  — Write results   append dated entry to STATE_FILE; commit
+Stopping condition         SUCCESS / SKIP / FAILURE defined per loop
 ```
 
 Every harness scaffolded by `/claude-warp-new-harness` follows this flow:
