@@ -5,6 +5,16 @@ description: {{SKILL_DESCRIPTION}}
 
 {{SKILL_GOAL}}
 
+<!--
+Loop Contract
+  TRIGGER : {{CRON_SCHEDULE}} (cron) — or replace with: hook | on-demand | goal
+  SCOPE   : {{SCOPE}}
+  ACTION  : {{ACTION}}
+  BUDGET  : ${{MAX_BUDGET_USD}} / run, {{MAX_TURNS}} turns max
+  STOP    : {{STOP_CONDITION}}
+  REPORT  : appended to {{STATE_FILE}} after each run
+-->
+
 ## Phase 1 — Guard check
 
 Run the guard to prevent double-execution:

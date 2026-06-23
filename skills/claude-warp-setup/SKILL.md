@@ -44,38 +44,48 @@ mkdir -p logs
 Ensure `logs/` is gitignored:
 - Read `.gitignore`; if `logs/` is not present, append it.
 
-## Phase 3 — Install skills from ClaudeWarp
+## Phase 3 — Locate ClaudeWarp source and install skills
 
-The ClaudeWarp skills source directory is the repo where this skill lives.
-Detect it: the running skill's path gives the ClaudeWarp root.
+**Locate the ClaudeWarp source** — check in order:
+1. `.claudewarp-skills/` exists at the project root → use it (placed by `install.sh`)
+2. Otherwise, derive from this SKILL.md's own path: go up to the repo root
+   (e.g. `~/.claude/skills/claude-warp-setup/` → `~/.claude/skills/` is the skills dir;
+   the ClaudeWarp root is two levels up from this file)
 
-Copy from ClaudeWarp source into target project:
-- `skills/claude-warp-setup/SKILL.md` → `.claude/skills/claude-warp-setup/SKILL.md`
-- `skills/claude-warp-new-loop/SKILL.md` → `.claude/skills/claude-warp-new-loop/SKILL.md`
-- `skills/claude-warp-sync/SKILL.md` → `.claude/skills/claude-warp-sync/SKILL.md`
-- `skills/claude-warp-update/SKILL.md` → `.claude/skills/claude-warp-update/SKILL.md`
-- `skills/claude-warp-new-agent/SKILL.md` → `.claude/skills/claude-warp-new-agent/SKILL.md`
-- `skills/claude-warp-new-harness/SKILL.md` → `.claude/skills/claude-warp-new-harness/SKILL.md`
-- `skills/claude-warp-sync-research/SKILL.md` → `.claude/skills/claude-warp-sync-research/SKILL.md`
+Record the resolved ClaudeWarp root as `WARP_ROOT`.
 
+**Similarly locate templates:**
+1. `.claudewarp-templates/` exists at the project root → `TEMPLATE_ROOT=.claudewarp-templates`
+2. Otherwise → `TEMPLATE_ROOT=$WARP_ROOT/templates`
+
+Copy skills from `$WARP_ROOT/skills/<name>/SKILL.md` into the target project:
+- `claude-warp-setup` → `.claude/skills/claude-warp-setup/SKILL.md`
+- `claude-warp-new-loop` → `.claude/skills/claude-warp-new-loop/SKILL.md`
+- `claude-warp-sync` → `.claude/skills/claude-warp-sync/SKILL.md`
+- `claude-warp-update` → `.claude/skills/claude-warp-update/SKILL.md`
+- `claude-warp-new-agent` → `.claude/skills/claude-warp-new-agent/SKILL.md`
+- `claude-warp-new-harness` → `.claude/skills/claude-warp-new-harness/SKILL.md`
+- `claude-warp-sync-research` → `.claude/skills/claude-warp-sync-research/SKILL.md`
+
+Read `$WARP_ROOT/VERSION` and record as `HARNESS_VERSION`.
 
 ## Phase 4 — Fill CLAUDE.md
 
-Read `templates/CLAUDE.md.tpl` from the ClaudeWarp source.
+Read `$TEMPLATE_ROOT/CLAUDE.md.tpl`.
 Replace all placeholders:
 - `{{PROJECT_NAME}}` → detected project name
 - `{{PROJECT_TYPE}}` → detected project type
 - `{{REPO_ROOT}}` → absolute path of project root
-- `{{HARNESS_VERSION}}` → read from ClaudeWarp's `VERSION` file (e.g. `cat templates/../VERSION`)
+- `{{HARNESS_VERSION}}` → `HARNESS_VERSION` from Phase 3
 
 If a `CLAUDE.md` already exists in the target project, append the ClaudeWarp section
 under a `## ClaudeWarp` heading rather than overwriting.
 
 ## Phase 5 — Write harness-manifest.json
 
-Read `templates/harness-manifest.json.tpl` from ClaudeWarp source.
+Read `$TEMPLATE_ROOT/harness-manifest.json.tpl`.
 Replace all placeholders:
-- `{{HARNESS_VERSION}}` → ClaudeWarp version (read from `VERSION` file)
+- `{{HARNESS_VERSION}}` → `HARNESS_VERSION` from Phase 3
 - `{{INSTALLED_AT}}` → local time from Phase 1
 - `{{PROJECT_NAME}}`, `{{PROJECT_TYPE}}`, `{{REPO_ROOT}}` → from Phase 1
 - `{{CC_VERSION}}` → Claude Code version from Phase 1
@@ -84,9 +94,12 @@ Write to `harness-manifest.json` in the project root.
 
 ## Phase 6 — Commit
 
+Use the literal version string resolved in Phase 3 (e.g. `0.6.0`) — do not write
+`{{HARNESS_VERSION}}` literally in the commit message.
+
 ```bash
 git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore plans/ docs/
-git commit -m "chore: install ClaudeWarp loop harness v{{HARNESS_VERSION}}"
+git commit -m "chore: install ClaudeWarp loop harness v<HARNESS_VERSION>"
 ```
 
 ## Phase 7 — Report

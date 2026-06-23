@@ -66,6 +66,7 @@ run_task() {
     --permission-mode auto \
     --max-turns {{MAX_TURNS}} \
     --max-budget-usd {{MAX_BUDGET_USD}} \
+    --effort high \
     --allowedTools "{{ALLOWED_TOOLS}}" \
     -p "{{TASK_PROMPT_PREFIX}} ${item}" \
     >> "$item_log" 2>&1

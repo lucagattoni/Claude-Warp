@@ -15,6 +15,7 @@ claude \
   --permission-mode auto \
   --max-turns {{MAX_TURNS}} \
   --max-budget-usd {{MAX_BUDGET_USD}} \
+  --effort high \
   --allowedTools "{{ALLOWED_TOOLS}}" \
   -p "/{{SKILL_SLUG}}" \
   >> "$LOG" 2>&1

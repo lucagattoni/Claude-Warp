@@ -176,9 +176,14 @@ if [ "$TASK_COUNT" -eq 0 ]; then
     --permission-mode auto \
     --max-turns <MAX_TURNS_INIT> \
     --max-budget-usd 1.00 \
+    --effort high \
     --allowedTools "Read,Glob,Grep,Edit" \
     -p "Use the <HARNESS_SLUG>-initializer agent to populate $FEATURES" \
     >> "$LOG" 2>&1
+  if [ $? -ne 0 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: initializer failed — aborting." >> "$LOG"
+    exit 1
+  fi
 fi
 
 # Step 2 — coding agent loop
@@ -204,6 +209,7 @@ print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))"
     --permission-mode auto \
     --max-turns <MAX_TURNS_WORKER> \
     --max-budget-usd <MAX_BUDGET_USD> \
+    --effort high \
     --allowedTools "Read,Edit,Bash,Glob,Grep" \
     -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in $FEATURES" \
     >> "$LOG" 2>&1

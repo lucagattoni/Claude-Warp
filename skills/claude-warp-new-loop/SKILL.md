@@ -13,7 +13,9 @@ Derive from it:
 - `SKILL_SLUG` — kebab-case CLI name (e.g. `daily-dep-audit`)
 - `SKILL_DESCRIPTION` — one sentence describing what the loop does
 - `STATE_FILE` — suggested tracking file name (e.g. `DEP_AUDIT_LOG.md`)
-- `DEFAULT_SCHEDULE` — suggested cron schedule (e.g. `0 9 * * 1-5` for weekday 09:00 UTC)
+- `CRON_SCHEDULE` — suggested cron schedule (e.g. `0 9 * * 1-5` for weekday 09:00)
+- `SCOPE` — which files/dirs/APIs the loop may read or write (e.g. `src/`, `GitHub Issues`)
+- `ACTION` — one sentence describing what the loop does each run (e.g. "reads open issues, summarises new ones, appends to STATE_FILE")
 - `MAX_TURNS` — conservative estimate based on goal complexity (default 30)
 - `MAX_BUDGET_USD` — hard cost cap per run; default 2.00; increase only for goals that
   demonstrably require more (complex refactors, large fan-outs)
@@ -34,6 +36,7 @@ date '+%Y-%m-%d %H:%M %Z'
 
 Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{SKILL_DESCRIPTION}}`, `{{SKILL_GOAL}}`, `{{STATE_FILE}}`
+- `{{CRON_SCHEDULE}}`, `{{SCOPE}}`, `{{ACTION}}`, `{{MAX_BUDGET_USD}}`, `{{MAX_TURNS}}`, `{{STOP_CONDITION}}`
 
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
