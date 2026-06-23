@@ -37,6 +37,7 @@ date '+%Y-%m-%d %H:%M %Z'
 Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{SKILL_DESCRIPTION}}`, `{{SKILL_GOAL}}`, `{{STATE_FILE}}`
 - `{{CRON_SCHEDULE}}`, `{{SCOPE}}`, `{{ACTION}}`, `{{MAX_BUDGET_USD}}`, `{{MAX_TURNS}}`, `{{STOP_CONDITION}}`
+- For fan-out: also fill `{{TASK_LIST_COMMAND}}` and `{{TASK_PROMPT_PREFIX}}`
 
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
@@ -67,7 +68,9 @@ read `templates/run-fanout.sh.tpl` instead and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
 - `{{TASK_LIST_COMMAND}}` — command that outputs one item per line (e.g. `find src -name "*.py"`)
 - `{{TASK_PROMPT_PREFIX}}` — prompt prefix passed to each agent (e.g. `"Migrate this file to async/await:"`)
-- `{{MAX_PARALLEL}}` — concurrent agent cap (default 3; max 5 to avoid resource exhaustion)
+
+The fan-out runner uses `claude --bg --worktree` — each item runs in a background
+agent with an isolated git worktree; no concurrency cap or manual PID management needed.
 
 Make executable:
 ```bash

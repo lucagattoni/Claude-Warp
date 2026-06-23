@@ -54,6 +54,20 @@ Run the verification check and read its exit code:
 - If no automated check exists for this loop: document why in a `# Verification`
   comment here, and describe what a human reviewer should inspect.
 
+## Phase 3c — Checker (optional)
+
+If a checker subagent exists at `.claude/agents/{{SKILL_SLUG}}-checker.md`, invoke
+it on the Phase 3 output before committing:
+
+"Use the {{SKILL_SLUG}}-checker agent to review the findings from Phase 3.
+If the checker raises blocking issues, address them and re-run Phase 3 and
+Phase 3b before proceeding."
+
+Skip this phase if no checker agent exists. To add one:
+```bash
+claude -p '/claude-warp-new-agent "checker for {{SKILL_SLUG}}: validates findings, raises blocking issues only"'
+```
+
 ## Phase 4 — Write results
 
 1. Append a new dated section to `{{STATE_FILE}}`:

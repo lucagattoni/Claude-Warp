@@ -155,71 +155,107 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 ```bash
 #!/usr/bin/env bash
 # Two-part harness runner for: <HARNESS_NAME>
-# 1. Run initializer once (if tasks list is empty)
-# 2. Loop: invoke coding agent for each pending task until all done
+# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry]
+# --retry  If the coding loop stalls at MAX_ITER, re-invoke the initializer
+#          with failure context (Inner/Outer Dual Loop) before one final pass.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
+RETRY=0
+[[ "${1:-}" == "--retry" ]] && RETRY=1
+
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
-echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>" >> "$LOG"
+echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
 
 FEATURES="<HARNESS_SLUG>-features.json"
 
-# Step 1 — initializer (only if tasks array is empty)
-TASK_COUNT=$(python3 -c "import json,sys; d=json.load(open('$FEATURES')); print(len(d['tasks']))" 2>/dev/null || echo 0)
-if [ "$TASK_COUNT" -eq 0 ]; then
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running initializer..." >> "$LOG"
+run_initializer() {
+  local prompt="${1:-Use the <HARNESS_SLUG>-initializer agent to populate $FEATURES}"
   claude \
     --permission-mode auto \
     --max-turns <MAX_TURNS_INIT> \
     --max-budget-usd 1.00 \
     --effort high \
     --allowedTools "Read,Glob,Grep,Edit" \
-    -p "Use the <HARNESS_SLUG>-initializer agent to populate $FEATURES" \
+    -p "$prompt" \
     >> "$LOG" 2>&1
-  if [ $? -ne 0 ]; then
+}
+
+run_coding_loop() {
+  local max_iter=50 iter=0 pending=1
+  while [ "$pending" -gt 0 ] && [ "$iter" -lt "$max_iter" ]; do
+    iter=$((iter+1))
+    pending=$(python3 -c "
+import json,sys
+d=json.load(open('$FEATURES'))
+print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo -1)
+
+    if [ "$pending" -eq -1 ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: could not parse $FEATURES — aborting." >> "$LOG"
+      return 1
+    fi
+    [ "$pending" -eq 0 ] && break
+
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] Coding agent (iter $iter/$max_iter, $pending remaining)..." >> "$LOG"
+    claude \
+      --permission-mode auto \
+      --max-turns <MAX_TURNS_WORKER> \
+      --max-budget-usd <MAX_BUDGET_USD> \
+      --effort high \
+      --allowedTools "Read,Edit,Bash,Glob,Grep" \
+      -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in $FEATURES" \
+      >> "$LOG" 2>&1
+  done
+
+  if [ "$iter" -ge "$max_iter" ] && [ "$pending" -gt 0 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: MAX_ITER=$max_iter reached, $pending tasks still pending." >> "$LOG"
+    return 2
+  fi
+  return 0
+}
+
+# ── Step 1: Initializer ───────────────────────────────────────────────────────
+TASK_COUNT=$(python3 -c "import json,sys; d=json.load(open('$FEATURES')); print(len(d['tasks']))" 2>/dev/null || echo 0)
+if [ "$TASK_COUNT" -eq 0 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running initializer..." >> "$LOG"
+  if ! run_initializer; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: initializer failed — aborting." >> "$LOG"
     exit 1
   fi
 fi
 
-# Step 2 — coding agent loop
-# MAX_ITER guards against infinite loops when the agent never marks tasks done.
-MAX_ITER=50
-ITER=0
-PENDING=1
-while [ "$PENDING" -gt 0 ] && [ "$ITER" -lt "$MAX_ITER" ]; do
-  ITER=$((ITER+1))
-  PENDING=$(python3 -c "
-import json,sys
-d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo -1)
+# ── Step 2: Coding loop ───────────────────────────────────────────────────────
+run_coding_loop
+LOOP_RC=$?
 
-  if [ "$PENDING" -eq -1 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: could not parse $FEATURES — aborting." >> "$LOG"
+# ── Step 3: Inner/Outer Dual Loop — retry on stall ───────────────────────────
+if [ "$LOOP_RC" -eq 2 ] && [ "$RETRY" -eq 1 ]; then
+  STUCK=$(python3 -c "
+import json
+d=json.load(open('$FEATURES'))
+titles=[t['title'] for t in d['tasks'] if t['status'] in ('pending','in_progress')]
+print(', '.join(titles[:5]))" 2>/dev/null || echo "unknown")
+
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] --retry: clearing tasks, re-invoking initializer with stall context..." >> "$LOG"
+  python3 -c "import json; d=json.load(open('$FEATURES')); d['tasks']=[]; json.dump(d,open('$FEATURES','w'),indent=2)"
+
+  RETRY_PROMPT="The previous run of <HARNESS_SLUG> stalled with these tasks incomplete: ${STUCK}. \
+Re-read <HARNESS_SLUG>-session-init.md, analyse why those tasks stalled (too large? ambiguous scope?), \
+and write a revised task breakdown in $FEATURES with smaller, more granular tasks."
+
+  if ! run_initializer "$RETRY_PROMPT"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: retry initializer failed — aborting." >> "$LOG"
     exit 1
   fi
-  if [ "$PENDING" -eq 0 ]; then break; fi
 
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running coding agent (iter $ITER/$MAX_ITER, $PENDING tasks remaining)..." >> "$LOG"
-  claude \
-    --permission-mode auto \
-    --max-turns <MAX_TURNS_WORKER> \
-    --max-budget-usd <MAX_BUDGET_USD> \
-    --effort high \
-    --allowedTools "Read,Edit,Bash,Glob,Grep" \
-    -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in $FEATURES" \
-    >> "$LOG" 2>&1
-done
-
-if [ "$ITER" -ge "$MAX_ITER" ] && [ "$PENDING" -gt 0 ]; then
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: reached MAX_ITER=$MAX_ITER with $PENDING tasks still pending." >> "$LOG"
-  exit 1
+  run_coding_loop
+  LOOP_RC=$?
 fi
 
+[ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness complete: <HARNESS_NAME>" >> "$LOG"
 ```
 
@@ -269,10 +305,19 @@ Two-part harness scaffolded ✓
 To run:
   bash scripts/run-<HARNESS_SLUG>.sh
 
+  # If the loop stalls (MAX_ITER reached), trigger Inner/Outer Dual Loop:
+  bash scripts/run-<HARNESS_SLUG>.sh --retry
+
 The runner will:
   1. Invoke the initializer once to populate the task list
   2. Loop: invoke the coding agent for each pending task until all are done
+  3. On --retry: if stalled, re-invoke the initializer with failure context
+     and try once more with a revised task breakdown
 
-Budget cap: $<MAX_BUDGET_USD> per coding-agent invocation
-Verification: <VERIFICATION_CMD>
+Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
+Verification : <VERIFICATION_CMD>
+
+Optional DOER/CHECKER — add an independent reviewer:
+  claude -p '/claude-warp-new-agent "checker for <HARNESS_SLUG>: \
+    reviews completed tasks for correctness before the next task starts"'
 ```

@@ -48,11 +48,16 @@ When the goal processes many independent items, ClaudeWarp selects the fan-out r
 claude -p '/claude-warp-new-loop "migrate all Python files in src/ to async/await"'
 ```
 
-The runner dispatches one `claude` process per item (capped at `MAX_PARALLEL`, default 3), writes per-item logs to `logs/<slug>-<run-id>/`, and prints a pass/fail summary.
+The runner uses `claude --bg --worktree` — each item gets its own background agent in an isolated git worktree, preventing file conflicts. Session IDs are collected and polled until all complete; results appear in `logs/<slug>-<run-id>.log`.
 
 Fill in the generated `scripts/run-<slug>.sh`:
 - `TASK_LIST_COMMAND` — command that outputs one item per line (e.g. `find src -name "*.py"`)
 - `TASK_PROMPT_PREFIX` — prompt passed to each agent (e.g. `"Migrate this file to async/await:"`)
+
+Monitor live progress:
+```bash
+claude agents
+```
 
 ---
 
@@ -95,7 +100,25 @@ Reference from a skill: `"Use a subagent to review the diff in src/auth/ — rep
 
 ## Scheduling
 
-After testing headlessly, wire the runner to your OS scheduler.
+### Cloud-hosted (Routines) — preferred when available
+
+Claude Code Routines run on Anthropic infrastructure — no local machine, no daemon required. Set up with the built-in `/schedule` command:
+
+```bash
+# Interactive setup
+claude -p "/schedule"
+```
+
+Routines support three trigger types:
+- **Scheduled** — cron-style (minimum 1-hour interval)
+- **API** — HTTP POST to a webhook endpoint; fires asynchronously
+- **GitHub events** — PR creation, release, push to a path
+
+Permission prompts during a Routine run are routed to your main session asynchronously rather than blocking execution.
+
+### Local scheduling (crontab / launchd)
+
+Use this when you need sub-hourly intervals, access to the local filesystem at runtime, or are self-hosted.
 
 **crontab:**
 ```bash
@@ -152,6 +175,31 @@ claude -p "/claude-warp-update"
 ```bash
 claude -p "/claude-warp-sync-research"
 ```
+
+---
+
+## Monitoring running loops
+
+Background agents and fan-out runners surface sessions through the Claude Code agent dashboard:
+
+```bash
+# Interactive dashboard — shows all running and completed sessions
+claude agents
+
+# Machine-readable — useful for scripting
+claude agents --json | jq '.[].status'
+
+# Tail output from a specific session
+claude logs <session-id>
+
+# Attach your terminal to a running session
+claude attach <session-id>
+
+# Restart a completed or failed session with full history
+claude respawn <session-id>
+```
+
+For headless single-agent runners, output goes to `logs/<slug>-<date>.log`.
 
 ---
 
