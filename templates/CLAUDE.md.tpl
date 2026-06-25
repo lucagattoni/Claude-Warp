@@ -36,6 +36,13 @@ there before writing the SKILL.md.
 - State that accumulates across runs goes in a dedicated tracking file, never in CLAUDE.md
 - Logs go in `logs/` (gitignored)
 
+## Token and context discipline
+
+- **Model default:** use Sonnet for all routine loop work; switch to Opus only for planning phases (initializer agents, `/claude-warp-new-harness` scaffold) where reasoning depth matters
+- **Compact early:** trigger `/compact` (or set `autoCompact: true`) at 50% context fill, not 95% — waiting until near-full degrades output quality measurably before compaction fires
+- **Thinking token cap:** for reasoning-heavy steps, cap extended thinking at 10k tokens; uncapped thinking on routine work burns budget with no quality gain
+- **Read before edit:** never edit a file you haven't read in the current context window — blind edits are the primary source of regression bugs in long-running loops
+
 ## Scheduling
 
 External trigger (cron/launchd) → `scripts/run-<name>.sh` → `claude -p "/<name>"`.
