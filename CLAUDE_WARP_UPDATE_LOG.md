@@ -4,6 +4,72 @@ Append-only. Updated by `/claude-warp-update` on each run.
 
 ---
 
+## 2026-06-25 08:11 IST
+
+### claude-warp-sync output
+```
+claude-warp-sync complete ✓
+
+Claude Code version : 2.1.191 (up from 2.1.186)
+Components checked  : 6
+Superseded          : 1 (skill-distribution-workaround — native since v2.1.157, unchanged)
+New native features : none that supersede additional ClaudeWarp components
+Next sync           : tomorrow (or run /claude-warp-sync anytime)
+```
+
+### Claude-Loops last updated
+8690690 (2026-06-25T07:06:56Z) — updated today (34 docs total)
+
+### Feature gaps
+
+#### High priority
+
+- **Goal Engineering (doc-30)** — NEW DOC. Goals are distinct from loops: one-shot, stop when a verifiable criterion is met ("Loops discover work. Goals finish it."). ClaudeWarp has `new-harness` for multi-stage recurring work but no `claude-warp-new-goal` skill. Gap: scaffold GOAL.md (Objective/Done conditions/Guardrails/Execution log schema), G0–G3 readiness scoring, and a simple run-once script. This fills the distinct "bounded, non-recurring task" use case that `new-loop` and `new-harness` don't cover.
+  Source: [Goal Engineering](docs/30-goal-engineering.md)
+
+- **Hooks as loop verification circuit breaker (doc-12)** — EXISTING DOC, NOT YET COVERED. The `asyncRewake + Stop hook` pattern is a deterministic alternative to Phase 3b's manual verify-and-retry: a Stop hook blocks turn end (exit code 2) until a check passes, then Claude re-enters with failure context automatically. ClaudeWarp has no hook templates or `claude-warp-new-hook` skill. Phase 3b currently relies on the LLM judging whether to retry — a hook makes it deterministic. Doc also covers destructive-command-blocking and audit-logging hooks.
+  Source: [Hooks](docs/12-hooks.md)
+
+- **Six-State Verdict System (doc-04 updated)** — EXISTING DOC, UPDATED. Loop template stopping condition has three states (SUCCESS / SKIP / FAILURE). Doc-04 now defines six: pass / fail / handoff / timeout / stopped / awaiting-merge. Missing states: `handoff` (human judgment required), `timeout` (budget exhausted — should resume, not retry), `stopped` (security gate triggered — investigate, don't auto-retry), `awaiting-merge` (external dependency — monitor, don't retry). Targeted update to `loop.SKILL.md.tpl` Stopping condition section.
+  Source: [Verification](docs/04-verification.md)
+
+#### Medium priority
+
+- **Human-in-the-Loop escalation triggers (doc-14)** — EXISTING DOC, NOT COVERED. Concrete thresholds to hard-code in CLAUDE.md.tpl and loop template: 3 consecutive test failures with no clear fix → escalate; cost estimate exceeding $10 → escalate; destructive operations (DROP, DELETE without WHERE, push to main) → escalate; 3 consecutive blocks of same action → escalate. Currently missing from both the CLAUDE.md.tpl context and the loop Stopping condition.
+  Source: [Human-in-the-Loop](docs/14-human-in-the-loop.md)
+
+- **Three-Agent Harness: QA/Evaluator (doc-24 updated)** — UPDATED DOC. Current `new-harness` creates Planner + Coder (2 agents). Doc-24 now fully specifies a Planner + Generator + QA/Evaluator triad. QA uses Playwright or equivalent to test against 20+ predefined criteria. Could be an optional `--with-qa` phase in `new-harness` that scaffolds a third agent definition and wires it into the runner.
+  Source: [Harness Patterns](docs/24-harness-patterns.md)
+
+- **Loop Patterns Catalog (doc-34)** — NEW DOC. Seven named production-ready patterns with parameters and cost metrics: Daily Triage, PR Babysitter, CI Sweeper, Dependency Sweeper, Post-Merge Cleanup, Changelog Drafter, Issue Triage. `claude-warp-new-loop` derives all parameters from scratch; recognising a named pattern could pre-fill schedule, turn cap, budget, stop condition, and safety rules (e.g. CI Sweeper's mandatory early-exit rule). Could be a recipe lookup at the start of `new-loop` Phase 1.
+  Source: [Loop Patterns Catalog](docs/34-loop-patterns.md)
+
+#### Low priority
+
+- **Fleet Engineering (doc-23)** — NEW DOC. F0–F3 maturity model and fleet economics (cost attribution per agent against fleet ceiling). Useful when a project runs 3+ loops. Out of scope for now but `harness-manifest.json` already tracks `loops[]` — adding `budget` and `actual_cost` per loop entry would be the minimal entry point.
+  Source: [Fleet Engineering](docs/23-fleet-engineering.md)
+
+- **Claude Tag (doc-31)** — NEW DOC. Ambient Slack-based loops with channel identity and self-scheduling. Too platform-specific for generic ClaudeWarp templates.
+
+### No gap found (v0.7.0 already covers)
+- Background Agents (`--bg --worktree` fan-out) — doc-29 ✓
+- Routines (cloud scheduling) — doc-28 ✓
+- Inner/Outer Dual Loop (`--retry`) — doc-25 ✓
+- DOER/CHECKER (Phase 3c) — doc-07 ✓
+- Loop Contract header — doc-27 ✓
+- Two-part harness (Planner + Coder) — doc-26 / doc-24 ✓
+- Subagent scaffolding — claude-warp-new-agent ✓
+- Cost & turn control (`--effort high`, `--max-budget-usd`) — doc-11 ✓
+- Headless mode — run-headless.sh.tpl — doc-09 ✓
+- Fan-out — run-fanout.sh.tpl — doc-10 ✓
+- Guard scripts (scheduling guards) — guard.sh.tpl ✓
+- Cross-context state (STATE_FILE / LOG.md) — doc-16 ✓
+- Anchor files (VISION/AGENTS/PROMPT) — new-harness ✓
+- Skills as SDLC phases — doc-06 ✓
+- CLAUDE.md layering — doc-05 ✓
+
+---
+
 ## 2026-06-23 17:16 IST
 
 ### claude-warp-sync output
