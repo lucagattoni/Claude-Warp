@@ -144,12 +144,51 @@ Feature gaps found  : <total>
   Medium priority   : <N>
   Low priority      : <N>
 
-Top picks to implement:
-  1. <concept> — <one sentence why this matters>
-  2. <concept> — <one sentence>
-  3. <concept> — <one sentence>
+Implementing now (High + Medium):
+  1. <concept>
+  2. <concept>
+  ...
 
 Full report: CLAUDE_WARP_UPDATE_LOG.md
 ```
 
-Do NOT start implementing any of the gaps during this skill run. Surface the findings only — the user decides what to build next.
+## Phase 7 — Implement findings autonomously
+
+Implement **all High and Medium priority gaps** without stopping to ask, unless:
+- The implementation requires credentials, external accounts, or platform-specific configuration the user must supply
+- Two gaps directly contradict each other (pick the simpler one and note the conflict)
+- A gap requires a product-scope decision that cannot be defaulted (e.g. breaking API change)
+
+For everything else, make the reasonable call and proceed.
+
+### Implementation order
+
+Work through High items first, then Medium. For each gap:
+
+1. **Identify the artifact** — new skill, template change, doc update, or combination
+2. **Implement it** — write/edit the files; follow all existing ClaudeWarp conventions:
+   - Skills live in `skills/<name>/SKILL.md` with frontmatter (`name`, `description`)
+   - Templates live in `templates/` with `.tpl` extension
+   - Docs live in `docs/`; update `docs/loop-harness.md` for any new skills or templates
+   - Update `README.md` Skills table if a new skill is added
+3. **Commit each gap as a separate commit** — message format:
+   `feat(<slug>): <what and why in one line>`
+4. **Update CHANGELOG.md `[Unreleased]`** — add an entry for each gap implemented
+5. After all gaps are implemented, **cut a release** following the global versioning rule
+   (MINOR if any new skill or capability added; PATCH if fixes/docs only)
+
+### Low priority gaps
+
+Skip Low priority items — surface them in the report for the user to decide.
+
+### After implementation
+
+Append a `### Implementation` section to the current run block in `CLAUDE_WARP_UPDATE_LOG.md`:
+
+```markdown
+### Implementation
+- ✅ <gap name> — <one sentence on what was built>
+- ✅ <gap name> — ...
+- ⏭ <gap name> — skipped (Low priority)
+- ⚠ <gap name> — needs user input: <what is needed>
+```
