@@ -2,14 +2,24 @@
 # Fan-out runner for: {{SKILL_NAME}}
 # Launches one background agent per item using `claude --bg --worktree` for
 # native git-isolated parallel execution. No manual worktree or PID management.
-# Usage: bash scripts/run-fanout-{{SKILL_SLUG}}.sh [--dry-run]
+# Usage: bash scripts/run-fanout-{{SKILL_SLUG}}.sh [--dry-run] [--max-minutes N]
+#   --max-minutes N  Wall-clock timeout in minutes (default: 120). Kills all
+#                    remaining agent polls and exits if the total fan-out run
+#                    exceeds this duration.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+MAX_MINUTES=120
+args=("$@")
+for i in "${!args[@]}"; do
+  [[ "${args[$i]}" == "--dry-run" ]] && DRY_RUN=1
+  [[ "${args[$i]}" == "--max-minutes" ]] && MAX_MINUTES="${args[$((i+1))]:-120}"
+done
+
+DEADLINE=$(( $(date +%s) + MAX_MINUTES * 60 ))
 
 mkdir -p logs
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
@@ -118,7 +128,14 @@ print(match['status'] if match else 'not_found')
 
   PENDING_MAP=()
   [ "${#STILL_RUNNING[@]}" -gt 0 ] && PENDING_MAP=("${STILL_RUNNING[@]}")
-  [ "${#PENDING_MAP[@]}" -gt 0 ] && sleep 15
+  if [ "${#PENDING_MAP[@]}" -gt 0 ]; then
+    if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] TIMEOUT: fan-out exceeded ${MAX_MINUTES}m — ${#PENDING_MAP[@]} agents still running" | tee -a "$SUMMARY_LOG"
+      FAIL=$((FAIL + ${#PENDING_MAP[@]}))
+      break
+    fi
+    sleep 15
+  fi
 done
 
 # ── Step 4: Summary ───────────────────────────────────────────────────────────
