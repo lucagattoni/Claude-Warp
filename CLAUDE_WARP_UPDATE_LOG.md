@@ -51,6 +51,20 @@ Next sync           : tomorrow (or run /claude-warp-sync anytime)
 
 - **Claude Tag (doc-31)** — NEW DOC. Ambient Slack-based loops with channel identity and self-scheduling. Too platform-specific for generic ClaudeWarp templates.
 
+### Implementation
+
+- ✅ Six-state verdict system — `loop.SKILL.md.tpl` stopping condition extended with pass/skip/fail/handoff/timeout/stopped; handoff and timeout have distinct semantics preventing runaway retries
+- ✅ Goal Engineering (`claude-warp-new-goal`) — new skill; GOAL.md schema, G0-G3 scoring (G0 stops, G1-G2 warn in-file), run-once script with GOAL.md-based resume
+- ✅ Hooks circuit breaker (`claude-warp-new-hook`) — new skill; verify-before-stop (asyncRewake + exit 2), destructive-block (PreToolUse), audit-log (async PostToolUse); exit code semantics documented inline
+- ✅ Human-in-the-Loop escalation — `CLAUDE.md.tpl` escalation rules table; `loop.SKILL.md.tpl` escalation pointer; thresholds: 3 failures, 3 blocks, $10, destructive ops
+- ✅ Three-agent harness QA evaluator — `new-harness` Phase 5b; `--with-qa` flag; QA agent reverts task to pending with feedback in features.json if criteria fail
+- ✅ Loop Patterns Catalog recipe lookup — `new-loop` Phase 1; seven named patterns with pre-defined parameters; safety rules embedded into generated SKILL.md Phase 3
+- ✅ `claude-warp-sync-research` skill updated — auto-implement Phase 7 with pre/post review loop (overlap → scope → devil's advocate → convention; journey trace → regression → devil's advocate → reference audit → fresh reader)
+- ⏭ Fleet Engineering — skipped (Low priority; enterprise-scale, out of current scope)
+- ⏭ Claude Tag — skipped (Low priority; Slack-specific, not generically implementable)
+
+Released as v0.8.0 (MINOR: 2 new skills, 1 skill with new Phase 7, template and harness extensions).
+
 ### No gap found (v0.7.0 already covers)
 - Background Agents (`--bg --worktree` fan-out) — doc-29 ✓
 - Routines (cloud scheduling) — doc-28 ✓
