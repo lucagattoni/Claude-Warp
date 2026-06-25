@@ -136,6 +136,34 @@ Install path: `skills/claude-warp-new-agent/SKILL.md`
 
 ---
 
+### `/claude-warp-new-hook "description"`
+
+Scaffolds a deterministic hook script and wires it into `.claude/settings.json`.
+Hooks run shell scripts at defined lifecycle points — they are hard gates, not
+LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
+
+**Four named patterns:**
+
+| Pattern | Event | Behaviour |
+|---|---|---|
+| `verify-before-stop` | `Stop` | Blocks turn end (exit 2) until `CHECK_CMD` passes; `asyncRewake` re-enters Claude with failure output |
+| `destructive-block` | `PreToolUse` | Denies Bash commands matching a regex pattern |
+| `audit-log` | `PostToolUse` | Appends all tool calls to `logs/audit.log` asynchronously |
+| `subagent-chain` | `SubagentStop` | Triggers follow-on work when a background agent finishes |
+
+**Files created:**
+
+| File | Purpose |
+|---|---|
+| `hooks/<slug>.sh` | Hook script; exit 2 = blocking deny, exit 0 = allow |
+| `.claude/settings.json` | Updated with the new hook entry (appended, not replaced) |
+
+**Safety:** exit code 2 blocks; exit 1 is a non-blocking warning that accidentally permits the denied action. All deny logic must be wrapped so unhandled errors exit 2.
+
+Install path: `skills/claude-warp-new-hook/SKILL.md`
+
+---
+
 ### `/claude-warp-sync`
 
 Synchronises the harness against the current Claude Code version.
