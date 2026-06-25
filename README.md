@@ -61,6 +61,7 @@ claude -p "/claude-warp-update"
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
 | `/claude-warp-new-hook "description"` | Scaffold a hook script wired into `.claude/settings.json` (verify-before-stop, destructive-block, audit-log, security-scan) |
 | `/claude-warp-inventory` | Self-inspect installed skills, agents, hooks, loops — report versions and health issues |
+| `/claude-warp-retro "slug"` | Retrospective on a loop — what worked, what failed, top 3 improvements; writes RETRO.md |
 | `/claude-warp-sync` | Prune harness components superseded by Claude Code |
 | `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub |
 | `/claude-warp-sync-research` | Scan Claude-Loops and GitHub for new patterns; implement findings automatically |
