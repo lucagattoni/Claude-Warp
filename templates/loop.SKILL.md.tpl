@@ -25,10 +25,20 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 
 ## Phase 2 — Load state
 
-1. Read `{{STATE_FILE}}` to find the most recent run entry.
-2. If the most recent entry is marked `IN_PROGRESS`, treat that task as incomplete
-   and restart it from the beginning before doing anything else.
-3. Record `last_run` (ISO date) and `today` from:
+1. Read `{{STATE_FILE}}`. If the file doesn't exist yet, create it with the header below.
+2. Read the `<!-- state:` header block at the top of the file:
+   ```
+   <!-- state:
+   last_run: YYYY-MM-DD HH:MM TZ
+   last_verdict: pass | skip | fail | handoff | timeout | stopped
+   runs_total: N
+   consecutive_fails: N
+   -->
+   ```
+   These fields let you assess loop health without scanning the full log.
+3. If `last_verdict` is `IN_PROGRESS`, treat that task as incomplete and restart it
+   from the beginning before doing anything else.
+4. Record `today` from:
    ```bash
    date '+%Y-%m-%d %H:%M %Z'
    ```
@@ -86,13 +96,20 @@ claude -p '/claude-warp-new-agent "checker for {{SKILL_SLUG}}: validates finding
 
 ## Phase 4 — Write results
 
-1. Append a new dated section to `{{STATE_FILE}}`:
+1. Update the `<!-- state:` header block at the top of `{{STATE_FILE}}` with current values:
+   - `last_run`: today's timestamp
+   - `last_verdict`: the verdict from this run
+   - `runs_total`: increment by 1
+   - `consecutive_fails`: reset to 0 on pass/skip/handoff; increment on fail/timeout/stopped
+
+2. Append a new dated section below the header:
    ```markdown
-   ## YYYY-MM-DD HH:MM <TZ> (run)
+   ## YYYY-MM-DD HH:MM <TZ> — <verdict>
    <!-- findings -->
    ---
    ```
-2. Commit changes:
+
+3. Commit changes:
    ```bash
    git add {{STATE_FILE}}
    git commit -m "loop({{SKILL_SLUG}}): run YYYY-MM-DD"
