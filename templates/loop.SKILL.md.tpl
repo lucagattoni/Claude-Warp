@@ -33,6 +33,22 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
    date '+%Y-%m-%d %H:%M %Z'
    ```
 
+## Phase 2.5 — Inspect
+
+Before modifying anything, read every file in SCOPE that this run will write to.
+Do not edit a file you have not read in the current context window.
+
+```bash
+# Read each file you will touch this run — replace with actual paths
+# Read src/target-file.ts
+# Read config/relevant-config.json
+```
+
+Log what you found: any unexpected state, pre-existing issues, or constraints
+that will affect Phase 3. If inspection reveals the loop is unnecessary this run
+(e.g. no new items, nothing changed), log "nothing to do" and proceed to Phase 4
+with a `skip` verdict.
+
 ## Phase 3 — Do the work
 
 <!-- Replace this section with the loop's actual logic -->

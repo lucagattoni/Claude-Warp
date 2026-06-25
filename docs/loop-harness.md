@@ -237,9 +237,12 @@ Phase 1  — Guard check     prevent duplicate runs
 Phase 2  — Load state      read STATE_FILE; recover IN_PROGRESS tasks
 Phase 3  — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
 Phase 3b — Verify          run check command; iterate on failure
-Phase 3c — Checker         invoke <slug>-checker agent if present (DOER/CHECKER)
-Phase 4  — Write results   append dated entry to STATE_FILE; commit
-Stopping condition         SUCCESS / SKIP / FAILURE defined per loop
+Phase 2.5 — Inspect        read every file in SCOPE before editing; log unexpected state
+Phase 3   — Do the work    goal-specific logic (expanded by /claude-warp-new-loop)
+Phase 3b  — Verify         run check command; iterate on failure
+Phase 3c  — Checker        invoke <slug>-checker agent if present (DOER/CHECKER)
+Phase 4   — Write results  append dated entry to STATE_FILE; commit
+Stopping condition         six-state verdict: pass/skip/fail/handoff/timeout/stopped
 ```
 
 Every harness scaffolded by `/claude-warp-new-harness` follows this flow:
