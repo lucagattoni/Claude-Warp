@@ -42,9 +42,29 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 
 ---
 
+### `/claude-warp-new-goal "goal"`
+
+Scaffolds a **one-shot bounded goal** — use when the work is non-recurring and
+stops when a verifiable criterion is met. ("Loops discover work. Goals finish it.")
+
+**G0–G3 readiness scoring** — before creating files, the skill scores the goal
+across four axes (objective clarity, verifier independence, state file, budget).
+G0 stops with an explanation; G1–G2 proceed with warnings in GOAL.md.
+
+**Files created:**
+
+| File | Purpose |
+|---|---|
+| `<slug>-GOAL.md` | State file: Objective, Done conditions, Guardrails, Execution log |
+| `scripts/run-<slug>.sh` | Run-once script — re-invokable; GOAL.md tracks progress across context resets |
+
+Install path: `skills/claude-warp-new-goal/SKILL.md`
+
+---
+
 ### `/claude-warp-new-loop "goal"`
 
-Scaffolds a complete single-agent loop from a one-line goal description.
+Scaffolds a complete **recurring** single-agent loop from a one-line goal description.
 
 **Derives from the goal:**
 - `SKILL_SLUG`, `SKILL_NAME`, `SKILL_DESCRIPTION`

@@ -54,12 +54,13 @@ claude -p "/claude-warp-update"
 | Skill | What it does |
 |---|---|
 | `/claude-warp-setup` | Per-project installer |
-| `/claude-warp-new-loop "goal"` | Scaffold a single-agent loop or fan-out loop |
-| `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for multi-stage goals |
+| `/claude-warp-new-loop "goal"` | Scaffold a recurring single-agent loop or fan-out loop |
+| `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
+| `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
 | `/claude-warp-sync` | Prune harness components superseded by Claude Code |
 | `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub |
-| `/claude-warp-sync-research` | Scan Claude-Loops for new patterns to implement in ClaudeWarp |
+| `/claude-warp-sync-research` | Scan Claude-Loops for new patterns; implement findings automatically |
 
 ---
 
