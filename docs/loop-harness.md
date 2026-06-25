@@ -42,6 +42,22 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 
 ---
 
+### `/claude-warp-new "goal"` ← start here
+
+Complexity router — assesses a goal across three dimensions (recurrence, stage count, scope size) and routes to the right scaffold without requiring the user to know the difference:
+
+| Routing | Condition |
+|---|---|
+| → `/claude-warp-new-goal` | One-shot: runs once, stops at verifiable criterion |
+| → `/claude-warp-new-loop` | Recurring, single-context per run |
+| → `/claude-warp-new-harness` | Recurring or large, multi-stage (needs a planner) |
+
+Prints the routing decision before delegating. Source: The Startup three-tier decomposition.
+
+Install path: `skills/claude-warp-new/SKILL.md`
+
+---
+
 ### `/claude-warp-new-goal "goal"`
 
 Scaffolds a **one-shot bounded goal** — use when the work is non-recurring and

@@ -19,6 +19,7 @@ When designing a new loop, consult `docs/failure-patterns.md` and `docs/building
 there before writing the SKILL.md.
 
 **Skills available** (invoke with `/skill-name`):
+- `/claude-warp-new "goal"` — **start here**: assesses complexity and routes to new-goal, new-loop, or new-harness automatically
 - `/claude-warp-new-loop "goal"` — scaffold a recurring loop (SKILL.md + guard + trigger + state)
 - `/claude-warp-new-goal "goal"` — scaffold a one-shot bounded goal (GOAL.md + run-once script); stops when a verifiable criterion is met
 - `/claude-warp-new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
