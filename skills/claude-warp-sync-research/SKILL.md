@@ -163,15 +163,41 @@ For everything else, make the reasonable call and proceed.
 
 ### Implementation order
 
+Before starting: scan all gaps as a group for interactions. If two gaps would
+modify the same file in conflicting ways, implement the higher-priority one first
+and let it constrain the second. Note interactions in the implementation log.
+
 Work through High items first, then Medium. For each gap, apply the
 **pre → implement → post** review loop:
 
-**PRE-REVIEW** — before writing any file, answer these questions internally:
-- What exact files will I create or edit?
-- What is the minimal change that covers this gap without over-engineering?
-- Does anything in the existing codebase already partially cover this?
-- Are there naming or convention conflicts with existing skills/templates?
-Only proceed once these are clear.
+**PRE-REVIEW** — four checks, ordered by cost; a failing check stops and skips
+this gap (record the reason in the implementation log):
+
+1. **Overlap audit** (cheapest — one file read): Read the most relevant existing
+   skill or template. Does any phase already partially cover this? If yes, extend
+   that artifact; don't create a parallel one.
+
+2. **Scope declaration** (zero cost — forces clarity before design): State the
+   exact files to create or edit. If the list exceeds 3 new files for one gap,
+   the scope is too large — split or cut. You must be able to name the files
+   before writing a single line.
+
+3. **Devil's advocate** (argues against the *specific* thing scoped in step 2):
+   Produce the strongest case for *not* building it:
+   - Can a ClaudeWarp user name a concrete scenario where this implementation
+     makes their loop more reliable or correct? If no concrete scenario exists,
+     the gap is theoretical — skip it.
+   - Does the source doc describe a ClaudeWarp-applicable pattern, or advice
+     for an unrelated context (enterprise fleet, Slack bots, specific CI vendor)?
+   - Is there a workaround so trivial that the cost of a new skill exceeds the
+     benefit?
+   If none of these objections land, you have a clear rationale — proceed.
+   If any objection stands, skip and record why.
+
+4. **Convention fit** (cheap now, expensive later): Verify the planned artifact
+   matches existing patterns: naming (`claude-warp-*`), phase numbering,
+   frontmatter schema, placeholder style (`{{UPPER_SNAKE}}`), commit format.
+   Open one similar existing skill as the reference before writing.
 
 **IMPLEMENT** — write/edit the files; follow all existing ClaudeWarp conventions:
 - Skills live in `skills/<name>/SKILL.md` with frontmatter (`name`, `description`)
@@ -179,12 +205,44 @@ Only proceed once these are clear.
 - Docs live in `docs/`; update `docs/loop-harness.md` for any new skills or templates
 - Update `README.md` Skills table if a new skill is added
 
-**POST-REVIEW** — after writing, verify before committing:
-- Re-read every file you created or edited
-- Check: does it solve the gap as stated? Does it follow existing conventions?
-- Check: does it introduce any inconsistency with other skills or templates?
-- Check: are there stale references to the old behaviour anywhere else?
-- Fix any issues found, then commit
+**POST-REVIEW** — five checks, ordered most-impactful-first; fix before committing:
+
+1. **User journey trace** (the primary quality gate): Walk through every phase as
+   if executing it right now from a clean project state. For each phase: what
+   exact input does the agent receive? What command or file operation runs? What
+   is the expected output? Can the phase be completed without unstated assumptions?
+   A phase an LLM cannot follow reliably is a bug even if the prose looks fine.
+   Finally, compare the traced outcome with the source doc intent: does the
+   implementation capture the core insight described in the Claude-Loops doc,
+   or only a surface-level interpretation of it?
+
+2. **Regression check** (prevents breaking existing functionality): For every
+   existing skill or template that is related to or references the changed area,
+   verify it still works correctly:
+   - Template changes: grep for all skills that fill this template's placeholders;
+     confirm every `{{PLACEHOLDER}}` is still covered
+   - Skill changes: verify no other skill's phase sequence depends on the old behaviour
+   - Doc changes: verify all cross-links resolve correctly
+
+3. **Devil's advocate on coverage** (finds what the journey trace misses):
+   What would a skeptical reviewer reject?
+   - Edge cases: empty `$ARGUMENTS`, no git repo, project with unusual structure?
+   - Phases that ask the LLM to infer something non-obvious without guidance?
+   - Done conditions that could be trivially satisfied without real work?
+   Address every objection that cannot be dismissed.
+
+4. **Reference audit** (systematic, not impressionistic — grep, don't rely on
+   memory): In one pass, check: `docs/loop-harness.md` documents the new skill
+   or template; `README.md` Skills table is updated if a new skill was added;
+   `CHANGELOG.md` has an `[Unreleased]` entry; no file still describes the old
+   behaviour using old names.
+
+5. **Fresh reader pass** (last — catches what focused checks miss): Re-read
+   every file created or edited as if arriving in a new session with no context.
+   Does it make sense standalone? Is any jargon or implied knowledge left
+   unexplained?
+
+Fix every issue found, then commit.
 
 **COMMIT** each gap as a separate commit after post-review passes:
 `feat(<slug>): <what and why in one line>`
