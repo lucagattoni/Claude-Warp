@@ -11,6 +11,7 @@ Examples:
 - `"verify-before-stop: block turn end until npm test passes"`
 - `"block destructive commands: deny rm -rf and git push --force"`
 - `"audit log: record all Bash tool calls to logs/audit.log"`
+- `"security scan: check for hardcoded secrets and --no-verify bypasses"`
 
 Hooks run deterministic shell scripts at defined lifecycle points — they are
 not LLM judgments. Use them when a loop needs hard guarantees, not best-effort
@@ -26,9 +27,10 @@ Parse `$ARGUMENTS` and determine which named pattern applies:
 | **destructive-block** | `PreToolUse` | The tool call | Loop must never run certain commands unattended |
 | **audit-log** | `PostToolUse` | Never (async) | Need a tamper-evident record of all tool calls |
 | **subagent-chain** | `SubagentStop` | Never (async) | Trigger follow-on work when a background agent finishes |
+| **security-scan** | `PostToolUse` | Never (async) | Detect hardcoded secrets, `--no-verify` bypasses, broad `rm -rf` |
 
 Derive:
-- `HOOK_PATTERN` — one of the four above
+- `HOOK_PATTERN` — one of the five above
 - `HOOK_SLUG` — kebab-case name (e.g. `verify-npm-test`, `block-destructive`, `audit-bash`)
 - `CHECK_CMD` — the shell command to run (verify-before-stop and destructive-block only)
 - `LOOP_SLUG` — the loop this hook belongs to (if scoped; blank = project-wide)
@@ -113,6 +115,48 @@ echo "${TS} | ${TOOL} | $(echo "$INPUT" | python3 -c "import json,sys; d=json.lo
 exit 0
 ```
 
+### security-scan
+
+```bash
+#!/usr/bin/env bash
+# Hook: security-scan for <HOOK_SLUG>
+# Event: PostToolUse — async; never blocks; logs findings to logs/security-scan.log.
+# Detects: hardcoded secrets (API keys, tokens), --no-verify bypasses, broad destructive
+# patterns (rm -rf /, DROP TABLE without WHERE, push --force to main).
+set -euo pipefail
+
+mkdir -p logs
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_name','unknown'))" 2>/dev/null || echo "unknown")
+CONTENT=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('tool_input','')))" 2>/dev/null || echo "")
+TS=$(date '+%Y-%m-%d %H:%M:%S %Z')
+FOUND=0
+
+# Secret patterns: adjust regex to your project's key formats
+if echo "$CONTENT" | grep -qE '(sk-[a-zA-Z0-9]{32,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|eyJhbGciO[a-zA-Z0-9_-]{20,})'; then
+  echo "${TS} | SECURITY | WARN | possible hardcoded secret in ${TOOL} output" >> logs/security-scan.log
+  FOUND=1
+fi
+
+# Bypass detection
+if echo "$CONTENT" | grep -qE '(--no-verify|--force-with-lease|--allow-unrelated-histories|git push.*--force)'; then
+  echo "${TS} | SECURITY | WARN | git safety bypass detected in ${TOOL}: $(echo "$CONTENT" | grep -oE '(--no-verify|--force[^ ]*)')" >> logs/security-scan.log
+  FOUND=1
+fi
+
+# Broad destructive patterns
+if echo "$CONTENT" | grep -qE '(rm -rf /[^/]|DROP TABLE [^W]|DELETE FROM [^ ]+ *;)'; then
+  echo "${TS} | SECURITY | WARN | potentially unsafe destructive pattern in ${TOOL}" >> logs/security-scan.log
+  FOUND=1
+fi
+
+if [ "$FOUND" -eq 1 ]; then
+  echo "${TS} | SECURITY | review logs/security-scan.log for flagged items" >> logs/security-scan.log
+fi
+
+exit 0
+```
+
 Create the directory and make executable:
 ```bash
 mkdir -p hooks
@@ -123,8 +167,8 @@ chmod +x hooks/<HOOK_SLUG>.sh
 
 Read `.claude/settings.json`. If it does not exist, create it as `{}`.
 
-Add the hook under `hooks`. Use `async: true` for audit-log and subagent-chain
-patterns. Use `asyncRewake: true` only for verify-before-stop.
+Add the hook under `hooks`. Use `async: true` for audit-log, subagent-chain, and
+security-scan patterns. Use `asyncRewake: true` only for verify-before-stop.
 
 **verify-before-stop:**
 ```json
@@ -159,6 +203,21 @@ patterns. Use `asyncRewake: true` only for verify-before-stop.
 ```
 
 **audit-log:**
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "bash hooks/<HOOK_SLUG>.sh",
+        "async": true
+      }
+    ]
+  }
+}
+```
+
+**security-scan:**
 ```json
 {
   "hooks": {
