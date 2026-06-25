@@ -65,20 +65,37 @@ with a `skip` verdict.
 
 ## Phase 3b — Verify
 
-Run the verification check and read its exit code:
+Run verification checks and compute a weighted pass score.
+
 ```bash
-# Replace with the appropriate check for this loop, e.g.:
-#   npm test
-#   pytest
-#   ruff check .
+# Define each check with a weight (weights should sum to 100).
+# Replace with checks appropriate for this loop.
+
+# Check 1 — primary correctness (weight: 60)
+#   npm test 2>&1          → exit 0 = pass
+#   pytest 2>&1
 #   bash scripts/verify-{{SKILL_SLUG}}.sh
+
+# Check 2 — secondary quality (weight: 30)
+#   ruff check . 2>&1
+#   eslint src/ 2>&1
+
+# Check 3 — surface/format (weight: 10)
+#   git diff --check 2>&1
+
+PASS_THRESHOLD=70   # proceed if weighted score >= this value
 ```
 
-- If the check **passes** (exit 0): proceed to Phase 4.
-- If the check **fails**: read the output, fix the root cause, re-run Phase 3 and
-  Phase 3b. Do not proceed to Phase 4 until the check passes.
-- If no automated check exists for this loop: document why in a `# Verification`
-  comment here, and describe what a human reviewer should inspect.
+For each check: run it and record pass (exit 0) or fail (non-zero).
+Sum the weights of passing checks.
+
+- `score >= PASS_THRESHOLD` — proceed to Phase 4; log score and which checks passed/failed
+- `score < PASS_THRESHOLD` — fix root cause of failing checks; re-run Phase 3 and Phase 3b
+- Any check with weight ≥ 50 that fails is treated as a hard fail regardless of total score
+
+**Single-check loops:** keep weight at 100 and threshold at 70. The weighted form adds value when 2+ independent checks apply.
+
+If no automated check exists: document why in a `# Verification` comment and describe what a human reviewer should inspect.
 
 ## Phase 3c — Checker (optional)
 
