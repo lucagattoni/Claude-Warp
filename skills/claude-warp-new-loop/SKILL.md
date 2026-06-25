@@ -50,6 +50,16 @@ Derive from it:
   (e.g. "must not write to `src/`, must not push to main, must not delete files")
   Derive from the goal scope; if the goal says nothing, default to "must not modify files
   outside SCOPE". This becomes a hard constraint in Phase 3 of the generated SKILL.md.
+- `AUTONOMY_LEVEL` — classify the loop's autonomy tier before generating files:
+
+  | Level | Label | Criteria | Generated Phase 3 behaviour |
+  |---|---|---|---|
+  | **L1** | Report-only | No file writes, no git ops; output is a report or log only | DO_NOT includes "must not modify any source files" |
+  | **L2** | Assisted changes | Writes files or commits but touches non-production paths; has a programmatic verifier | Mandatory checker agent (Phase 3c); DO_NOT excludes prod paths |
+  | **L3** | Unattended auto-fix | Writes to production paths or pushes; must have both programmatic verifier AND checker agent | Mandatory checker; mandatory `consecutive_stagnation` guard; DO_NOT is maximally restrictive |
+
+  Classify by asking: does Phase 3 modify files? does it touch production paths? is the verifier programmatic (exit code) or judgement-based?
+  Default to L1 if uncertain. Emit the level as a comment in the generated SKILL.md Loop Contract block.
 
 Get local time:
 ```bash
@@ -68,6 +78,12 @@ Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
 Open with a `**Do not:** <DO_NOT>` constraint line before the sub-steps.
+
+Add a Loop Contract line: `LEVEL : L<N> (<label>)` under the existing REPORT line.
+
+For L2/L3 loops: uncomment and fill the Phase 3c checker invocation — do not leave
+it optional. For L3: also add an explicit note that Phase 3a stagnation guard is active
+and `consecutive_stagnation >= 3` triggers handoff.
 
 Expand Phase 3b ("Verify") with the specific check command for this loop. If no
 automated check is available, explain what to inspect manually and why no check exists.
