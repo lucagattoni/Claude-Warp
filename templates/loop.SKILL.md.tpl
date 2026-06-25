@@ -112,6 +112,18 @@ Sum the weights of passing checks.
 
 **Single-check loops:** keep weight at 100 and threshold at 70. The weighted form adds value when 2+ independent checks apply.
 
+**Validation-model option (L2/L3 loops):** for loops where Phase 3b is expensive to run
+inside the main agent context, the verification check can be delegated to a separate
+lightweight agent invocation after Phase 3 completes:
+```bash
+# Example: run verification as a cheap Haiku sub-call (not inside this context window)
+claude --model claude-haiku-4-5-20251001 --max-turns 5 \
+  -p "Run: npm test 2>&1; exit with the same code" 2>&1
+```
+This keeps the main loop's context clean and uses a cheaper model for mechanical checks.
+Only use when the check is genuinely expensive or context-polluting; simple exit-code
+checks are fine inline.
+
 If no automated check exists: document why in a `# Verification` comment and describe what a human reviewer should inspect.
 
 ## Phase 3c — Checker (optional)
