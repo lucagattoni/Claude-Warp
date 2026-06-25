@@ -163,19 +163,36 @@ For everything else, make the reasonable call and proceed.
 
 ### Implementation order
 
-Work through High items first, then Medium. For each gap:
+Work through High items first, then Medium. For each gap, apply the
+**pre → implement → post** review loop:
 
-1. **Identify the artifact** — new skill, template change, doc update, or combination
-2. **Implement it** — write/edit the files; follow all existing ClaudeWarp conventions:
-   - Skills live in `skills/<name>/SKILL.md` with frontmatter (`name`, `description`)
-   - Templates live in `templates/` with `.tpl` extension
-   - Docs live in `docs/`; update `docs/loop-harness.md` for any new skills or templates
-   - Update `README.md` Skills table if a new skill is added
-3. **Commit each gap as a separate commit** — message format:
-   `feat(<slug>): <what and why in one line>`
-4. **Update CHANGELOG.md `[Unreleased]`** — add an entry for each gap implemented
-5. After all gaps are implemented, **cut a release** following the global versioning rule
-   (MINOR if any new skill or capability added; PATCH if fixes/docs only)
+**PRE-REVIEW** — before writing any file, answer these questions internally:
+- What exact files will I create or edit?
+- What is the minimal change that covers this gap without over-engineering?
+- Does anything in the existing codebase already partially cover this?
+- Are there naming or convention conflicts with existing skills/templates?
+Only proceed once these are clear.
+
+**IMPLEMENT** — write/edit the files; follow all existing ClaudeWarp conventions:
+- Skills live in `skills/<name>/SKILL.md` with frontmatter (`name`, `description`)
+- Templates live in `templates/` with `.tpl` extension
+- Docs live in `docs/`; update `docs/loop-harness.md` for any new skills or templates
+- Update `README.md` Skills table if a new skill is added
+
+**POST-REVIEW** — after writing, verify before committing:
+- Re-read every file you created or edited
+- Check: does it solve the gap as stated? Does it follow existing conventions?
+- Check: does it introduce any inconsistency with other skills or templates?
+- Check: are there stale references to the old behaviour anywhere else?
+- Fix any issues found, then commit
+
+**COMMIT** each gap as a separate commit after post-review passes:
+`feat(<slug>): <what and why in one line>`
+
+**Update CHANGELOG.md `[Unreleased]`** — add an entry for each gap implemented.
+
+After all gaps are implemented, **cut a release** following the global versioning rule
+(MINOR if any new skill or capability added; PATCH if fixes/docs only).
 
 ### Low priority gaps
 
