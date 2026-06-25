@@ -95,3 +95,7 @@ runner and the next run can respond correctly:
 | **handoff** | Human judgment required — ambiguous result, conflicting valid options | Exit 0, log "handoff"; write a `NEEDS_REVIEW` note in `{{STATE_FILE}}` |
 | **timeout** | Budget or turn cap exhausted before completion | Exit 0, log "timeout — resume next run"; do NOT retry automatically |
 | **stopped** | Security gate or permission block triggered | Exit 1, log "stopped — investigate before retrying"; do NOT auto-retry |
+
+**Escalation:** if 3 consecutive `fail` verdicts produce no clear fix, or any
+destructive or irreversible operation is needed, switch verdict to `handoff` and
+stop. See the Escalation rules section in `CLAUDE.md` for the full thresholds.

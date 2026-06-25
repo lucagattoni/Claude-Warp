@@ -19,12 +19,14 @@ When designing a new loop, consult `docs/failure-patterns.md` and `docs/building
 there before writing the SKILL.md.
 
 **Skills available** (invoke with `/skill-name`):
-- `/claude-warp-new-loop "goal"` — scaffold a new loop (SKILL.md + guard + trigger + state)
+- `/claude-warp-new-loop "goal"` — scaffold a recurring loop (SKILL.md + guard + trigger + state)
+- `/claude-warp-new-goal "goal"` — scaffold a one-shot bounded goal (GOAL.md + run-once script); stops when a verifiable criterion is met
 - `/claude-warp-new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
 - `/claude-warp-new-agent "role"` — scaffold a specialized subagent in `.claude/agents/`
+- `/claude-warp-new-hook "description"` — scaffold a deterministic hook (verify-before-stop, destructive-block, audit-log)
 - `/claude-warp-sync` — re-check Claude Code changelog; prune superseded harness components
 - `/claude-warp-update` — pull the latest ClaudeWarp skills from the source repo into this project
-- `/claude-warp-sync-research` — scan Claude-Loops for new patterns worth implementing in ClaudeWarp
+- `/claude-warp-sync-research` — scan Claude-Loops for new patterns; implement findings automatically
 
 ## Loop conventions
 
@@ -38,6 +40,22 @@ there before writing the SKILL.md.
 
 External trigger (cron/launchd) → `scripts/run-<name>.sh` → `claude -p "/<name>"`.
 See `templates/trigger.crontab.tpl` and `docs/usage.md` for setup instructions.
+
+## Escalation rules
+
+Stop and surface to the user (do not retry) if any of these thresholds are hit:
+
+| Trigger | Threshold |
+|---|---|
+| Consecutive test/verify failures with no clear fix | 3 in a row |
+| Same action blocked by a permission hook | 3 consecutive blocks |
+| Estimated or actual cost in a single session | Exceeds $10 |
+| Operation is irreversible and destructive | Any (DROP, DELETE without WHERE, push to main/prod) |
+| Multiple valid approaches exist with no clear winner | Always — surface the options |
+
+When escalating: log the verdict as `handoff` in the state file, write a
+`NEEDS_REVIEW` note explaining what triggered escalation, and stop cleanly.
+Do not loop indefinitely trying to resolve an ambiguous or destructive situation.
 
 ## Timestamps
 
