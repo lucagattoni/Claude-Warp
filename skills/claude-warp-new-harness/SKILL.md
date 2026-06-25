@@ -148,6 +148,42 @@ Produce a task list in `<HARNESS_SLUG>-features.json`:
 Output: write the updated JSON and stop. Do not implement anything.
 ```
 
+## Phase 5b — Write the QA evaluator agent (optional — only if `--with-qa` requested)
+
+If the user's goal involves output that can be independently tested or graded
+(UI components, generated code, docs, APIs), scaffold a QA/Evaluator agent.
+
+Derive:
+- `QA_TOOLS` — tools the evaluator needs (e.g. `Bash,Read` for test runners; add MCP tools for browser testing)
+- `QA_CRITERIA` — 3–5 concrete, testable grading criteria derived from the goal
+
+Create `.claude/agents/<HARNESS_SLUG>-qa.md`:
+
+```markdown
+---
+name: <HARNESS_SLUG>-qa
+description: Evaluates completed tasks against predefined criteria; reports pass/fail with actionable feedback before the next task starts
+model: claude-sonnet-4-6
+tools: <QA_TOOLS>
+---
+
+You are a QA evaluator. You do not implement — you grade completed work.
+
+Read `<HARNESS_SLUG>-features.json` to identify the most recently completed task.
+Read the files listed in `files_in_scope` for that task.
+
+Grade against these criteria:
+<QA_CRITERIA — one per line, each machine-checkable>
+
+For each criterion: PASS or FAIL with one sentence of evidence.
+If any criterion FAILs: write a `qa_feedback` field on the task in features.json
+and set status back to `pending`. The coding agent will re-read the feedback.
+If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
+```
+
+**Runner integration note:** the runner script in Phase 6 will invoke this agent
+after each coding agent turn when `--with-qa` is active. See Phase 6.
+
 ## Phase 6 — Write the runner script
 
 Create `scripts/run-<HARNESS_SLUG>.sh`:
@@ -155,16 +191,21 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 ```bash
 #!/usr/bin/env bash
 # Two-part harness runner for: <HARNESS_NAME>
-# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry]
-# --retry  If the coding loop stalls at MAX_ITER, re-invoke the initializer
-#          with failure context (Inner/Outer Dual Loop) before one final pass.
+# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa]
+# --retry    Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
+# --with-qa  After each coding agent turn, invoke the QA evaluator agent;
+#            coding agent re-works the task if QA fails.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 RETRY=0
-[[ "${1:-}" == "--retry" ]] && RETRY=1
+WITH_QA=0
+for arg in "$@"; do
+  [[ "$arg" == "--retry" ]] && RETRY=1
+  [[ "$arg" == "--with-qa" ]] && WITH_QA=1
+done
 
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
@@ -208,6 +249,16 @@ print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))"
       --allowedTools "Read,Edit,Bash,Glob,Grep" \
       -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in $FEATURES" \
       >> "$LOG" 2>&1
+
+    if [ "$WITH_QA" -eq 1 ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator..." >> "$LOG"
+      claude \
+        --permission-mode auto \
+        --max-turns 10 \
+        --effort high \
+        -p "Use the <HARNESS_SLUG>-qa agent to evaluate the most recently completed task in $FEATURES" \
+        >> "$LOG" 2>&1
+    fi
   done
 
   if [ "$iter" -ge "$max_iter" ] && [ "$pending" -gt 0 ]; then
@@ -282,37 +333,45 @@ Write back.
 ## Phase 8 — Commit
 
 ```bash
+# Base files always committed
 git add .claude/agents/<HARNESS_SLUG>-initializer.md \
         <HARNESS_SLUG>-features.json \
         <HARNESS_SLUG>-session-init.md \
         VISION.md AGENTS.md PROMPT.md \
         scripts/run-<HARNESS_SLUG>.sh \
         harness-manifest.json
+
+# Add QA agent if --with-qa was used
+# git add .claude/agents/<HARNESS_SLUG>-qa.md
+
 git commit -m "feat(harness): scaffold <HARNESS_SLUG>"
 ```
 
 ## Phase 9 — Report
 
 ```
-Two-part harness scaffolded ✓
+Harness scaffolded ✓
 
   Initializer : .claude/agents/<HARNESS_SLUG>-initializer.md
   Feature list: <HARNESS_SLUG>-features.json
   Session init: <HARNESS_SLUG>-session-init.md
   Anchor files: VISION.md, AGENTS.md, PROMPT.md
   Runner      : scripts/run-<HARNESS_SLUG>.sh
+  QA agent    : .claude/agents/<HARNESS_SLUG>-qa.md  ← if --with-qa
 
 To run:
-  bash scripts/run-<HARNESS_SLUG>.sh
-
-  # If the loop stalls (MAX_ITER reached), trigger Inner/Outer Dual Loop:
-  bash scripts/run-<HARNESS_SLUG>.sh --retry
+  bash scripts/run-<HARNESS_SLUG>.sh             # standard
+  bash scripts/run-<HARNESS_SLUG>.sh --retry     # Inner/Outer Dual Loop on stall
+  bash scripts/run-<HARNESS_SLUG>.sh --with-qa   # invoke QA evaluator after each task
+  bash scripts/run-<HARNESS_SLUG>.sh --retry --with-qa  # both
 
 The runner will:
   1. Invoke the initializer once to populate the task list
   2. Loop: invoke the coding agent for each pending task until all are done
-  3. On --retry: if stalled, re-invoke the initializer with failure context
-     and try once more with a revised task breakdown
+  3. On --with-qa: invoke the QA evaluator after each task; task reverts to
+     pending if QA fails, with feedback written back into features.json
+  4. On --retry: if stalled at MAX_ITER, re-invoke the initializer with failure
+     context and run one final coding pass with revised task breakdown
 
 Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
 Verification : <VERIFICATION_CMD>
