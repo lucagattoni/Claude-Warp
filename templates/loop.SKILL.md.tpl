@@ -33,9 +33,12 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
    last_verdict: pass | skip | fail | handoff | timeout | stopped
    runs_total: N
    consecutive_fails: N
+   consecutive_stagnation: N
    -->
    ```
    These fields let you assess loop health without scanning the full log.
+   `consecutive_stagnation` counts runs that passed the guard and produced no file changes —
+   a distinct failure mode from `consecutive_fails` (which tracks verdict failures).
 3. If `last_verdict` is `IN_PROGRESS`, treat that task as incomplete and restart it
    from the beginning before doing anything else.
 4. Record `today` from:
@@ -62,6 +65,20 @@ with a `skip` verdict.
 ## Phase 3 — Do the work
 
 <!-- Replace this section with the loop's actual logic -->
+
+## Phase 3a — Stagnation check
+
+After Phase 3 completes, check whether this run produced any file changes:
+
+```bash
+git diff --name-only HEAD 2>/dev/null
+```
+
+- **Changes found** — proceed to Phase 3b normally; reset `consecutive_stagnation` to 0 in Phase 4.
+- **No changes** — this is a stagnation event. Increment `consecutive_stagnation` in Phase 4.
+  - If `consecutive_stagnation >= 3`: do not write a `pass` verdict — write `handoff` with note
+    "3 consecutive runs produced no file changes — loop may be stale or scope has nothing to do".
+    This is distinct from `fail`; it may indicate the goal is already satisfied.
 
 ## Phase 3b — Verify
 
@@ -118,6 +135,7 @@ claude -p '/claude-warp-new-agent "checker for {{SKILL_SLUG}}: validates finding
    - `last_verdict`: the verdict from this run
    - `runs_total`: increment by 1
    - `consecutive_fails`: reset to 0 on pass/skip/handoff; increment on fail/timeout/stopped
+   - `consecutive_stagnation`: reset to 0 if files changed this run; increment if no changes
 
 2. Append a new dated section below the header:
    ```markdown
