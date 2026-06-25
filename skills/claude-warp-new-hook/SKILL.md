@@ -1,6 +1,6 @@
 ---
 name: claude-warp-new-hook
-description: Scaffold a Claude Code hook for loop control — verify-before-stop circuit breaker, destructive command blocking, or audit logging; writes the hook script and wires it into .claude/settings.json
+description: Scaffold a Claude Code hook — 8 named patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer; writes script and wires into .claude/settings.json
 ---
 
 Scaffold a hook for: `$ARGUMENTS`
@@ -12,6 +12,9 @@ Examples:
 - `"block destructive commands: deny rm -rf and git push --force"`
 - `"audit log: record all Bash tool calls to logs/audit.log"`
 - `"security scan: check for hardcoded secrets and --no-verify bypasses"`
+- `"evidence gate: block state file writes unless a matching Read happened first"`
+- `"kill switch: block all tool calls when AGENT_STOP file exists"`
+- `"steer: inject STEER.md content as context once, then clear it"`
 
 Hooks run deterministic shell scripts at defined lifecycle points — they are
 not LLM judgments. Use them when a loop needs hard guarantees, not best-effort
@@ -28,9 +31,12 @@ Parse `$ARGUMENTS` and determine which named pattern applies:
 | **audit-log** | `PostToolUse` | Never (async) | Need a tamper-evident record of all tool calls |
 | **subagent-chain** | `SubagentStop` | Never (async) | Trigger follow-on work when a background agent finishes |
 | **security-scan** | `PostToolUse` | Never (async) | Detect hardcoded secrets, `--no-verify` bypasses, broad `rm -rf` |
+| **evidence-gate** | `PreToolUse` | Write/Edit to state file if no prior Read | Prevent false-positive completions: agent cannot write results it hasn't read |
+| **kill-switch** | `PreToolUse` | All tool calls when `AGENT_STOP` file exists | Operator mid-run halt without killing the process |
+| **steer** | `UserPromptSubmit` | Never (context injection) | Mid-run redirection: surfaces `STEER.md` once as context, then clears file |
 
 Derive:
-- `HOOK_PATTERN` — one of the five above
+- `HOOK_PATTERN` — one of the eight above
 - `HOOK_SLUG` — kebab-case name (e.g. `verify-npm-test`, `block-destructive`, `audit-bash`)
 - `CHECK_CMD` — the shell command to run (verify-before-stop and destructive-block only)
 - `LOOP_SLUG` — the loop this hook belongs to (if scoped; blank = project-wide)
@@ -157,6 +163,94 @@ fi
 exit 0
 ```
 
+### evidence-gate
+
+```bash
+#!/usr/bin/env bash
+# Hook: evidence-gate for <HOOK_SLUG>
+# Event: PreToolUse — blocks Write/Edit to <STATE_FILE> unless a Read of that
+# file has been recorded in the session transcript. Prevents false-positive
+# completions where the agent writes a pass verdict without reading state first.
+# CRITICAL: exit 2 = deny. exit 1 = warn only (accidentally permits).
+set -euo pipefail
+
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
+TARGET=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+
+# Only gate writes to the state file
+STATE_FILE="<STATE_FILE>"
+if [[ "$TOOL" =~ ^(Write|Edit)$ ]] && [[ "$TARGET" == *"$STATE_FILE"* ]]; then
+  # Check session read log (append Read events via audit-log or companion PostToolUse hook)
+  if ! grep -q "Read.*$STATE_FILE" logs/session-reads.log 2>/dev/null; then
+    cat <<JSON
+{
+  "continue": false,
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny"
+  }
+}
+JSON
+    exit 2
+  fi
+fi
+
+exit 0
+```
+
+### kill-switch
+
+```bash
+#!/usr/bin/env bash
+# Hook: kill-switch
+# Event: PreToolUse — blocks ALL tool calls when AGENT_STOP file exists.
+# To halt a running loop: touch AGENT_STOP  (remove it to resume: rm AGENT_STOP)
+# CRITICAL: exit 2 = deny. exit 1 = warn only (accidentally permits).
+set -euo pipefail
+
+if [ -f "AGENT_STOP" ]; then
+  REASON=$(cat AGENT_STOP 2>/dev/null | head -1 || echo "operator halt")
+  cat <<JSON
+{
+  "continue": false,
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny"
+  }
+}
+JSON
+  exit 2
+fi
+
+exit 0
+```
+
+### steer
+
+```bash
+#!/usr/bin/env bash
+# Hook: steer
+# Event: UserPromptSubmit — if STEER.md exists, prepend its content as additional
+# context and delete the file so it only fires once.
+set -euo pipefail
+
+if [ -f "STEER.md" ]; then
+  CONTENT=$(cat STEER.md)
+  rm -f STEER.md
+  cat <<JSON
+{
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "Operator steering note (read once, then cleared):\n\n${CONTENT}"
+  }
+}
+JSON
+fi
+
+exit 0
+```
+
 Create the directory and make executable:
 ```bash
 mkdir -p hooks
@@ -226,6 +320,36 @@ security-scan patterns. Use `asyncRewake: true` only for verify-before-stop.
         "type": "command",
         "command": "bash hooks/<HOOK_SLUG>.sh",
         "async": true
+      }
+    ]
+  }
+}
+```
+
+**evidence-gate / kill-switch:**
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "bash hooks/<HOOK_SLUG>.sh",
+        "async": false
+      }
+    ]
+  }
+}
+```
+
+**steer:**
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "bash hooks/<HOOK_SLUG>.sh",
+        "async": false
       }
     ]
   }
