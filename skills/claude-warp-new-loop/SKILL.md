@@ -85,6 +85,14 @@ For L2/L3 loops: uncomment and fill the Phase 3c checker invocation — do not l
 it optional. For L3: also add an explicit note that Phase 3a stagnation guard is active
 and `consecutive_stagnation >= 3` triggers handoff.
 
+**Cross-model checker:** if a checker agent is created, it must use a *different model*
+than the loop's primary agent. Self-evaluation bias: the same model that generated the
+work tends to approve it. Use the opposite end of the capability spectrum:
+- Loop agent on Sonnet → checker on Haiku (fast, cheap, independent read)
+- Loop agent on Opus → checker on Sonnet
+- Loop agent on Haiku → checker on Sonnet
+Set the `model:` frontmatter field in the generated checker agent accordingly.
+
 Expand Phase 3b ("Verify") with the specific check command for this loop. If no
 automated check is available, explain what to inspect manually and why no check exists.
 
