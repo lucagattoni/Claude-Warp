@@ -5,7 +5,29 @@ description: Scaffold a new loop from a one-line goal — creates SKILL.md, guar
 
 Scaffold a new Claude Code loop for the goal: `$ARGUMENTS`
 
-## Phase 1 — Understand the goal
+## Phase 1 — Match against known patterns
+
+Before deriving parameters from scratch, check whether the goal matches one of
+the seven named loop patterns from the Loop Patterns Catalog. If it matches,
+use the pattern's pre-defined parameters as defaults (the user can override).
+
+| Pattern | Matches when goal involves… | Schedule | MAX_BUDGET | Safety rule |
+|---|---|---|---|---|
+| **Daily Triage** | Morning scan of issues / CI / stale PRs / alerts | `0 9 * * *` | $0.10 | Report only (L1) |
+| **PR Babysitter** | Managing PRs through CI and review cycles | `*/15 * * * *` | $0.30 | L2; never force-merge |
+| **CI Sweeper** | Reacting to failing CI; auto-fix and push | `*/15 * * * *` | $0.05 | **Mandatory early-exit after 3 fix attempts** |
+| **Dependency Sweeper** | Patch vulnerable or outdated packages | `0 */6 * * *` | $0.20 | Patch-only; escalate minor/major bumps |
+| **Post-Merge Cleanup** | TODO/dead code cleanup PRs | `0 2 * * *` | $0.10 | Off-peak only; never touch production paths |
+| **Changelog Drafter** | Generating changelog from commit history | pre-release | $0.10 | Human review before publish (L1) |
+| **Issue Triage** | Labelling and categorising issues | `0 9 * * *` | $0.10 | L1; escalate auto-close to L2 |
+
+If the goal matches a pattern: note which one and use its parameters as the
+starting point. Also embed the pattern's **Safety rule** as a hard constraint
+in Phase 3 of the generated SKILL.md (e.g. for CI Sweeper: "Stop after 3 fix
+attempts — do not loop indefinitely; mark verdict `timeout` and exit").
+If no pattern matches: derive all parameters from scratch.
+
+## Phase 1b — Understand the goal
 
 Parse `$ARGUMENTS` as a plain-English goal description.
 Derive from it:
