@@ -46,6 +46,10 @@ Derive from it:
   "no new items found in source"); must be checkable by reading a file or exit code,
   not just "looks finished"
 - `ALLOWED_TOOLS` — minimum tool set needed (default: `"Read,Edit,WebFetch"`)
+- `DO_NOT` — explicit boundaries: paths/systems/operations the loop must never touch
+  (e.g. "must not write to `src/`, must not push to main, must not delete files")
+  Derive from the goal scope; if the goal says nothing, default to "must not modify files
+  outside SCOPE". This becomes a hard constraint in Phase 3 of the generated SKILL.md.
 
 Get local time:
 ```bash
@@ -63,6 +67,7 @@ Read `templates/loop.SKILL.md.tpl` from ClaudeWarp source and fill:
 
 Expand Phase 3 ("Do the work") based on the goal description — write 3–5 concrete
 sub-steps appropriate to the goal. This is the most important customisation.
+Open with a `**Do not:** <DO_NOT>` constraint line before the sub-steps.
 
 Expand Phase 3b ("Verify") with the specific check command for this loop. If no
 automated check is available, explain what to inspect manually and why no check exists.
