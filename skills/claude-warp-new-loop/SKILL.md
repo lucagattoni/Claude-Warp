@@ -20,6 +20,7 @@ use the pattern's pre-defined parameters as defaults (the user can override).
 | **Post-Merge Cleanup** | TODO/dead code cleanup PRs | `0 2 * * *` | $0.10 | Off-peak only; never touch production paths |
 | **Changelog Drafter** | Generating changelog from commit history | pre-release | $0.10 | Human review before publish (L1) |
 | **Issue Triage** | Labelling and categorising issues | `0 9 * * *` | $0.10 | L1; escalate auto-close to L2 |
+| **Bug Fix Loop** | Report → Analyze → Fix → Verify cycle for a known class of bugs | `on-demand` | $1.00 | L2; max 3 fix attempts per bug; escalate to handoff on 3rd failure |
 
 If the goal matches a pattern: note which one and use its parameters as the
 starting point. Also embed the pattern's **Safety rule** as a hard constraint
