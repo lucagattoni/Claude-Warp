@@ -5,6 +5,24 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.10.0] — 2026-06-25
+
+### Added
+- `skills/claude-warp-spec-refine` — iterative spec refinement: runs up to 3 rounds of targeted clarifying questions to lift a vague goal from G0/G1 to G3; produces `<slug>-spec.md`; run before `/claude-warp-new` when the goal is underspecified (source: li0nel/claude-loop)
+- `skills/claude-warp-new-hook` — three new hook patterns: **evidence-gate** (PreToolUse blocks writes to state file unless a Read occurred first), **kill-switch** (PreToolUse blocks all tool calls when `AGENT_STOP` exists), **steer** (UserPromptSubmit injects `STEER.md` once as context then clears it); hook count 5 → 8 (source: anthropics/cwc-long-running-agents)
+- `skills/claude-warp-new-loop` — **L1/L2/L3 autonomy classification** at scaffold time: Phase 1b classifies new loops by scope of change and verifier type; L3 mandatory checker + stagnation guard; classification emitted in Loop Contract block (source: cobusgreyling/loop-engineering)
+- `skills/claude-warp-new-loop` — **Bug Fix Loop** as 8th named pattern in Patterns Catalog: Report → Analyze → Fix → Verify; on-demand trigger; L2 autonomy; 3-attempt cap before handoff (source: Pimzino/claude-code-spec-workflow)
+- `skills/claude-warp-new-loop` — **cross-model checker**: generated checker agents use a different model from the loop agent (Sonnet→Haiku, Opus→Sonnet) to prevent self-evaluation bias (source: Looper)
+
+### Changed
+- `templates/loop.SKILL.md.tpl` — **stagnation circuit breaker**: Phase 3a checks `git diff --name-only` after work; `consecutive_stagnation` counter added to state header; 3 consecutive no-change runs → `handoff` verdict (source: frankbria/ralph-claude-code)
+- `templates/loop.SKILL.md.tpl` — **validation-model decoupling**: Phase 3b now documents the option of delegating expensive verification to a separate cheap-model `claude` invocation, keeping main context clean (source: nizos/tdd-guard)
+- `skills/claude-warp-new-harness` — **wave scheduling**: initializer assigns `wave` and `depends_on` to each task; runner processes waves sequentially; `--parallel-waves` flag runs within-wave tasks concurrently via `--bg --worktree` (source: barkain/claude-code-workflow-orchestration)
+- `templates/run-headless.sh.tpl` — `--max-minutes N` flag wraps `claude` with `timeout`; exit 124 logged as timeout verdict; default 60 minutes (source: li0nel/claude-loop)
+- `templates/run-fanout.sh.tpl` — `--max-minutes N` deadline tracked via epoch; polling loop exits with timeout log if exceeded; default 120 minutes
+
+---
+
 ## [0.9.0] — 2026-06-25
 
 ### Added

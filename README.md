@@ -60,7 +60,7 @@ claude -p "/claude-warp-update"
 | `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
 | `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
-| `/claude-warp-new-hook "description"` | Scaffold a hook script wired into `.claude/settings.json` (verify-before-stop, destructive-block, audit-log, security-scan) |
+| `/claude-warp-new-hook "description"` | Scaffold a hook (8 patterns): verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer |
 | `/claude-warp-inventory` | Self-inspect installed skills, agents, hooks, loops — report versions and health issues |
 | `/claude-warp-retro "slug"` | Retrospective on a loop — what worked, what failed, top 3 improvements; writes RETRO.md |
 | `/claude-warp-sync` | Prune harness components superseded by Claude Code |
