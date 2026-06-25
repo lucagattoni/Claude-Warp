@@ -180,6 +180,39 @@ Install path: `skills/claude-warp-new-hook/SKILL.md`
 
 ---
 
+### `/claude-warp-inventory`
+
+Zero-LLM self-inspection of the installed ClaudeWarp setup. All phases use Bash
+and Read only — no LLM inference.
+
+1. Reads `harness-manifest.json` for installed version
+2. Scans `.claude/skills/` for missing SKILL.md files or unknown skills
+3. Scans `.claude/agents/` for stale model IDs (post-deprecation)
+4. Scans `.claude/settings.json` hooks for missing scripts
+5. Reads `<!-- state:` headers in all state files; flags `consecutive_fails >= 3`
+6. Checks `scripts/` for non-executable runner files
+7. Prints a versioned report with inline remediation commands
+
+Install path: `skills/claude-warp-inventory/SKILL.md`
+
+---
+
+### `/claude-warp-retro "slug"`
+
+Retrospective over one loop or all loops. Reads state files and git history —
+does not modify any loop files (RETRO.md is the only output).
+
+1. Reads `<!-- state:` header: runs_total, consecutive_fails, last_verdict
+2. Reads git log for run commits and fix commits in the past 30 days
+3. Scans last 10 dated sections for verdict distribution and recurring failures
+4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts
+5. Appends a dated entry to `RETRO.md` with top 3 concrete improvements
+6. Prints improvements inline
+
+Install path: `skills/claude-warp-retro/SKILL.md`
+
+---
+
 ### `/claude-warp-sync`
 
 Synchronises the harness against the current Claude Code version.

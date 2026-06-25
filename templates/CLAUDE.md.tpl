@@ -25,9 +25,11 @@ there before writing the SKILL.md.
 - `/claude-warp-new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
 - `/claude-warp-new-agent "role"` — scaffold a specialized subagent in `.claude/agents/`
 - `/claude-warp-new-hook "description"` — scaffold a deterministic hook (verify-before-stop, destructive-block, audit-log)
+- `/claude-warp-inventory` — zero-LLM scan of installed skills, agents, hooks, state files; reports health issues
+- `/claude-warp-retro "slug"` — retrospective on a loop: what worked, what failed, top 3 improvements; writes RETRO.md
 - `/claude-warp-sync` — re-check Claude Code changelog; prune superseded harness components
 - `/claude-warp-update` — pull the latest ClaudeWarp skills from the source repo into this project
-- `/claude-warp-sync-research` — scan Claude-Loops for new patterns; implement findings automatically
+- `/claude-warp-sync-research` — scan Claude-Loops and GitHub for new patterns; implement findings automatically
 
 ## Loop conventions
 
