@@ -1,6 +1,6 @@
 ---
 name: claude-warp-retro
-description: Retrospective over one loop or harness — reads state files and git history to surface what worked, what failed, and concrete improvement suggestions; produces a RETRO.md entry without modifying any loop files
+description: Retrospective over a loop, goal, or harness — detects the state-file schema, reads it plus git history, and surfaces what worked, what failed, and concrete improvements; produces a RETRO.md entry without modifying any loop/goal files
 ---
 
 Run a retrospective on a loop or harness: `$ARGUMENTS`
@@ -15,9 +15,19 @@ If `$ARGUMENTS` is empty: run a retrospective over all loops in this project.
 ls *_LOG.md *-GOAL.md *-STATE.md *-features.json 2>/dev/null
 ```
 
-For each state file matching the slug:
-1. Read the `<!-- state:` header to get `runs_total`, `consecutive_fails`, `last_verdict`, `last_run`
-2. If no state file found: print "No state file found for <slug> — has this loop run yet?" and stop
+If no state file found: print "No state file found for <slug> — has this loop or goal run yet?" and stop.
+
+**Detect each file's schema before reading it** — a retro must not assume the loop shape:
+
+| File looks like | Detect by | Kind | Read |
+|---|---|---|---|
+| Loop state log | has a `<!-- state:` header | **loop** | `runs_total`, `consecutive_fails`, `consecutive_stagnation`, `last_verdict`, `last_run` |
+| doc-30 goal | `*-GOAL.md` with `## Done conditions` + `## Execution log`, no `<!-- state:` header | **goal** | done-conditions (checked vs total), execution-log milestones |
+| Harness | `*-features.json` | **harness** | task statuses (done/pending/failed), waves |
+
+Branch the rest of the retro on the detected kind. A one-shot **goal** has no per-run
+verdicts — analyse its *completion* (were all done-conditions met? how many milestones / how
+much rework?), not a run series.
 
 ## Phase 2 — Read git history
 
@@ -32,10 +42,15 @@ Record:
 
 ## Phase 3 — Read recent state entries
 
-Read the last 10 dated sections in the state file(s). For each entry, extract:
+**Loop / harness:** read the last 10 dated sections in the state file(s). For each entry, extract:
 - Verdict (pass/skip/fail/handoff/timeout/stopped)
 - Any error output or NEEDS_REVIEW notes
 - Pattern: did the same failure recur across multiple runs?
+
+**Goal:** read the `## Done conditions` checklist and the full `## Execution log`. Extract:
+- Completion: how many done-conditions are checked vs total; is the goal COMPLETE?
+- Rework: did any milestone redo earlier work, or did a `surface_condition` / handoff fire?
+- Friction: anything the execution log notes as awkward, blocked, or surprising.
 
 ## Phase 4 — Analyse
 
@@ -62,19 +77,31 @@ Format: `Phase X — <what> — <why>`
 
 ## Phase 5 — Write RETRO.md
 
-Append to `RETRO.md` (create if absent):
+Append to `RETRO.md` (create if absent). Use the header line that matches the detected kind:
 
+**Loop / harness:**
 ```markdown
 ## Retro: <SLUG> — <YYYY-MM-DD>
 
 **Period:** last <N> runs (since <start_date>)
 **Runs:** <total> total | <pass> pass | <fail> fail | <handoff> handoff | <skip> skip
+```
 
+**Goal:**
+```markdown
+## Retro: <SLUG> (goal) — <YYYY-MM-DD>
+
+**Outcome:** <COMPLETE | INCOMPLETE> — <checked>/<total> done conditions met
+**Milestones:** <N> execution-log entries | rework: <none | what was redone>
+```
+
+Then, for either kind:
+```markdown
 ### What worked
 - <finding>
 
-### What failed
-- <finding> (occurred <N> times)
+### What failed / friction
+- <finding> (occurred <N> times, or "structural" for one-shot goals)
 
 ### Top 3 improvements
 1. Phase X — <change> — <reason>

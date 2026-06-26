@@ -217,7 +217,7 @@ and Read only — no LLM inference.
 2. Scans `.claude/skills/` for missing SKILL.md files or unknown skills
 3. Scans `.claude/agents/` for stale model IDs (post-deprecation)
 4. Scans `.claude/settings.json` hooks for missing scripts
-5. Reads `<!-- state:` headers in all state files; flags `consecutive_fails >= 3`
+5. Detects state-file schema and reads accordingly: loop headers (flags `consecutive_fails >= 3`, `IN_PROGRESS`), goal `GOAL.md` (done-conditions progress; flags stalled), harness `features.json` (flags failed tasks)
 6. Checks `scripts/` for non-executable runner files
 7. Prints a versioned report with inline remediation commands
 
@@ -232,10 +232,12 @@ Install path: `skills/claude-warp-inventory/SKILL.md`
 
 ### `/claude-warp-retro "slug"`
 
-Retrospective over one loop or all loops. Reads state files and git history —
-does not modify any loop files (RETRO.md is the only output).
+Retrospective over a loop, goal, or harness (or all). Reads state files and git history —
+does not modify any loop/goal files (RETRO.md is the only output).
 
-1. Reads `<!-- state:` header: runs_total, consecutive_fails, last_verdict
+1. Detects each state file's schema (loop `<!-- state:` header / doc-30 `GOAL.md` / harness
+   `features.json`) and reads it accordingly — for a goal it analyses completion + rework,
+   not a run series
 2. Reads git log for run commits and fix commits in the past 30 days
 3. Scans last 10 dated sections for verdict distribution and recurring failures
 4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts

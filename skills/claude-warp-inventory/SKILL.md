@@ -85,17 +85,23 @@ ls hooks/ 2>/dev/null
 
 Flag `⚠ missing script` if the hook references a file that doesn't exist.
 
-## Phase 5 — Scan loop state files
+## Phase 5 — Scan loop & goal state files
 
 ```bash
 ls *_LOG.md *-GOAL.md *-features.json 2>/dev/null || echo "none"
 ```
 
-For each state file found:
-1. Read the `<!-- state:` header block
-2. Report: last_run, last_verdict, consecutive_fails
-3. Flag `⚠ consecutive_fails ≥ 3` — loop may need attention
-4. Flag `⚠ last_verdict: IN_PROGRESS` — loop was interrupted; next run will attempt recovery
+Detect each file's schema first — don't assume the loop shape (a doc-30 `GOAL.md` has no
+`<!-- state:` header):
+
+- **Loop state log** (has `<!-- state:` header): report `last_run`, `last_verdict`,
+  `consecutive_fails`. Flag `⚠ consecutive_fails ≥ 3` (needs attention) and
+  `⚠ last_verdict: IN_PROGRESS` (interrupted; next run recovers).
+- **Goal** (`*-GOAL.md` with `## Done conditions`, no state header): report
+  `<checked>/<total>` done conditions and whether it's COMPLETE. Flag
+  `⚠ incomplete + no recent execution-log entry` (a stalled goal); a complete goal is `✓`.
+- **Harness** (`*-features.json`): report task counts (done/pending/failed). Flag
+  `⚠ failed > 0`.
 
 ## Phase 6 — Scan scripts
 
