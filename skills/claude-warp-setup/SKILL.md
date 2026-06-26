@@ -28,18 +28,11 @@ Set up the ClaudeWarp loop harness in the current project directory.
 ## Phase 2 — Create directory structure
 
 ```bash
-mkdir -p .claude/skills/claude-warp-setup
-mkdir -p .claude/skills/claude-warp-new-loop
-mkdir -p .claude/skills/claude-warp-sync
-mkdir -p .claude/skills/claude-warp-update
-mkdir -p .claude/skills/claude-warp-new-agent
-mkdir -p .claude/skills/claude-warp-new-harness
-mkdir -p .claude/skills/claude-warp-sync-research
-mkdir -p scripts
-mkdir -p plans
-mkdir -p docs
-mkdir -p logs
+mkdir -p .claude/skills scripts plans docs logs
 ```
+
+(Per-skill directories are created dynamically in Phase 3 from whatever skills the
+ClaudeWarp source actually contains — never hardcode the skill list.)
 
 Ensure `logs/` is gitignored:
 - Read `.gitignore`; if `logs/` is not present, append it.
@@ -58,14 +51,21 @@ Record the resolved ClaudeWarp root as `WARP_ROOT`.
 1. `.claudewarp-templates/` exists at the project root → `TEMPLATE_ROOT=.claudewarp-templates`
 2. Otherwise → `TEMPLATE_ROOT=$WARP_ROOT/templates`
 
-Copy skills from `$WARP_ROOT/skills/<name>/SKILL.md` into the target project:
-- `claude-warp-setup` → `.claude/skills/claude-warp-setup/SKILL.md`
-- `claude-warp-new-loop` → `.claude/skills/claude-warp-new-loop/SKILL.md`
-- `claude-warp-sync` → `.claude/skills/claude-warp-sync/SKILL.md`
-- `claude-warp-update` → `.claude/skills/claude-warp-update/SKILL.md`
-- `claude-warp-new-agent` → `.claude/skills/claude-warp-new-agent/SKILL.md`
-- `claude-warp-new-harness` → `.claude/skills/claude-warp-new-harness/SKILL.md`
-- `claude-warp-sync-research` → `.claude/skills/claude-warp-sync-research/SKILL.md`
+Copy **every** skill from `$WARP_ROOT/skills/` into the target project — iterate the
+source directory rather than naming skills, so new skills are never missed:
+
+```bash
+for dir in "$WARP_ROOT"/skills/*/; do
+  name="$(basename "$dir")"
+  mkdir -p ".claude/skills/$name"
+  cp "$dir/SKILL.md" ".claude/skills/$name/SKILL.md"
+done
+```
+
+This installs all ClaudeWarp skills present in the source (setup, new, contract,
+new-loop, new-goal, new-harness, new-agent, new-hook, inventory, retro, sync,
+sync-research, update — and anything added later). Confirm the count matches
+`ls "$WARP_ROOT"/skills | wc -l`.
 
 Read `$WARP_ROOT/VERSION` and record as `HARNESS_VERSION`.
 
@@ -109,11 +109,12 @@ Print a summary:
 ClaudeWarp installed ✓
 
 Project : <name> (<type>)
-Skills  : /claude-warp-new-loop, /claude-warp-sync, /claude-warp-update,
-          /claude-warp-new-agent, /claude-warp-new-harness, /claude-warp-sync-research
-Next    : run /claude-warp-new-loop "your goal here" to scaffold your first loop
+Skills  : <N> installed (list them from .claude/skills/, e.g.
+          /claude-warp-new, /claude-warp-contract, /claude-warp-new-loop, …)
+Next    : run /claude-warp-new "your goal here" — it routes to the right scaffold
+          (or /claude-warp-contract "goal" to negotiate a full contract first)
+          run /claude-warp-inventory to verify the install
           run /claude-warp-sync to check for Claude Code updates
-          run /claude-warp-update to pull the latest ClaudeWarp skills
 
 To make skills globally available in all future projects (optional):
   cp -r .claude/skills/claude-warp-setup ~/.claude/skills/
