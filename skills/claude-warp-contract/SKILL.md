@@ -14,11 +14,11 @@ then argue against it critically — scaling rigor with risk — until no gaps,
 ambiguities, or contradictions remain. Default ends by handing the contract to a
 scaffolder; `--no-scaffold` stops at the approved contract.
 
-Parse flags from `$ARGUMENTS`: `--no-scaffold` (stop after Phase 8).
+Parse flags from `$ARGUMENTS`: `--no-scaffold` (stop after Phase 9).
 
 ---
 
-## Phase 0 — Branch
+## Phase 1 — Branch
 
 If `contract.draft.yaml` exists in the repo root, ask the user whether to
 **resume** that draft or start over. If resume: load it and jump to the phase its
@@ -37,13 +37,13 @@ run once until a result is reached?"*
 
 ---
 
-## Phase 1 — Draft-first
+## Phase 2 — Draft-first
 
 Draft a **complete** contract from the goal alone, filling every field with your best
 guess (mark guesses with `# GUESS`). Draft-first is deliberate: the user reacts to a
 concrete artifact rather than answering into a void.
 
-Write it to `contract.draft.yaml` (schema below) with `_phase: 1`.
+Write it to `contract.draft.yaml` (schema below) with `_phase: 2`.
 
 ### Contract schema
 
@@ -52,7 +52,7 @@ Write it to `contract.draft.yaml` (schema below) with `_phase: 1`.
 kind: loop | goal
 name: <human-readable>
 slug: <kebab-case>
-risk: R0 | R1 | R2 | R3 | R4 | R5     # final class after Phase 4
+risk: R0 | R1 | R2 | R3 | R4 | R5     # final class after Phase 5
 autonomy: L1 | L2 | L3                # loop branch only
 
 trigger:                              # loop branch
@@ -94,12 +94,12 @@ decision_log:                         # anti intent-debt
   - "<why this approach over the alternative>"
 ```
 
-For `kind: goal`, drop `trigger`/`report`; the state file materialised in Phase 8 is
+For `kind: goal`, drop `trigger`/`report`; the state file materialised in Phase 9 is
 `GOAL.md` (doc-30 schema), not the loop anchor files.
 
 ---
 
-## Phase 2 — Risk classify
+## Phase 3 — Risk classify
 
 Score the draft R0–R5 from its `scope` + `action` (doc-04):
 
@@ -112,12 +112,12 @@ Score the draft R0–R5 from its `scope` + `action` (doc-04):
 | R4 | Irreversible (data, secrets) | Explicit human-approval step |
 | R5 | Security-critical | SECURITY gate + security-scan hook |
 
-This sets the rigor level for Phases 3 and 5. Derive `autonomy` from risk as in
+This sets the rigor level for Phases 4 and 6. Derive `autonomy` from risk as in
 `new-loop` Phase 1b (≈ R0→L1, R1–R2→L2, R3+→L3).
 
 ---
 
-## Phase 3 — Interview
+## Phase 4 — Interview
 
 Fill gaps in the draft dynamically. Open by asking the **1–2 most blocking questions**
 (usually the done-condition/STOP and SCOPE) so the user resolves the crux up front — these
@@ -126,7 +126,7 @@ two gate everything else and are worth surfacing together. After that opening, p
 fixed questionnaire beyond that opening. Prioritise the most underspecified or highest-risk
 property first.
 
-Rigor scales with the Phase 2 risk class:
+Rigor scales with the Phase 3 risk class:
 
 | Risk | Interview posture |
 |---|---|
@@ -146,17 +146,17 @@ performance standard (STOP), spending authority (BUDGET).
 
 ---
 
-## Phase 4 — Re-classify
+## Phase 5 — Re-classify
 
 Re-score R0–R5 against the **refined** `action`/`scope`. If the class rose, re-enter
-Phase 3 for the newly-required properties (e.g. an escalation gate R0 didn't need but R3
+Phase 4 for the newly-required properties (e.g. an escalation gate R0 didn't need but R3
 does). **Cap re-entry at 2 cycles**; if risk still oscillates, Surface to the user — an
 unstable risk class is itself a judgment call. (This command must not contain the
 *infinite fix loop* it guards against.)
 
 ---
 
-## Phase 5 — Critical pass
+## Phase 6 — Critical pass
 
 Run every check below against the draft. Surface each conflict with the fix prompt;
 push back with intensity matching the risk class. **For R3+, run this as an independent
@@ -186,7 +186,7 @@ checkable condition. The primary, general path:
 
 1. **Elicit a concrete deficiency checklist.** From the codebase and your own observation,
    name specific, verifiable weaknesses the goal should fix (e.g. "router doesn't explain its
-   choice", "Phase 3 over-questions R0 loops"). Offer them as concrete candidates the user
+   choice", "Phase 4 over-questions R0 loops"). Offer them as concrete candidates the user
    selects from — they react to specifics rather than re-explaining the vibe. Done = every
    selected item implemented AND an automated check (tests / `verify` script / exit code) passes.
 
@@ -200,7 +200,7 @@ them before approving — a contract cannot pass the readiness gate on a vibe.
 
 ---
 
-## Phase 6 — Readiness gate
+## Phase 7 — Readiness gate
 
 **Goal branch — G0–G3** (doc-30): objective clarity, verifier independence, state file,
 budget. Gate: **G2+** (G3 for R3+).
@@ -218,18 +218,18 @@ budget. Gate: **G2+** (G3 for R3+).
 
 Gate: **LCR ≥ 5/6** (L1/L2); **6/6 for R3+/L3**, plus `verifier.independent: true` and
 ≥ 1 `surface_conditions` entry. Below the gate: name the failing points and return to
-Phase 3.
+Phase 4.
 
 ---
 
-## Phase 7 — Approve
+## Phase 8 — Approve
 
 Print the final contract in full and require explicit user approval before writing
-anything permanent (doc-27 Gate 2). If the user requests changes, return to Phase 3.
+anything permanent (doc-27 Gate 2). If the user requests changes, return to Phase 4.
 
 ---
 
-## Phase 8 — Materialise
+## Phase 9 — Materialise
 
 Promote the draft to the real artifacts in the repo root. The machine-readable
 `contract.yaml` is written for **both** kinds (it is the `--contract` handoff artifact);
@@ -254,7 +254,7 @@ If `--no-scaffold`: stop here and print the path to `contract.yaml`.
 
 ---
 
-## Phase 9 — Handoff
+## Phase 10 — Handoff
 
 Invoke the scaffolder with the contract as structured input:
 

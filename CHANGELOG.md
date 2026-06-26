@@ -5,6 +5,18 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.14.2] — 2026-06-26
+
+### Changed
+- `skills/claude-warp-contract` — renumbered phases **Phase 0–9 → Phase 1–10** (the
+  `loop-harness.md` description already listed them 1–10; the skill and label now agree).
+  Rationale: across ClaudeWarp `Phase 0` denotes an *optional preamble* (as in `new`,
+  `new-loop`, `new-goal`, `sync-research`); the contract command's first step (Branch) is
+  mandatory, so it is `Phase 1`. Internal cross-references, the `_phase` resume field, and the
+  `--no-scaffold` stop point updated accordingly.
+
+---
+
 ## [0.14.1] — 2026-06-26
 
 ### Fixed

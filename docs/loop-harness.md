@@ -62,7 +62,7 @@ Install path: `skills/claude-warp-new/SKILL.md`
 
 Interactively negotiates a complete **Loop Contract** (doc-27) or **Goal** before any
 scaffolding. The richer alternative to a one-line goal string — use when a goal is vague
-or high-risk. Phase 0–9:
+or high-risk. Phase 1–10:
 
 1. **Branch** loop vs goal (doc-30); resume an existing draft if present
 2. **Draft-first** — a complete best-guess contract, persisted to `contract.draft.yaml`
