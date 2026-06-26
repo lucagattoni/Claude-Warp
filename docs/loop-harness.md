@@ -220,6 +220,11 @@ and Read only — no LLM inference.
 6. Checks `scripts/` for non-executable runner files
 7. Prints a versioned report with inline remediation commands
 
+If `harness-manifest.json` is absent, it distinguishes a **self-hosted dev repo** (skills
+symlinked via `scripts/dev.sh selfhost`, sibling `skills/` source present) from a genuine
+broken install: the former reports `Mode: self-hosted dev repo` and continues; only the
+latter warns and stops.
+
 Install path: `skills/claude-warp-inventory/SKILL.md`
 
 ---

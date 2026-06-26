@@ -17,7 +17,25 @@ Record:
 - `LAST_SYNC` — `claude_code.last_sync` (or "never")
 - `COMPONENTS` — all entries in `components[]` with their `status`
 
-If `harness-manifest.json` is missing: print `⚠ harness-manifest.json not found — run /claude-warp-setup` and stop.
+**If `harness-manifest.json` is missing,** distinguish two cases before reacting — a missing
+manifest is only a problem for a real install, not for the ClaudeWarp source repo running
+self-hosted via symlinks (`scripts/dev.sh selfhost`):
+
+```bash
+# Self-host detection: are .claude/skills entries symlinks into a sibling skills/ source?
+if [ -d skills ] && ls -d .claude/skills/*/ >/dev/null 2>&1 && \
+   [ -L "$(ls -d .claude/skills/*/ | head -1 | sed 's:/$::')" ]; then
+  echo "SELF_HOST"
+else
+  echo "NO_MANIFEST"
+fi
+```
+
+- `SELF_HOST` → this is the ClaudeWarp source repo dogfooding its own skills. Record mode as
+  **"self-hosted dev repo (symlinks)"**, set `INSTALLED_VERSION` from `VERSION`, and **continue
+  the scan** — do not warn or stop. (Manifest, loops, and agents are expected to be absent here.)
+- `NO_MANIFEST` → a genuine broken/absent install. Print
+  `⚠ harness-manifest.json not found — run /claude-warp-setup` and stop.
 
 ## Phase 2 — Scan skills
 
@@ -95,8 +113,9 @@ For each `run-*.sh` or `guard-*.sh`:
 ClaudeWarp inventory ✓
 
   Installed version : <INSTALLED_VERSION>
-  Last sync         : <LAST_SYNC>
-  Claude Code       : <version from harness-manifest or "run /claude-warp-sync">
+  Mode              : <"installed" | "self-hosted dev repo (symlinks)">
+  Last sync         : <LAST_SYNC>          (omit in self-host mode)
+  Claude Code       : <version from harness-manifest or `claude --version`>
 
 Skills (<N> installed):
   ✓ claude-warp-setup

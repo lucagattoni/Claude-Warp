@@ -5,6 +5,17 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.12.3] — 2026-06-26
+
+### Fixed
+- `skills/claude-warp-inventory` — Phase 1 no longer false-alarms on the ClaudeWarp source
+  repo running self-hosted via symlinks. A missing `harness-manifest.json` now distinguishes
+  a **self-hosted dev repo** (symlinked skills + sibling `skills/` source) from a genuine
+  broken install: the former reports `Mode: self-hosted dev repo` and continues the scan;
+  only the latter warns and stops. Found by dogfooding `/claude-warp-inventory` in this repo.
+
+---
+
 ## [0.12.2] — 2026-06-26
 
 ### Changed
