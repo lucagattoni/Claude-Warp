@@ -309,22 +309,41 @@ Install path: `skills/claude-warp-sync-research/SKILL.md`
 Every loop scaffolded by `/claude-warp-new-loop` follows this phase sequence:
 
 ```
-Phase 1  — Guard check     prevent duplicate runs
-Phase 2  — Load state      read STATE_FILE; recover IN_PROGRESS tasks
-Phase 3  — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
-Phase 3b — Verify          run check command; iterate on failure
-Phase 2.5 — Inspect        read every file in SCOPE before editing; log unexpected state
-Phase 3   — Do the work    goal-specific logic (expanded by /claude-warp-new-loop)
-Phase 3b  — Verify         run check command; iterate on failure
-Phase 3c  — Checker        invoke <slug>-checker agent if present (DOER/CHECKER)
-Phase 4   — Write results  append dated entry to STATE_FILE; commit
-Stopping condition         six-state verdict: pass/skip/fail/handoff/timeout/stopped
+Phase 1   — Guard check     prevent duplicate runs
+Phase 2   — Load state      read STATE header (last_verdict, consecutive_fails/stagnation,
+                            acting_on); recover IN_PROGRESS; claim/skip for multi-loop coordination
+Phase 2.5 — Inspect         read every file in SCOPE before editing; log unexpected state
+Phase 3   — Do the work     goal-specific logic (expanded by /claude-warp-new-loop)
+Phase 3a  — Stagnation       no file changes → stagnation counter; 3 in a row → handoff
+Phase 3b  — Verify          self-coverage gate (every SCOPE item has a check), then weighted checks
+Phase 3c  — Checker         invoke <slug>-checker agent if present (DOER/CHECKER, cross-model)
+Phase 4   — Write results   update STATE header; append dated entry; commit
+Stopping condition          six-state verdict: pass/skip/fail/handoff/timeout/stopped
 ```
 
 Every harness scaffolded by `/claude-warp-new-harness` follows this flow:
 
 ```
-Initializer (once)  →  features.json populated
-Runner loop         →  coding agent invoked per pending task
+Initializer (once)  →  features.json populated (tasks + wave/depends_on)
+Runner loop         →  coding agent invoked per pending task (waves run in order;
+                       --parallel-waves runs a wave's tasks concurrently)
 Coding agent        →  reads session-init → executes one task → commits → stops
 ```
+
+---
+
+## Developing ClaudeWarp
+
+`scripts/dev.sh` is the developer tool for working on the harness itself (not installed into
+consumer projects):
+
+| Command | What it does |
+|---|---|
+| `scripts/dev.sh selfhost` | Symlinks every skill into `.claude/skills/` so they run as live `/claude-warp-*` commands **in this repo** (next session). Single source of truth — editing `skills/X` updates the live command; symlinks are gitignored so the repo stays a pure distribution source. |
+| `scripts/dev.sh unhost` | Removes those symlinks. |
+| `scripts/dev.sh verify` | Five deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, and docs coherence. Exits non-zero on failure — suitable for CI. |
+| `scripts/dev.sh verify --live` | Additionally runs the real `/claude-warp-setup` (`claude -p`) into a throwaway repo for full fidelity. Costs tokens; opt-in. |
+
+**Scope of `verify`:** it checks source integrity and the install *copy contract* — it cannot
+reproduce the LLM behaviour of `/claude-warp-setup` itself (that is non-deterministic). Use
+`--live` when you need to exercise the actual setup skill end to end.

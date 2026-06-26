@@ -5,6 +5,18 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.12.2] — 2026-06-26
+
+### Changed
+- `docs/loop-harness.md` — documented `scripts/dev.sh` (new "Developing ClaudeWarp" section:
+  selfhost / unhost / verify / verify --live) which shipped undocumented in v0.12.1; also
+  **fixed the Loop anatomy diagram**, which was garbled (duplicated phases, `Phase 2.5` out of
+  order) and stale — now reflects the real sequence including Phase 3a stagnation, the Phase 3b
+  self-coverage gate, `acting_on` coordination, and the harness wave/`--parallel-waves` flow.
+- `README.md` — added a "Developing" section pointing at `scripts/dev.sh`.
+
+---
+
 ## [0.12.1] — 2026-06-26
 
 ### Added

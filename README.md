@@ -94,3 +94,16 @@ ClaudeWarp separates two kinds of thing, and they move in opposite directions:
 - **Loop-engineering workflow skills** (scaffolding, the contract negotiator, checkers, hooks, retrospectives) are the durable value. These track the *practice* of loop engineering, not gaps in Claude Code — as the discipline matures ("the harness now matters more than the model"), this layer grows.
 
 So the harness as plumbing shrinks toward zero, while the harness as method deepens. Conflating the two is the easy mistake; `/claude-warp-sync` only ever retires the former.
+
+---
+
+## Developing
+
+Working on ClaudeWarp itself? `scripts/dev.sh` self-hosts the skills (symlinks them so they run as live `/claude-warp-*` commands in this repo) and verifies source integrity:
+
+```bash
+scripts/dev.sh selfhost   # symlink skills into .claude/skills/ (single source of truth)
+scripts/dev.sh verify     # deterministic checks: integrity, install copy contract, docs coherence
+```
+
+See the [Developing ClaudeWarp](docs/loop-harness.md#developing-claudewarp) section for the full command reference and what `verify` does (and doesn't) cover.
