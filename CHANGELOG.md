@@ -5,6 +5,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.15.0] — 2026-06-26
+
+Unified the planning entry point and clarified the core model. Specified via
+`/claude-warp-contract` itself (harness `unified-planner`, decomposed into 6 subplans) —
+the tool even misclassified its own large spec as a "goal", demonstrating live the exact
+gap this release fixes.
+
+### Added
+- **Plan vs Shape model** (`docs/loop-harness.md`, README, `goal-readiness.md`) — one
+  unambiguous model resolving the goal-vs-plan confusion: a **plan** is the spec (any size);
+  **goal / loop / harness** are the *shapes* a plan takes ("a goal" = a small single-shot plan).
+- `skills/claude-warp-contract` — **single-entry router**: Phase 1 now classifies the execution
+  shape **single-shot / loop / harness** (recurrence + stage count + scope size), absorbing the
+  former `/claude-warp-new`. Explicitly warns not to classify on recurrence alone.
+- `skills/claude-warp-contract` — **harness shape**: Phase 9 materialise + Phase 10 handoff handle
+  `kind: harness`, delegating subplan decomposition to `/claude-warp-new-harness`; Phase 4 documents
+  that question depth scales with shape (a goal in ≤3 Qs, a harness needs subplan elicitation).
+
+### Removed (breaking)
+- `skills/claude-warp-new` — the complexity router is **deleted**; its routing is now done by
+  `/claude-warp-contract` (the single entry / "start here"). All references repointed.
+  Breaking CLI change; MINOR under SemVer 0.x initial-development. Migration: `/claude-warp-new "X"`
+  → `/claude-warp-contract "X"`.
+
+---
+
 ## [0.14.2] — 2026-06-26
 
 ### Changed

@@ -100,8 +100,8 @@
         5
       ],
       "wave": 5,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "verify green throughout; v0.15.0 cut"
     }
   ]
 }
