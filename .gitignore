@@ -2,3 +2,5 @@ logs/
 .claudewarp-templates/
 .claudewarp-skills/
 CLAUDE_WARP_UPDATE_LOG.md
+# Local self-host symlinks created by scripts/dev.sh selfhost (keep repo a pure source)
+.claude/skills/
