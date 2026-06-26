@@ -34,11 +34,20 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
    runs_total: N
    consecutive_fails: N
    consecutive_stagnation: N
+   acting_on: <branch-or-item-id or null>
    -->
    ```
    These fields let you assess loop health without scanning the full log.
    `consecutive_stagnation` counts runs that passed the guard and produced no file changes —
    a distinct failure mode from `consecutive_fails` (which tracks verdict failures).
+   `acting_on` records the item this loop is currently working (for multi-loop coordination, below).
+
+**Multi-loop coordination** (only if this repo runs more than one loop): before claiming an
+item to work on, read the `<!-- state:` header of *every* sibling `*_LOG.md` in the repo. If
+another loop's `acting_on` already names the branch/PR/item you were about to take, **skip it**
+and move to the next candidate — one owner per item. Write your own `acting_on: <item>` before
+starting work and reset it to `null` when the item is done. This prevents two loops fixing the
+same PR in the same window. Source: Claude-Loops [doc-34 Multi-Loop STATE.md](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/34-loop-patterns.md).
 3. If `last_verdict` is `IN_PROGRESS`, treat that task as incomplete and restart it
    from the beginning before doing anything else.
 4. Record `today` from:
@@ -169,6 +178,7 @@ claude -p '/claude-warp-new-agent "checker for {{SKILL_SLUG}}: validates finding
    - `runs_total`: increment by 1
    - `consecutive_fails`: reset to 0 on pass/skip/handoff; increment on fail/timeout/stopped
    - `consecutive_stagnation`: reset to 0 if files changed this run; increment if no changes
+   - `acting_on`: reset to `null` when the claimed item is done (or leave set if work continues next run)
 
 2. Append a new dated section below the header:
    ```markdown
