@@ -5,6 +5,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.11.0] — 2026-06-26
+
+### Added
+- `skills/claude-warp-contract` — interactive Loop Contract negotiation: a draft-first,
+  dynamically-questioned, risk-adaptive interview (Phase 0–9) that produces a complete,
+  coherence-checked `loop-contract.yaml` + anchor files, then hands off to `new-loop`/`new-goal`.
+  Branches loop vs goal (doc-30); classifies R0–R5 (doc-04); runs a 10-check critical pass
+  mapped to named failure patterns (doc-17); gates on readiness (LCR 6-pt for loops, G0–G3
+  for goals); R3+ uses an independent cross-model checker. `--no-scaffold` stops at the
+  contract. Sources: Claude-Loops doc-04/14/17/27/30.
+- `skills/claude-warp-new-loop`, `skills/claude-warp-new-goal` — optional `--contract <file>`
+  input (Phase 0): consume a negotiated contract and skip their own derivation/readiness phases.
+- `skills/claude-warp-new` — Phase 0 routes vague or high-risk goals to `/claude-warp-contract`
+  before complexity routing.
+- `plans/contract-command.md`, `plans/contract-fixtures.md`, `plans/validate-contracts.py` —
+  the plan (refined by applying the command's own methodology to it across 5 passes) plus an
+  executable fixture validator; all 6 golden fixtures pass.
+
+### Removed
+- `skills/claude-warp-spec-refine` — superseded by `/claude-warp-contract`, which is a strict
+  superset (adds risk classification, Type A/B routing, anchor files, adaptive rigor, and loop
+  coverage). Breaking change to the skill set; bumped as MINOR under SemVer 0.x
+  initial-development semantics. References repointed in README, docs, and `CLAUDE.md.tpl`.
+
+---
+
 ## [0.10.0] — 2026-06-25
 
 ### Added

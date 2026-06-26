@@ -6,7 +6,7 @@ Before an autonomous loop or goal can run reliably, the goal it is given needs t
 2. Know when it is done
 3. Stay within safe boundaries
 
-The G0–G3 scale scores a goal across those three axes. ClaudeWarp uses it in `/claude-warp-new-goal` and `/claude-warp-spec-refine` to gate whether a goal is ready to hand to an agent unattended.
+The G0–G3 scale scores a goal across those three axes. ClaudeWarp uses it in `/claude-warp-new-goal` and `/claude-warp-contract` to gate whether a goal is ready to hand to an agent unattended.
 
 ---
 
@@ -69,7 +69,7 @@ G3 goals are designed to make both failure modes structurally harder. The verifi
 - G1/G2 → proceeds but writes a `⚠ Warning` block at the top of `GOAL.md` listing what is missing
 - G3 → proceeds cleanly
 
-**`/claude-warp-spec-refine`** — interactive refinement loop. Asks targeted clarifying questions until the goal reaches G2 or G3. Produces `<slug>-spec.md` as a handoff artifact. Run this first when a goal is vague.
+**`/claude-warp-contract`** — interactive contract negotiation. Drafts a complete, risk-classified Loop Contract (or Goal), then critically reviews it against known failure patterns and a readiness gate (LCR for loops, G0–G3 for goals) before handing off to a scaffolder. Run this first when a goal is vague or high-risk. Produces `loop-contract.yaml` + anchor files as the handoff artifact.
 
 **`/claude-warp-new-loop` (L1/L2/L3)** — the loop autonomy level is derived from the same axes: does Phase 3 write files (scope), does Phase 3b have a programmatic verifier (verifier), does it touch production paths (scope + blast radius). L3 loops require G3-equivalent specification.
 
