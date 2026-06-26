@@ -5,6 +5,30 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.11.1] — 2026-06-26
+
+Coherence and structure review against the latest loop-engineering news
+([Claude-Loops/LOOP_ENGINEERING_NEWS.md](https://github.com/lucagattoni/Claude-Loops/blob/main/LOOP_ENGINEERING_NEWS.md)).
+
+### Fixed
+- `skills/claude-warp-setup` — installed only 7 of 13 skills: the list was hardcoded in
+  three places, silently omitting `new`, `new-goal`, `new-hook`, `contract`, `inventory`,
+  and `retro` from every fresh install. Now iterates `$WARP_ROOT/skills/*/` so it copies
+  whatever the source contains and can never go stale again.
+- `.gitignore` coherence — `CLAUDE_WARP_UPDATE_LOG.md` was gitignored yet tracked in git;
+  untracked it (it is per-run sync output, kept locally).
+
+### Changed
+- `docs/usage.md` — added a "Start here" section pointing at the `/claude-warp-new` router
+  and `/claude-warp-contract`, plus a one-shot Goal row and pointers to `/claude-warp-inventory`
+  and `/claude-warp-retro`; these entry points were undocumented in the usage guide.
+- `README.md` — resolved the "designed to shrink over time" claim against the repo's 7→13
+  skill growth: split Design into native-replaceable *components* (shrink) vs loop-engineering
+  *workflow skills* (grow with the discipline).
+- `docs/guide.md` — removed (orphaned redirect stub; both targets are in the README docs table).
+
+---
+
 ## [0.11.0] — 2026-06-26
 
 ### Added
