@@ -82,7 +82,28 @@ git diff --name-only HEAD 2>/dev/null
 
 ## Phase 3b — Verify
 
-Run verification checks and compute a weighted pass score.
+**Self-coverage gate (run first).** Before scoring checks, confirm that *every* item in
+SCOPE has at least one verification artifact. This is distinct from a check failing:
+
+- A check **fails** → the implementation is wrong → fix and retry.
+- A scope item has **no check at all** → the verification layer is incomplete (missing
+  coverage), not the implementation. The loop must *write the missing check* before it can
+  pass — it cannot exit `pass` on a scope item it never verified.
+
+Enumerate SCOPE; for each item, name the check that covers it:
+
+```
+SCOPE item                  → covering check
+src/auth/                   → pytest tests/auth
+src/api/                    → (none)   ← coverage gap
+```
+
+If any scope item has no covering check: add one this run if cheap, otherwise write
+`handoff` with note "self-coverage gap: <item> has no verification artifact" — do **not**
+report `pass`. A loop that ships unverified scope is the *trust-then-verify gap*
+(Claude-Loops [doc-04 Self-Coverage Gate](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/04-verification.md)).
+
+Once every scope item is covered, run the checks and compute a weighted pass score.
 
 ```bash
 # Define each check with a weight (weights should sum to 100).
