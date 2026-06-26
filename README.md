@@ -55,7 +55,7 @@ claude -p "/claude-warp-update"
 |---|---|
 | `/claude-warp-setup` | Per-project installer |
 | `/claude-warp-new "goal"` | **Start here** — assess complexity and route to the right scaffold automatically |
-| `/claude-warp-spec-refine "goal"` | Iteratively refine a vague goal into a [G3-ready spec](docs/goal-readiness.md) via clarifying questions; run before `/claude-warp-new` when the goal is underspecified |
+| `/claude-warp-contract "goal"` | Interactively negotiate a complete, risk-classified [Loop Contract](docs/goal-readiness.md) — draft-first, critically reviewed — then hand off to a scaffolder; use when a goal needs proper specification first |
 | `/claude-warp-new-loop "goal"` | Scaffold a recurring single-agent loop or fan-out loop |
 | `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
 | `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |

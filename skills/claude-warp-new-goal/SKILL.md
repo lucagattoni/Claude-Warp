@@ -15,6 +15,23 @@ For large multi-stage work that needs a planner, use `/claude-warp-new-harness`.
 
 > "Loops discover work. Goals finish it."
 
+## Phase 0 — Contract input (optional)
+
+If `$ARGUMENTS` contains `--contract <file>`, read that `loop-contract.yaml`
+(produced by `/claude-warp-contract`) and map its fields directly instead of deriving
+from a string — it is already negotiated, risk-classified, and readiness-checked:
+
+| Contract field | Goal primitive |
+|---|---|
+| `name` / `slug` | `GOAL_NAME` / `GOAL_SLUG` |
+| `action` (+ `stop.check`) | `OBJECTIVE` |
+| `stop.check`, `verifier.mechanism` | `DONE_CONDITIONS` / `VERIFIER_CMD` |
+| `scope.must_not_touch` | `GUARDRAILS` |
+| `budget.max_turns`, `budget.loop_max_usd` | `MAX_TURNS`, `MAX_BUDGET_USD` |
+
+When a contract is supplied, **skip Phase 1 derivation and Phase 2 readiness scoring**
+(the contract already passed the G-gate) — go straight to Phase 3. Otherwise continue below.
+
 ## Phase 1 — Derive goal primitives
 
 Parse `$ARGUMENTS` as a plain-English goal. Derive the Four Goal Primitives:

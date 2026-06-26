@@ -5,6 +5,27 @@ description: Scaffold a new loop from a one-line goal — creates SKILL.md, guar
 
 Scaffold a new Claude Code loop for the goal: `$ARGUMENTS`
 
+## Phase 0 — Contract input (optional)
+
+If `$ARGUMENTS` contains `--contract <file>`, read that `loop-contract.yaml`
+(produced by `/claude-warp-contract`) and map its fields directly instead of deriving
+them — it is already negotiated, risk-classified, and readiness-checked:
+
+| Contract field | Loop parameter |
+|---|---|
+| `name` / `slug` | `SKILL_NAME` / `SKILL_SLUG` |
+| `trigger.schedule` / `trigger.event` | `CRON_SCHEDULE` / trigger type |
+| `scope.may_touch` | `SCOPE` |
+| `scope.must_not_touch` | `DO_NOT` |
+| `action` | `ACTION` |
+| `budget.step_max_budget_usd`, `budget.max_turns` | `MAX_BUDGET_USD`, `MAX_TURNS` |
+| `stop.check` | `STOP_CONDITION` (Phase 3b verify command) |
+| `risk` / `autonomy` | `AUTONOMY_LEVEL` (L1/L2/L3) |
+| `verifier.independent`, `surface_conditions` | mandatory checker + escalation gate (L2/L3) |
+
+When a contract is supplied, **skip Phase 1 (pattern match) and Phase 1b (derivation)** —
+the parameters are fixed — and go straight to Phase 2 (Create files). Otherwise continue below.
+
 ## Phase 1 — Match against known patterns
 
 Before deriving parameters from scratch, check whether the goal matches one of

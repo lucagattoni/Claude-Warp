@@ -58,6 +58,33 @@ Install path: `skills/claude-warp-new/SKILL.md`
 
 ---
 
+### `/claude-warp-contract "goal"`
+
+Interactively negotiates a complete **Loop Contract** (doc-27) or **Goal** before any
+scaffolding. The richer alternative to a one-line goal string — use when a goal is vague
+or high-risk. Phase 0–9:
+
+1. **Branch** loop vs goal (doc-30); resume an existing draft if present
+2. **Draft-first** — a complete best-guess contract, persisted to `loop-contract.draft.yaml`
+3. **Risk classify** R0–R5 (doc-04) → sets interview rigor
+4. **Interview** — dynamic, one property at a time, rewriting the draft each answer
+5. **Re-classify** risk against the refined contract (bounded to 2 cycles)
+6. **Critical pass** — 10 checks mapped to named failure patterns (doc-17); R3+ uses an
+   independent cross-model checker, not self-review
+7. **Readiness gate** — LCR ≥ 5/6 (6/6 for R3+) for loops; G2+ (G3 for R3+) for goals
+8. **Approve** — explicit user sign-off (doc-27 Gate 2)
+9. **Materialise** `loop-contract.yaml` + anchor files; `--no-scaffold` stops here
+10. **Handoff** to `/claude-warp-new-loop` or `/claude-warp-new-goal` via `--contract`
+
+Adaptive rigor: an R0 read-only loop clears in ≤3 questions; an R3 prod-adjacent loop is
+challenged on every property and forced to define an escalation gate + independent verifier.
+Supersedes the former `spec-refine` skill. Sources: Claude-Loops doc-04, doc-14, doc-17,
+doc-27, doc-30.
+
+Install path: `skills/claude-warp-contract/SKILL.md`
+
+---
+
 ### `/claude-warp-new-goal "goal"`
 
 Scaffolds a **one-shot bounded goal** — use when the work is non-recurring and

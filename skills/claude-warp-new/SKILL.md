@@ -8,6 +8,20 @@ Route the goal `$ARGUMENTS` to the right ClaudeWarp scaffold.
 If `$ARGUMENTS` is empty, stop and print:
 `Usage: /claude-warp-new "describe what you want to automate"`
 
+## Phase 0 — Specification check
+
+If the goal is **vague** (no clear done condition) or **high-risk** (touches production,
+irreversible operations, security), route to `/claude-warp-contract` first — it negotiates
+a complete, risk-classified contract and hands a structured artifact to the right scaffolder:
+
+```
+/claude-warp-contract "$ARGUMENTS"
+```
+
+A contract is overkill for a clearly-specified, low-risk goal ("summarise new issues every
+morning") — route those directly via Phase 1. Use the contract path when specification or
+risk genuinely warrants the interview.
+
 ## Phase 1 — Assess complexity
 
 Evaluate the goal across three dimensions:

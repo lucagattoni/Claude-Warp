@@ -20,11 +20,12 @@ there before writing the SKILL.md.
 
 **Skills available** (invoke with `/skill-name`):
 - `/claude-warp-new "goal"` — **start here**: assesses complexity and routes to new-goal, new-loop, or new-harness automatically
+- `/claude-warp-contract "goal"` — interactively negotiate a complete, risk-classified Loop Contract (or Goal) before scaffolding; use when a goal is vague or high-risk
 - `/claude-warp-new-loop "goal"` — scaffold a recurring loop (SKILL.md + guard + trigger + state)
 - `/claude-warp-new-goal "goal"` — scaffold a one-shot bounded goal (GOAL.md + run-once script); stops when a verifiable criterion is met
 - `/claude-warp-new-harness "goal"` — scaffold a two-part harness (initializer + coding agent) for complex multi-stage goals
 - `/claude-warp-new-agent "role"` — scaffold a specialized subagent in `.claude/agents/`
-- `/claude-warp-new-hook "description"` — scaffold a deterministic hook (verify-before-stop, destructive-block, audit-log)
+- `/claude-warp-new-hook "description"` — scaffold a deterministic hook (8 patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer)
 - `/claude-warp-inventory` — zero-LLM scan of installed skills, agents, hooks, state files; reports health issues
 - `/claude-warp-retro "slug"` — retrospective on a loop: what worked, what failed, top 3 improvements; writes RETRO.md
 - `/claude-warp-sync` — re-check Claude Code changelog; prune superseded harness components
