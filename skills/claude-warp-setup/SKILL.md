@@ -78,13 +78,28 @@ Replace all placeholders:
 - `{{REPO_ROOT}}` → absolute path of project root
 - `{{HARNESS_VERSION}}` → `HARNESS_VERSION` from Phase 3
 
-If a `CLAUDE.md` already exists in the target project, append the ClaudeWarp section
-under a `## ClaudeWarp` heading rather than overwriting.
+**If a `CLAUDE.md` already exists**, do not write the full template (it is a standalone
+document with its own `# {{PROJECT_NAME}}` title and a "harness installed by ClaudeWarp"
+tagline that would misframe an existing project). Instead, append a single `## ClaudeWarp`
+section containing **only the operating content** from the template — the Skills list, Loop
+conventions, Escalation rules, Scheduling, and Token/context discipline. **Omit** the H1 title,
+the tagline, and the `## Project` identity block (the host `CLAUDE.md` already provides those).
+Demote the template's `##` headings to `###` so they nest under the `## ClaudeWarp` heading.
 
 ## Phase 5 — Write harness-manifest.json
 
-Read `$TEMPLATE_ROOT/harness-manifest.json.tpl`.
-Replace all placeholders:
+**If `harness-manifest.json` already exists** (re-install or upgrade), do **not** overwrite it —
+that would wipe harness state. Read it and update **only** the version fields, preserving
+everything else:
+
+- Preserve: `loops[]` (registered by `/claude-warp-new-loop`), any `harnesses[]`, the
+  `components[]` array and each component's `status` (set by `/claude-warp-sync`),
+  `claude_code.last_sync`, `last_update`, and the original `installed_at`.
+- Update: `version` → `HARNESS_VERSION`; `claude_code.version_at_install` → Claude Code version
+  from Phase 1; add `reinstalled_at` → local time from Phase 1.
+
+**If no manifest exists** (fresh install), read `$TEMPLATE_ROOT/harness-manifest.json.tpl` and
+replace all placeholders:
 - `{{HARNESS_VERSION}}` → `HARNESS_VERSION` from Phase 3
 - `{{INSTALLED_AT}}` → local time from Phase 1
 - `{{PROJECT_NAME}}`, `{{PROJECT_TYPE}}`, `{{REPO_ROOT}}` → from Phase 1
@@ -97,8 +112,11 @@ Write to `harness-manifest.json` in the project root.
 Use the literal version string resolved in Phase 3 (e.g. `0.6.0`) — do not write
 `{{HARNESS_VERSION}}` literally in the commit message.
 
+Stage only the files setup created or changed — never blanket-add `plans/` or `docs/`, which
+in an existing repo would sweep the user's unrelated uncommitted work into the install commit:
+
 ```bash
-git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore plans/ docs/
+git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore
 git commit -m "chore: install ClaudeWarp loop harness v<HARNESS_VERSION>"
 ```
 

@@ -5,6 +5,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.14.1] — 2026-06-26
+
+### Fixed
+- `skills/claude-warp-setup` — **install idempotency / non-greenfield safety** (3 fixes):
+  - **Manifest no longer clobbered on re-install** (was data loss): if `harness-manifest.json`
+    exists, setup preserves `loops[]`, component `status` values, `claude_code.last_sync`, and
+    `last_update`, updating only the version fields. Previously it overwrote the file from the
+    template, wiping every registered loop and all sync state.
+  - **CLAUDE.md append fixed**: an existing `CLAUDE.md` gets only the operating sections (Skills,
+    Loop conventions, Escalation, Scheduling, Token discipline) under a `## ClaudeWarp` heading
+    with demoted sub-headings — the H1 title, tagline, and `## Project` identity block are omitted
+    (the host file owns those). Previously it appended the whole standalone-document template.
+  - **Commit hygiene**: the install commit stages only the files setup writes
+    (`.claude/skills/`, `CLAUDE.md`, `harness-manifest.json`, `.gitignore`) — no longer blanket-adds
+    `plans/`/`docs/`, which in an existing repo swept the user's unrelated work into the commit.
+- `docs/install.md` — documents the non-empty-repo behavior.
+
+---
+
 ## [0.14.0] — 2026-06-26
 
 Acts on the `/claude-warp-retro` findings (RETRO.md) — a goal-coherence sweep across the

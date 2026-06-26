@@ -45,6 +45,19 @@ logs/                         ← gitignored runtime logs
 
 A single commit is created: `chore: install ClaudeWarp loop harness vX.Y.Z`
 
+### Installing into a non-empty repo
+
+Setup is safe to run into a repo that already has content or a prior ClaudeWarp install:
+
+- An existing **`CLAUDE.md`** is preserved — ClaudeWarp's operating instructions are appended
+  under a `## ClaudeWarp` section, never overwriting your content.
+- An existing **`harness-manifest.json`** is preserved on re-install — registered loops,
+  `last_sync`, and component statuses are kept; only the version fields are updated.
+- The install commit stages only the files setup writes (`.claude/skills/`, `CLAUDE.md`,
+  `harness-manifest.json`, `.gitignore`) — it won't sweep in unrelated changes from `plans/` or `docs/`.
+
+To refresh skills to a new version, prefer `/claude-warp-update` over re-running the installer.
+
 ---
 
 ## Verify
