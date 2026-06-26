@@ -88,4 +88,9 @@ claude -p "/claude-warp-update"
 
 ## Design
 
-ClaudeWarp is designed to shrink over time. Each harness component tracks a `native_since` field in `harness-manifest.json`. When `/claude-warp-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.
+ClaudeWarp separates two kinds of thing, and they move in opposite directions:
+
+- **Native-replaceable components** (skill distribution, scheduling guards, cross-run state) are *meant to shrink*. Each tracks a `native_since` field in `harness-manifest.json`; when `/claude-warp-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.
+- **Loop-engineering workflow skills** (scaffolding, the contract negotiator, checkers, hooks, retrospectives) are the durable value. These track the *practice* of loop engineering, not gaps in Claude Code — as the discipline matures ("the harness now matters more than the model"), this layer grows.
+
+So the harness as plumbing shrinks toward zero, while the harness as method deepens. Conflating the two is the easy mistake; `/claude-warp-sync` only ever retires the former.
