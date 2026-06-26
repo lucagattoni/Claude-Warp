@@ -47,7 +47,11 @@ against it critically until no gaps, ambiguities, or contradictions remain.
    - R2 (merge-gated): + require an independent verifier
    - R3 (prod-adjacent): aggressive — challenge every property; force escalation gate + independent verifier
    - R4 (irreversible): + mandatory explicit human-approval step in the contract
-   - R5 (security-critical): + SECURITY gate, route to `/claude-warp-new-hook` security-scan
+   - R5 (security-critical): + SECURITY gate; handoff *also* scaffolds a
+     `/claude-warp-new-hook` security-scan hook on top of the normal loop/goal scaffold
+
+   Autonomy (`L1/L2/L3`) is derived from risk as in `new-loop` Phase 1b (≈ R0→L1,
+   R1–R2→L2, R3+→L3) — not re-implemented here.
 
 3. **Covers both Loops and Goals.** Early branch on doc-30's question ("does this work
    recur?"). Recurring → six-property Loop Contract. One-shot → four Goal primitives + GOAL.md.
@@ -222,7 +226,9 @@ class, and (where relevant) a contradiction the critical pass must catch.
 | F5 | "nightly DROP of stale rows in prod DB" | Loop | R4 | irreversible; must force human-approval step |
 | F6 | "improve the UI" | Goal | R1 | STOP is a vibe — *don't* flat-reject; offer doc-04's 4-dimension gradable conversion (Quality/Originality/Craft/Functionality), then re-score |
 
-Fixtures live in `plans/contract-fixtures.md` and are replayed during verification.
+During implementation these rows are extracted to `plans/contract-fixtures.md` and
+replayed during verification. `loop-contract.yaml` and the anchor files are written to
+the repo root (doc-27 convention); the in-progress draft is `loop-contract.draft.yaml`.
 
 ## Self-application (dogfooding)
 
@@ -261,7 +267,7 @@ no fixtures, no dogfooding test). C13 makes the reflexivity a standing test.
 | C10 | `new-loop`/`new-goal` consume `--contract` and skip their own derivation | ⬜ |
 | C11 | `spec-refine` removed; all references repointed; router updated | ⬜ |
 | C12 | docs (loop-harness.md, README, goal-readiness.md) + CHANGELOG updated; release cut | ⬜ |
-| C13 | Dogfooding: running the command on its own design goal reconstructs an *equivalent* contract — defined as: same branch, same final risk class, a STOP `check` that is a real command, and LCR/G-score within 1 point of this plan's | ⬜ |
+| C13 | Fixpoint: re-running the critical pass (Phase 5) on an already-approved contract produces zero new findings — a converged contract is a fixpoint, not a moving target | ⬜ |
 
 **Ready = C1–C13 all ✅.**
 
