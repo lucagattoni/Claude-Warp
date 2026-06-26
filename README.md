@@ -10,6 +10,16 @@ ClaudeWarp installs the infrastructure layer that Claude Code does not provide n
 
 It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code review, scheduling runtime — is documented and referenced, not reimplemented.
 
+### One model: Plan vs Shape
+
+A **plan** is *what* you want done, specified well enough to verify (any size). A **shape** is *how* it runs:
+
+- **single-shot** (goal) — runs once, stops at a verifiable criterion (a *small* plan)
+- **loop** — recurs on a trigger (a *recurring* plan)
+- **harness** — decomposed into subplans, each its own unit of work (a *big* plan)
+
+"A goal" isn't the opposite of "a plan" — a goal is a small, single-shot plan. You write the plan with `/claude-warp-contract`; it classifies the shape for you. → [full model](docs/loop-harness.md#plan-vs-shape-the-core-model)
+
 ---
 
 ## Install

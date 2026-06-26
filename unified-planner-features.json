@@ -81,8 +81,8 @@
         4
       ],
       "wave": 4,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "Plan-vs-Shape model: full section in loop-harness.md, concise in README, pointer in goal-readiness.md"
     },
     {
       "id": 6,

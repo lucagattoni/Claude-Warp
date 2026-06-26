@@ -1,5 +1,7 @@
 # Goal Readiness — G0 to G3
 
+> "Goal" here means a **single-shot plan** — see [Plan vs Shape](loop-harness.md#plan-vs-shape-the-core-model). A plan is the spec; goal/loop/harness are the shapes it can take. This page is the readiness scale for the goal shape (and, via G2+/G3 gating, for any plan `/claude-warp-contract` produces).
+
 Before an autonomous loop or goal can run reliably, the goal it is given needs to be specified well enough for an agent to:
 
 1. Know what to do
