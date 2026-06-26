@@ -42,45 +42,30 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 
 ---
 
-### `/claude-warp-new "goal"` ← start here
+### `/claude-warp-contract "goal"` ← start here
 
-Complexity router — assesses a goal across three dimensions (recurrence, stage count, scope size) and routes to the right scaffold without requiring the user to know the difference:
+**The single entry point.** Describe any plan; it specifies it, **auto-routes to the shape**
+(single-shot / loop / harness), and hands off to the scaffolder. It absorbed the former
+`/claude-warp-new` router and `spec-refine`. Phase 1–10:
 
-| Routing | Condition |
-|---|---|
-| → `/claude-warp-new-goal` | One-shot: runs once, stops at verifiable criterion |
-| → `/claude-warp-new-loop` | Recurring, single-context per run |
-| → `/claude-warp-new-harness` | Recurring or large, multi-stage (needs a planner) |
-
-Prints the routing decision before delegating. Source: The Startup three-tier decomposition.
-
-Install path: `skills/claude-warp-new/SKILL.md`
-
----
-
-### `/claude-warp-contract "goal"`
-
-Interactively negotiates a complete **Loop Contract** (doc-27) or **Goal** before any
-scaffolding. The richer alternative to a one-line goal string — use when a goal is vague
-or high-risk. Phase 1–10:
-
-1. **Branch** loop vs goal (doc-30); resume an existing draft if present
+1. **Branch (classify the shape)** — single-shot `goal` / `loop` / `harness` from recurrence +
+   stage count + scope size (the router, folded in); resume an existing draft if present
 2. **Draft-first** — a complete best-guess contract, persisted to `contract.draft.yaml`
 3. **Risk classify** R0–R5 (doc-04) → sets interview rigor
-4. **Interview** — dynamic, one property at a time, rewriting the draft each answer
+4. **Interview** — dynamic, depth scales with risk *and* shape (a goal in ≤3 Qs, a harness more)
 5. **Re-classify** risk against the refined contract (bounded to 2 cycles)
 6. **Critical pass** — 10 checks mapped to named failure patterns (doc-17); R3+ uses an
    independent cross-model checker, not self-review
 7. **Readiness gate** — LCR ≥ 5/6 (6/6 for R3+) for loops; G2+ (G3 for R3+) for goals
 8. **Approve** — explicit user sign-off (doc-27 Gate 2)
-9. **Materialise** `contract.yaml` (both kinds) + kind-specific projection — anchor files
-   (loop) or `GOAL.md` (goal); `--no-scaffold` stops here
-10. **Handoff** to `/claude-warp-new-loop` or `/claude-warp-new-goal` via `--contract`
+9. **Materialise** `contract.yaml` (all kinds) + kind-specific projection — anchor files (loop),
+   `GOAL.md` (goal), or the subplan decomposition (harness); `--no-scaffold` stops here
+10. **Handoff** via `--contract` → `/claude-warp-new-loop`, `/claude-warp-new-goal`, or
+    `/claude-warp-new-harness` (which decomposes a big plan into subplans)
 
 Adaptive rigor: an R0 read-only loop clears in ≤3 questions; an R3 prod-adjacent loop is
 challenged on every property and forced to define an escalation gate + independent verifier.
-Supersedes the former `spec-refine` skill. Sources: Claude-Loops doc-04, doc-14, doc-17,
-doc-27, doc-30.
+Sources: Claude-Loops doc-04, doc-14, doc-17, doc-24, doc-26, doc-27, doc-30.
 
 Install path: `skills/claude-warp-contract/SKILL.md`
 

@@ -1,6 +1,6 @@
 ---
 name: claude-warp-contract
-description: Interactively negotiate a complete, risk-classified Loop Contract (or Goal) with the user — draft-first, dynamically questioned, critically reviewed against known failure patterns — then hand a structured contract to /claude-warp-new-loop or /claude-warp-new-goal. Use when a goal needs proper specification before scaffolding.
+description: The single entry point — start here to automate anything. Interactively specifies a plan (draft-first, risk-classified, critically reviewed), auto-routes to its execution shape (single-shot goal / loop / harness), scales questions to complexity, and hands off to the right scaffolder. Absorbed the former complexity router.
 ---
 
 Negotiate a Loop Contract for: `$ARGUMENTS`

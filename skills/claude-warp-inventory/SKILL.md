@@ -125,7 +125,7 @@ ClaudeWarp inventory ✓
 
 Skills (<N> installed):
   ✓ claude-warp-setup
-  ✓ claude-warp-new
+  ✓ claude-warp-contract
   ...
   ⚠ <name> — <issue>
 

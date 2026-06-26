@@ -128,9 +128,9 @@ ClaudeWarp installed ✓
 
 Project : <name> (<type>)
 Skills  : <N> installed (list them from .claude/skills/, e.g.
-          /claude-warp-new, /claude-warp-contract, /claude-warp-new-loop, …)
-Next    : run /claude-warp-new "your goal here" — it routes to the right scaffold
-          (or /claude-warp-contract "goal" to negotiate a full contract first)
+          /claude-warp-contract, /claude-warp-new-loop, /claude-warp-new-goal, …)
+Next    : run /claude-warp-contract "your goal here" — the single entry: it specifies
+          your plan, auto-routes to the shape (single-shot/loop/harness), and scaffolds
           run /claude-warp-inventory to verify the install
           run /claude-warp-sync to check for Claude Code updates
 

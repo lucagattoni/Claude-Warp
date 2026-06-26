@@ -62,8 +62,8 @@
         2
       ],
       "wave": 3,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "hard-deleted skills/claude-warp-new (user-approved at surface gate); repointed README, loop-harness, usage, CLAUDE.md.tpl, setup, inventory; contract is now start-here entry"
     },
     {
       "id": 5,

@@ -7,12 +7,12 @@
 Don't know which scaffold you need? Let ClaudeWarp choose:
 
 ```bash
-claude -p '/claude-warp-new "summarise new GitHub Issues every morning"'
+claude -p '/claude-warp-contract "summarise new GitHub Issues every morning"'
 ```
 
-`/claude-warp-new` is a router — it assesses the goal (recurring vs one-shot,
-single-stage vs multi-stage) and delegates to the right scaffolder below. If the goal
-is vague or high-risk, run `/claude-warp-contract "goal"` first: it interviews you to
+`/claude-warp-contract` is the single entry point — it specifies your plan, **auto-routes
+to the shape** (single-shot vs loop vs harness), scales the questions to the complexity, and
+hands off to the right scaffolder below. It interviews you to
 produce a complete, risk-classified contract before any scaffolding (see
 [goal-readiness.md](goal-readiness.md) for the readiness scale it gates on).
 
