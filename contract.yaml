@@ -1,0 +1,50 @@
+# contract.yaml — approved goal contract
+kind: goal
+name: Install ClaudeWarp as a Claude Code plugin
+slug: plugin-install
+risk: R1                                  # reversible writes: new manifest files + docs
+
+scope:
+  may_touch:
+    - .claude-plugin/plugin.json          # NEW — plugin manifest (repo root = the plugin)
+    - .claude-plugin/marketplace.json      # NEW — single-plugin marketplace catalog
+    - docs/install.md                      # document the new install path alongside curl
+    - README.md                            # mention plugin install option
+    - CHANGELOG.md                         # release entry
+    - VERSION                              # version bump
+  may_touch_conditional:
+    - skills/**/SKILL.md                   # slug audit ONLY — re-phrase user-facing literal
+                                           #   /claude-warp-* slugs namespace-neutrally; no logic changes
+  must_not_touch:
+    - install.sh                           # curl path stays as-is (additive, not replacement)
+    - templates/
+    - .claude/                             # self-host symlinks unchanged
+
+action: >
+  Add a Claude Code plugin packaging layer so ClaudeWarp is installable via
+  `/plugin marketplace add lucagattoni/Claude-Warp` + `/plugin install claude-warp@claude-warp`,
+  reusing the existing repo-root skills/ tree as the plugin's skill set, without removing the curl
+  install path. Audit user-facing literal command slugs so they read correctly under the plugin
+  namespace (/claude-warp:<skill>) AND the bare standalone form.
+
+budget:
+  loop_max_usd: 5
+  step_max_budget_usd: 5
+  max_turns: 30
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "claude plugin validate . && test -f .claude-plugin/plugin.json && test -f .claude-plugin/marketplace.json"
+
+verifier:
+  independent: false                       # R1 — commit-level evidence (validate exit 0) is sufficient
+  mechanism: "claude plugin validate ."
+
+surface_conditions:
+  - "Whether plugin namespacing (/claude-warp:claude-warp-new-goal) breaks cross-skill invocation enough to require editing skill bodies — resolved at negotiation: package-only + slug audit; bodies stay namespace-neutral."
+
+decision_log:
+  - "Repo root IS the plugin (single-plugin marketplace) rather than a nested plugins/ dir, because skills/ already sits at repo root in the <name>/SKILL.md layout a plugin expects — zero file movement."
+  - "Additive, not a replacement: curl install.sh stays. Plugin install exposes skills; curl install additionally runs /claude-warp-setup to materialise per-project CLAUDE.md + manifest."
+  - "Done-condition = package-only (validate + install + skills exposed) PLUS a user-facing slug audit; NOT a full rewrite of cross-skill calls to the namespace, which would break the standalone/curl path that uses bare names. Runtime cross-skill chaining relies on the model mapping bare-name instructions to namespaced skills."
