@@ -2,14 +2,30 @@
 
 ---
 
-## Choosing a loop type
+## Start here
 
-ClaudeWarp provides three scaffolding paths. Pick based on goal size and structure:
+Don't know which scaffold you need? Let ClaudeWarp choose:
 
-| Loop type | When to use | Skill |
+```bash
+claude -p '/claude-warp-new "summarise new GitHub Issues every morning"'
+```
+
+`/claude-warp-new` is a router — it assesses the goal (recurring vs one-shot,
+single-stage vs multi-stage) and delegates to the right scaffolder below. If the goal
+is vague or high-risk, run `/claude-warp-contract "goal"` first: it interviews you to
+produce a complete, risk-classified contract before any scaffolding (see
+[goal-readiness.md](goal-readiness.md) for the readiness scale it gates on).
+
+## Choosing a scaffold
+
+The router picks one of these; you can also invoke them directly. Full per-skill
+reference is in [loop-harness.md](loop-harness.md).
+
+| Scaffold | When to use | Skill |
 |---|---|---|
-| **Single-agent loop** | One task per run — daily digests, monitors, audits | `/claude-warp-new-loop` |
+| **Single-agent loop** | Recurring task, one context per run — daily digests, monitors, audits | `/claude-warp-new-loop` |
 | **Fan-out loop** | Same task against many independent items in parallel | `/claude-warp-new-loop` (auto-selected) |
+| **One-shot goal** | Runs once and stops at a verifiable criterion — a migration, a scan | `/claude-warp-new-goal` |
 | **Two-part harness** | Large multi-stage goal spanning many context windows | `/claude-warp-new-harness` |
 
 ---
@@ -181,6 +197,11 @@ claude -p "/claude-warp-update"
 claude -p "/claude-warp-sync-research"
 ```
 
+**Check the install** — zero-LLM scan of installed skills, agents, hooks, and loop state files; flags missing files, stale model IDs, or loops needing attention:
+```bash
+claude -p "/claude-warp-inventory"
+```
+
 ---
 
 ## Monitoring running loops
@@ -219,3 +240,5 @@ To improve the loop, edit `.claude/skills/<slug>/SKILL.md` — specifically Phas
 ```bash
 claude -p "/<slug>"
 ```
+
+After a loop has several runs behind it, `/claude-warp-retro "<slug>"` reads its state file and git history and reports what worked, what failed, and the top improvements to make — a structured alternative to reading the log yourself.
