@@ -5,6 +5,20 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.12.1] — 2026-06-26
+
+### Added
+- `scripts/dev.sh` — reproducible developer tooling for self-hosting and verification:
+  - `selfhost` symlinks skills into `.claude/skills/` (single source of truth — editing
+    `skills/X` updates the live `/X` command; symlinks gitignored to keep the repo a pure source).
+  - `verify` runs 5 deterministic checks (no LLM, no tokens): source integrity, a
+    setup-is-dynamic regression guard (catches the v0.11.1 hardcoded-list class of bug),
+    the install copy contract, setup-template placeholder fill, and docs coherence.
+  - `verify --live` (opt-in) exercises the real `/claude-warp-setup` via `claude -p` into a
+    throwaway repo for full fidelity. `verify` passes clean on the current repo (13/13 skills).
+
+---
+
 ## [0.12.0] — 2026-06-26
 
 `/claude-warp-sync-research` run against Claude-Loops `5378f9e` (v2.4.0).
