@@ -29,7 +29,16 @@ selfhost() {
     ln -sfn "../../skills/$name" ".claude/skills/$name"   # relative: .claude/skills/<n> → skills/<n>
     n=$((n + 1))
   done
+  # Prune symlinks whose source skill no longer exists (e.g. a deleted skill) so a
+  # restart never loads a dangling/phantom skill.
+  local pruned=0
+  for link in .claude/skills/*; do
+    [ -L "$link" ] || continue
+    sname="$(basename "$link")"
+    if [ ! -d "skills/$sname" ]; then rm "$link"; pruned=$((pruned + 1)); fi
+  done
   echo "Self-hosted $n skills as symlinks in .claude/skills/ (source of truth stays skills/)."
+  [ "$pruned" -gt 0 ] && echo "Pruned $pruned dangling symlink(s) for deleted skills."
   echo "They become live /claude-warp-* commands in your NEXT session in this repo."
 }
 
