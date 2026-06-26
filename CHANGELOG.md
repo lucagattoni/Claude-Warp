@@ -5,6 +5,22 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.15.1] — 2026-06-26
+
+### Changed
+- `docs/concepts.md` — **new canonical concepts doc**: explains what a *plan* is, the three
+  *shapes* (goal/loop/harness) and each one's aim, what `/claude-warp-contract` is and its aims,
+  and how they connect. The conceptual content was **moved** here (not duplicated) — `loop-harness.md`
+  now keeps a short pointer (it stays the architecture/reference doc), and `goal-readiness.md` +
+  README point here. Net consolidation: one home for "what it is and why," not a 5th scattered doc.
+- External `doc-NN` references are now **stated and clickable** — a note in `concepts.md` and
+  `loop-harness.md` clarifies that `doc-NN` is the external [Claude-Loops](https://github.com/lucagattoni/Claude-Loops)
+  knowledge base, with links to the specific docs (e.g. `doc-27` → `27-loop-contract.md`).
+- Fixed the README "plan" link (was mis-pointed at the readiness scale) and a stale anchor in
+  `goal-readiness.md`; added `concepts.md` to the README docs table as "read first".
+
+---
+
 ## [0.15.0] — 2026-06-26
 
 Unified the planning entry point and clarified the core model. Specified via

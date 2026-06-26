@@ -18,7 +18,7 @@ A **plan** is *what* you want done, specified well enough to verify (any size). 
 - **loop** — recurs on a trigger (a *recurring* plan)
 - **harness** — decomposed into subplans, each its own unit of work (a *big* plan)
 
-"A goal" isn't the opposite of "a plan" — a goal is a small, single-shot plan. You write the plan with `/claude-warp-contract`; it classifies the shape for you. → [full model](docs/loop-harness.md#plan-vs-shape-the-core-model)
+"A goal" isn't the opposite of "a plan" — a goal is a small, single-shot plan. You write the plan with `/claude-warp-contract`; it classifies the shape for you. → [full model & aims](docs/concepts.md)
 
 ---
 
@@ -64,7 +64,7 @@ claude -p "/claude-warp-update"
 | Skill | What it does |
 |---|---|
 | `/claude-warp-setup` | Per-project installer |
-| `/claude-warp-contract "goal"` | **Start here** — the single adaptive entry: negotiate a [plan](docs/goal-readiness.md), auto-route to its shape (single-shot / loop / harness), and hand off to the scaffolder. Scales questions to complexity |
+| `/claude-warp-contract "goal"` | **Start here** — the single adaptive entry: negotiate a [plan](docs/concepts.md), auto-route to its shape (single-shot / loop / harness), and hand off to the scaffolder. Scales questions to complexity |
 | `/claude-warp-new-loop "goal"` | Scaffold a recurring single-agent loop or fan-out loop |
 | `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
 | `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |
@@ -82,6 +82,7 @@ claude -p "/claude-warp-update"
 
 | Document | Contents |
 |---|---|
+| [docs/concepts.md](docs/concepts.md) | **Read first** — plans, shapes (goal/loop/harness), and `/claude-warp-contract`: what they are and their aims |
 | [docs/install.md](docs/install.md) | Prerequisites, install command, verification, update, uninstall |
 | [docs/usage.md](docs/usage.md) | Loop types, scheduling, iterating, keeping the harness current |
 | [docs/loop-harness.md](docs/loop-harness.md) | Architecture: native vs harness boundary, skills in depth, templates reference |

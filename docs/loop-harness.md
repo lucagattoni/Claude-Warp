@@ -4,32 +4,17 @@ Architecture, skills in depth, and templates reference.
 
 ---
 
-## Plan vs Shape (the core model)
+## The core model
 
-Two words cause most of the confusion — "goal" and "plan" — because they sound like
-alternatives. They are not. There is one model:
+A **plan** is the spec (any size); **goal / loop / harness** are the *shapes* a plan can take.
+"A goal" is a small single-shot plan — not the opposite of "a plan." `/claude-warp-contract`
+classifies the shape for you. The full explanation, with the aim of each shape and of the
+contract command, lives in **[Concepts — Plans, Shapes, and the Contract](concepts.md)**.
 
-- A **plan** is *what you want done*, specified well enough to verify — **any size**, from a
-  one-line task to a multi-part initiative. You produce a plan by running
-  `/claude-warp-contract` (the single entry point). The plan *is* the spec.
-- A **shape** is *how that plan runs*. Every plan takes exactly one of three shapes:
-
-| Shape | When | Plan size | Artifact |
-|---|---|---|---|
-| **single-shot** (goal) | runs once, stops at a verifiable criterion | a *small* plan | `GOAL.md` (doc-30) |
-| **loop** | recurs on a schedule or event | a *recurring* plan | loop skill + state (doc-27) |
-| **harness** | decomposed into **subplans** (task units), each its own unit of work | a *big* plan | `features.json` task queue (doc-26) |
-
-So:
-
-- **"A goal" is not the opposite of "a plan."** A goal is a *small, single-shot plan*. A plan
-  is the spec; goal / loop / harness are shapes the spec can take.
-- **You don't pick the shape — `/claude-warp-contract` classifies it** (Phase 1): recurring →
-  loop; large / multi-stage → harness; otherwise → goal.
-- **A plan too big for one shape becomes a harness**, broken into subplans by
-  `/claude-warp-new-harness`. The subplans are the harness's task units.
-
-One door (`/claude-warp-contract`), one concept (a *plan*), three shapes it can take.
+> **External references.** `doc-NN` throughout this doc points to the
+> [Claude-Loops knowledge base](https://github.com/lucagattoni/Claude-Loops) (the external
+> companion repo) — e.g. `doc-27` =
+> [`docs/27-loop-contract.md`](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md).
 
 ---
 
