@@ -57,9 +57,37 @@ skill logic in `skills/claude-warp-contract/SKILL.md` — replayed live during v
 
 ---
 
-## Outcome
+## Outcome (paper dry-run)
 
 All four traced fixtures (F1, F2, F4, F6) produce the expected branch, risk class, and
 critical-pass behaviour against the skill as written. No design gap surfaced during the
 dry-run. F3 and F5 remain for live verification (independent-verifier requirement and
 irreversible-action human-approval step, respectively).
+
+---
+
+## Live executable test (all six fixtures)
+
+`plans/validate-contracts.py` encodes the schema rules, the Phase 5 critical-pass checks,
+and the Phase 6 readiness gate, then runs each fixture in two states: the **Phase 1 draft**
+(carrying any seeded problem) and the **Phase 8 approved** contract. A correct skill means
+the draft is rejected with the expected finding and the approved contract clears the gate.
+
+```
+$ python3 plans/validate-contracts.py
+fixture                 brnch  risk  br  rk  draft findings (caught)                  catch  approved rubric    appr  result
+F1 summarise issues     loop   R0    ✓   ✓   —                                        ✓      LCR 6/6 (need 5)   ✓     PASS
+F2 auto-merge green PR  loop   R3    ✓   ✓   dark-factory,reviewer-bias               ✓      LCR 6/6 (need 6)   ✓     PASS
+F3 migrate auth (goal)  goal   R2    ✓   ✓   reviewer-bias                            ✓      G4/4 (need 3)      ✓     PASS
+F4 read-only + commit   loop   R1    ✓   ✓   over-reach                               ✓      LCR 6/6 (need 5)   ✓     PASS
+F5 nightly DROP prod    loop   R4    ✓   ✓   dark-factory,irreversible,reviewer-bias  ✓      LCR 6/6 (need 6)   ✓     PASS
+F6 improve the UI (goal) goal  R1    ✓   ✓   no-stopping-condition                    ✓      G4/4 (need 3)      ✓     PASS
+
+ALL FIXTURES PASS ✓
+```
+
+This ticks the design-level metrics executably: **C2** (branch), **C3** (risk), **C5**
+(critical pass catches seeded problems), **C6** (readiness gate), **C7** (schema-valid
+approved artifact). **C4** rigor-scaling is visible in the gate column — R0 needs 5/6,
+R3/R4 are held to 6/6 plus mandatory independent verifier and surface gate. Live
+*interactive* runs (C1/C8) and the fixpoint test (C13) still require a real session.
