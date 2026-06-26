@@ -5,6 +5,27 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.13.0] — 2026-06-26
+
+Specified via `/claude-warp-contract` and executed as a goal (`improve-planning-skills-GOAL.md`)
+— the first end-to-end dogfood of the contract → implement → verify → ship loop, including a
+live `surface_condition` gate on item #1.
+
+### Changed
+- `skills/claude-warp-contract` — **goal-branch coherence**: materialises a neutral `contract.yaml`
+  for both kinds (the `--contract` handoff artifact); `kind: loop` projects anchor files,
+  `kind: goal` projects `<slug>-GOAL.md`. Removes the Phase 8 contradiction (goals were told to
+  write `loop-contract.yaml` *and* `GOAL.md`) and the loop-naming of goal artifacts.
+- `skills/claude-warp-contract` — **generalized subjective-STOP handling** (Phase 5): now elicits a
+  concrete deficiency checklist as the primary path for any vibe goal; the UI four-dimension grading
+  (Quality/Originality/Craft/Functionality) is a documented special case rather than the only path.
+- `skills/claude-warp-contract` — **interview batching** (Phase 3): the 1–2 most-blocking questions
+  (done-condition + scope) may be asked up front, then one property at a time.
+- `skills/claude-warp-new` — **explicit handoff contract** (Phase 2): forward `$ARGUMENTS` verbatim,
+  hand off to exactly one target, interactive-invoke vs headless-recommend.
+
+---
+
 ## [0.12.3] — 2026-06-26
 
 ### Fixed
