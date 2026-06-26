@@ -119,9 +119,12 @@ This sets the rigor level for Phases 3 and 5. Derive `autonomy` from risk as in
 
 ## Phase 3 — Interview
 
-Fill gaps in the draft dynamically — **one property at a time**, choosing the next
-question from the last answer. Do not batch a fixed questionnaire. Prioritise the most
-underspecified or highest-risk property first.
+Fill gaps in the draft dynamically. Open by asking the **1–2 most blocking questions**
+(usually the done-condition/STOP and SCOPE) so the user resolves the crux up front — these
+two gate everything else and are worth surfacing together. After that opening, proceed
+**one property at a time**, choosing each next question from the last answer. Do not batch a
+fixed questionnaire beyond that opening. Prioritise the most underspecified or highest-risk
+property first.
 
 Rigor scales with the Phase 2 risk class:
 
@@ -178,9 +181,22 @@ model than the drafting agent"'
 | Attempt cap on failure? | Infinite fix loop | "No cap means it retries forever. Cap at N then handoff." |
 | Intent documented? | Intent debt | "Why this approach over the alternative? Record it in `decision_log`." |
 
-**Subjective STOP (e.g. "improve the UI"):** do not flat-reject. Offer doc-04's
-four-dimension gradable conversion (Quality / Originality / Craft / Functionality), turn
-it into measurable criteria, then continue.
+**Subjective STOP (e.g. "improve X"):** do not flat-reject — convert the vibe into a
+checkable condition. The primary, general path:
+
+1. **Elicit a concrete deficiency checklist.** From the codebase and your own observation,
+   name specific, verifiable weaknesses the goal should fix (e.g. "router doesn't explain its
+   choice", "Phase 3 over-questions R0 loops"). Offer them as concrete candidates the user
+   selects from — they react to specifics rather than re-explaining the vibe. Done = every
+   selected item implemented AND an automated check (tests / `verify` script / exit code) passes.
+
+2. **Special case — design/UX goals** ("improve the UI"): use doc-04's four-dimension gradable
+   conversion (Quality / Originality / Craft / Functionality) to turn aesthetics into measurable
+   criteria.
+
+Either way, the result must be a `stop.check` that is a command or a binary checklist, not a
+feeling. If the user can't yet name what "improved" means, say so plainly and derive it with
+them before approving — a contract cannot pass the readiness gate on a vibe.
 
 ---
 

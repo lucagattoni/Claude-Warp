@@ -62,13 +62,23 @@ Routing: <GOAL_SUMMARY>
   Invoking : /<skill>
 ```
 
-Then invoke the appropriate skill with the original `$ARGUMENTS`:
+**Handoff contract.** This router does not scaffold anything itself — it **chains** to exactly
+one downstream skill and forwards the goal verbatim:
 
 - **Goal** → invoke `/claude-warp-new-goal "$ARGUMENTS"`
 - **Loop** → invoke `/claude-warp-new-loop "$ARGUMENTS"`
 - **Harness** → invoke `/claude-warp-new-harness "$ARGUMENTS"`
+- **(Phase 0)** vague/high-risk → `/claude-warp-contract "$ARGUMENTS"` instead
 
-Do not reproduce the target skill's logic here — delegate fully and let it handle all phases.
+Chaining rules:
+1. **Forward the original `$ARGUMENTS` unchanged** (including any flags like `--contract`), so the
+   downstream skill sees exactly what the user typed.
+2. **Hand off once, then stop** — invoke a single target and let it own all its phases. Do not
+   re-invoke or fall through to a second scaffolder.
+3. **Interactive vs headless:** in an interactive session, actually invoke the target skill. In a
+   non-interactive/headless run where you cannot chain, **print the exact command to run**
+   (`/claude-warp-new-loop "..."`) as the recommendation rather than silently stopping.
+4. Do not reproduce the target skill's logic here — delegate fully.
 
 ## Quick reference
 
