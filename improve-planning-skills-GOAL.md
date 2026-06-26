@@ -9,16 +9,16 @@ Implement four concrete improvements to the contract negotiator and the `new` ro
 no behavioural change outside that surface.
 
 ## Done conditions
-- [ ] **goal-branch-coherence** — `/claude-warp-contract` for `kind: goal` produces a clean
-      goal artifact (`GOAL.md`), not `loop-contract.yaml` with loop-only fields; goal vs loop
-      schema + readiness are clearly separated in the skill.
-- [ ] **generalize-subjective-stop** — Phase 5's subjective-STOP handling elicits a concrete
-      deficiency checklist as the primary path; the UI four-dimension grading becomes one case.
-- [ ] **relax-interview-batching** — Phase 3 guidance allows the 1–2 most-blocking questions up
-      front, then one at a time.
-- [ ] **router-chaining-clarity** — `/claude-warp-new` states its handoff contract explicitly
-      (auto-chain vs recommend; forwards the goal/contract).
-- [ ] **no regression** — `bash scripts/dev.sh verify` exits 0.
+- [x] **goal-branch-coherence** — `/claude-warp-contract` writes a neutral `contract.yaml`
+      (both kinds), goal projects `<slug>-GOAL.md`, loop projects anchor files; Phase 8
+      contradiction removed and the loop/goal split made explicit.
+- [x] **generalize-subjective-stop** — Phase 5 now elicits a concrete deficiency checklist as
+      the primary path; UI four-dimension grading is a documented special case.
+- [x] **relax-interview-batching** — Phase 3 allows the 1–2 most-blocking questions up front,
+      then one at a time.
+- [x] **router-chaining-clarity** — `/claude-warp-new` Phase 2 states an explicit handoff
+      contract (forward $ARGUMENTS verbatim, hand off once, interactive-invoke vs headless-recommend).
+- [x] **no regression** — `bash scripts/dev.sh verify` exits 0.
 
 ## Guardrails
 - Must touch only: `skills/claude-warp-contract/`, `skills/claude-warp-new/`, `docs/loop-harness.md`
@@ -36,3 +36,7 @@ bash scripts/dev.sh verify        # deterministic, must exit 0
 ## Execution log
 <!-- append at milestones; do not delete entries -->
 - [2026-06-26 IST] Goal negotiated and materialised from contract draft.
+- [2026-06-26 IST] Items 2–4 implemented (contract Phase 3/5, new Phase 2); verify green.
+- [2026-06-26 IST] Item 1 surfaced (artifact-naming = external-contract change) → user
+  approved neutral `contract.yaml`; implemented across contract skill + docs. All done
+  conditions met; verify green. GOAL COMPLETE.

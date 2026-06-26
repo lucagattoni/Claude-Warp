@@ -20,7 +20,7 @@ Parse flags from `$ARGUMENTS`: `--no-scaffold` (stop after Phase 8).
 
 ## Phase 0 — Branch
 
-If `loop-contract.draft.yaml` exists in the repo root, ask the user whether to
+If `contract.draft.yaml` exists in the repo root, ask the user whether to
 **resume** that draft or start over. If resume: load it and jump to the phase its
 `_phase` field records.
 
@@ -43,12 +43,12 @@ Draft a **complete** contract from the goal alone, filling every field with your
 guess (mark guesses with `# GUESS`). Draft-first is deliberate: the user reacts to a
 concrete artifact rather than answering into a void.
 
-Write it to `loop-contract.draft.yaml` (schema below) with `_phase: 1`.
+Write it to `contract.draft.yaml` (schema below) with `_phase: 1`.
 
 ### Contract schema
 
 ```yaml
-# loop-contract.yaml
+# contract.yaml
 kind: loop | goal
 name: <human-readable>
 slug: <kebab-case>
@@ -137,7 +137,7 @@ Rigor scales with the Phase 2 risk class:
 | R4 | + require an explicit human-approval step in the contract |
 | R5 | + require a SECURITY gate |
 
-After each answered property, **rewrite `loop-contract.draft.yaml`** (update `_phase`).
+After each answered property, **rewrite `contract.draft.yaml`** (update `_phase`).
 This keeps the negotiation resumable and out of one polluted context window.
 
 Use the Job-Description framing to phrase questions: job title & scope (TRIGGER+SCOPE),
@@ -163,7 +163,7 @@ push back with intensity matching the risk class. **For R3+, run this as an inde
 checker** (a cross-model subagent, not self-review — self-critique is reviewer bias):
 
 ```
-claude -p '/claude-warp-new-agent "contract-checker: reviews a loop-contract.yaml
+claude -p '/claude-warp-new-agent "contract-checker: reviews a contract.yaml
 against the failure-pattern checklist; raises blocking findings only; uses a different
 model than the drafting agent"'
 ```
@@ -231,21 +231,26 @@ anything permanent (doc-27 Gate 2). If the user requests changes, return to Phas
 
 ## Phase 8 — Materialise
 
-Promote the draft to the real artifacts in the repo root:
+Promote the draft to the real artifacts in the repo root. The machine-readable
+`contract.yaml` is written for **both** kinds (it is the `--contract` handoff artifact);
+the two kinds differ only in what else they project from it:
 
-1. Write `loop-contract.yaml` (drop the `_phase` field).
-2. Project anchor files from it: `VISION.md` (objective/name), `CLAUDE.md` additions
-   (guardrails = `must_not_touch` + `surface_conditions`), `AGENTS.md` (roles — only if
-   multi-agent), `PROMPT.md` (first task). For `kind: goal`, write `GOAL.md` (doc-30
-   schema) instead of the loop anchor files.
-3. Delete `loop-contract.draft.yaml`.
+1. Write `contract.yaml` (drop the `_phase` field). Neutral name — a goal contract is **not**
+   written to a loop-named file.
+2. Project the kind-specific artifacts:
+   - **`kind: loop`** → anchor files: `VISION.md` (objective/name), `CLAUDE.md` additions
+     (guardrails = `must_not_touch` + `surface_conditions`), `AGENTS.md` (roles — only if
+     multi-agent), `PROMPT.md` (first task).
+   - **`kind: goal`** → `<slug>-GOAL.md` (doc-30 schema: objective, done conditions, guardrails,
+     verifier, execution log). No loop anchor files.
+3. Delete `contract.draft.yaml`.
 4. Commit:
    ```bash
-   git add loop-contract.yaml VISION.md CLAUDE.md AGENTS.md PROMPT.md GOAL.md 2>/dev/null
+   git add contract.yaml VISION.md CLAUDE.md AGENTS.md PROMPT.md GOAL.md 2>/dev/null
    git commit -m "contract(<slug>): approved <kind> contract (risk <R>)"
    ```
 
-If `--no-scaffold`: stop here and print the path to `loop-contract.yaml`.
+If `--no-scaffold`: stop here and print the path to `contract.yaml`.
 
 ---
 
@@ -253,8 +258,8 @@ If `--no-scaffold`: stop here and print the path to `loop-contract.yaml`.
 
 Invoke the scaffolder with the contract as structured input:
 
-- `kind: loop`  → `/claude-warp-new-loop "<name>" --contract loop-contract.yaml`
-- `kind: goal`  → `/claude-warp-new-goal "<name>" --contract loop-contract.yaml`
+- `kind: loop`  → `/claude-warp-new-loop "<name>" --contract contract.yaml`
+- `kind: goal`  → `/claude-warp-new-goal "<name>" --contract contract.yaml`
 
 For **R5**, also scaffold a security hook on top:
 `/claude-warp-new-hook "security scan for <slug>"`.
@@ -268,7 +273,7 @@ Do not reproduce the scaffolder's logic here — delegate fully.
 ```
 Contract negotiated ✓  (<kind>, risk <R>, readiness <LCR or G-score>)
 
-  Contract : loop-contract.yaml
+  Contract : contract.yaml
   Anchors  : VISION.md, CLAUDE.md, [AGENTS.md], PROMPT.md   (or GOAL.md)
   Passes   : <N> critical-pass findings resolved
 

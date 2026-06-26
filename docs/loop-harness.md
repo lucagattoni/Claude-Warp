@@ -65,7 +65,7 @@ scaffolding. The richer alternative to a one-line goal string — use when a goa
 or high-risk. Phase 0–9:
 
 1. **Branch** loop vs goal (doc-30); resume an existing draft if present
-2. **Draft-first** — a complete best-guess contract, persisted to `loop-contract.draft.yaml`
+2. **Draft-first** — a complete best-guess contract, persisted to `contract.draft.yaml`
 3. **Risk classify** R0–R5 (doc-04) → sets interview rigor
 4. **Interview** — dynamic, one property at a time, rewriting the draft each answer
 5. **Re-classify** risk against the refined contract (bounded to 2 cycles)
@@ -73,7 +73,8 @@ or high-risk. Phase 0–9:
    independent cross-model checker, not self-review
 7. **Readiness gate** — LCR ≥ 5/6 (6/6 for R3+) for loops; G2+ (G3 for R3+) for goals
 8. **Approve** — explicit user sign-off (doc-27 Gate 2)
-9. **Materialise** `loop-contract.yaml` + anchor files; `--no-scaffold` stops here
+9. **Materialise** `contract.yaml` (both kinds) + kind-specific projection — anchor files
+   (loop) or `GOAL.md` (goal); `--no-scaffold` stops here
 10. **Handoff** to `/claude-warp-new-loop` or `/claude-warp-new-goal` via `--contract`
 
 Adaptive rigor: an R0 read-only loop clears in ≤3 questions; an R3 prod-adjacent loop is
