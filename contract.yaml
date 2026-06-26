@@ -1,0 +1,46 @@
+# contract.yaml — materialised by /claude-warp-contract --no-scaffold
+# NOTE: kind:harness was assigned by hand — the contract's Phase 1 branch does not yet
+# classify harness (it called this "goal" on recurrence alone). Fixing that is task 1.
+kind: harness
+name: "Unify the planning entry point + clarify plan/goal/loop/harness semantics"
+slug: unified-planner
+risk: R1
+
+scope:
+  may_touch:
+    - skills/claude-warp-contract/
+    - skills/claude-warp-new/
+    - docs/loop-harness.md
+    - docs/goal-readiness.md
+    - README.md
+    - templates/CLAUDE.md.tpl
+  must_not_touch:
+    - new-loop / new-goal / new-harness core scaffolding (Phase 2+)
+    - templates/ (except CLAUDE.md.tpl reference repoints)
+    - install.sh
+
+decomposition: unified-planner-features.json   # the subplans = harness task units
+
+budget:
+  loop_max_usd: 8
+  step_max_budget_usd: 2
+  max_turns: 80
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "all tasks in unified-planner-features.json done AND `bash scripts/dev.sh verify` exits 0"
+
+verifier:
+  independent: true
+  mechanism: "scripts/dev.sh verify + cold re-read of the Plan-vs-Shape doc"
+
+surface_conditions:
+  - "removing /claude-warp-new (task 4) is a breaking CLI change — Surface before that commit."
+
+decision_log:
+  - "Reclassified goal → harness on user correction: it's large and needs decomposition into subplans."
+  - "LIVE GAP: contract Phase 1 branched on recurrence only (non-recurring → goal) and missed that a big"
+  - "  multi-stage plan is a harness. That misclassification IS the bug task 1 fixes — demonstrated on its own spec."
+  - "Mechanism = extend the contract engine; Name = keep 'contract'; deprecate /claude-warp-new."
+  - "Model: PLAN = the spec (any size); goal/loop/harness = SHAPES a plan takes."
