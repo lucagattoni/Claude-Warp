@@ -10,7 +10,20 @@
 
 ---
 
-## Install in a project
+ClaudeWarp installs two ways. They are complementary — pick by what you want:
+
+| | **curl installer** | **Claude Code plugin** |
+|---|---|---|
+| Command | `bash <(curl -fsSL …/install.sh)` | `/plugin marketplace add lucagattoni/Claude-Warp` + `/plugin install` |
+| Skill names | bare — `/claude-warp-setup` | namespaced — `/claude-warp:claude-warp-setup` |
+| Runs project setup | **Yes** — fills `CLAUDE.md` + `harness-manifest.json` and commits | No — exposes skills only; run setup yourself afterwards |
+| Scope | this project (`.claude/skills/`) | user or project, reusable everywhere |
+
+Use the **curl installer** to onboard a single project in one shot. Use the **plugin** to have the skills available across all your projects with versioned updates via `/plugin update`.
+
+---
+
+## Install in a project (curl)
 
 Navigate to your project root, then run:
 
@@ -57,6 +70,38 @@ Setup is safe to run into a repo that already has content or a prior ClaudeWarp 
   `harness-manifest.json`, `.gitignore`) — it won't sweep in unrelated changes from `plans/` or `docs/`.
 
 To refresh skills to a new version, prefer `/claude-warp-update` over re-running the installer.
+
+---
+
+## Install as a Claude Code plugin
+
+ClaudeWarp is also a [Claude Code plugin](https://code.claude.com/docs/en/plugins): the repo doubles as a single-plugin [marketplace](https://code.claude.com/docs/en/plugin-marketplaces). From inside Claude Code:
+
+```text
+/plugin marketplace add lucagattoni/Claude-Warp
+/plugin install claude-warp@claude-warp
+```
+
+This registers the `claude-warp` marketplace and installs the `claude-warp` plugin (all 12 skills) at user scope, so they are available in every project — no per-project copy. Update with `/plugin update claude-warp@claude-warp`; uninstall with `/plugin uninstall claude-warp@claude-warp`.
+
+To try it without installing (e.g. from a local clone):
+
+```bash
+claude --plugin-dir /path/to/Claude-Warp
+```
+
+### Namespacing
+
+Plugin skills are **namespaced** under the plugin name, so they read `/claude-warp:claude-warp-<skill>` rather than the bare `/claude-warp-<skill>` of the curl install:
+
+| curl install | plugin install |
+|---|---|
+| `/claude-warp-contract` | `/claude-warp:claude-warp-contract` |
+| `/claude-warp-setup` | `/claude-warp:claude-warp-setup` |
+
+The skills' own write-ups and "Next:" hand-offs still print the **bare** slug (e.g. `/claude-warp-new-goal`) — that text is an instruction Claude resolves to the installed skill in either mode, so cross-skill chaining works under both. When you type a hand-off command yourself after a plugin install, add the `claude-warp:` prefix.
+
+The plugin path does **not** run `/claude-warp-setup` for you. After installing, run `/claude-warp:claude-warp-setup` once in a project to materialise its `CLAUDE.md` and `harness-manifest.json`.
 
 ---
 

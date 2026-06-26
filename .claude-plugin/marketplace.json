@@ -1,0 +1,14 @@
+{
+  "name": "claude-warp",
+  "owner": {
+    "name": "Luca Gattoni"
+  },
+  "description": "ClaudeWarp — the loop-harness plugin for Claude Code.",
+  "plugins": [
+    {
+      "name": "claude-warp",
+      "source": ".",
+      "description": "Loop harness for Claude Code: scaffold and run goals, loops, harnesses, agents, and hooks with contract negotiation and readiness gates."
+    }
+  ]
+}

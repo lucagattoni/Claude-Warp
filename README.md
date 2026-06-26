@@ -26,11 +26,22 @@ A **plan** is *what* you want done, specified well enough to verify (any size). 
 
 **Prerequisites:** Claude Code installed, and a git repository as your working directory.
 
+**Option A — curl installer** (also runs project setup):
+
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/install.sh)
 ```
 
 This runs `/claude-warp-setup` autonomously: detects your project type, fills `CLAUDE.md` and `harness-manifest.json`, installs all skills under `.claude/skills/`, and commits everything in one go.
+
+**Option B — Claude Code plugin** (skills available everywhere, namespaced):
+
+```bash
+/plugin marketplace add lucagattoni/Claude-Warp
+/plugin install claude-warp@claude-warp
+```
+
+Skills install under the `claude-warp` namespace (`/claude-warp:claude-warp-contract`, etc.). Then run `/claude-warp:claude-warp-setup` in a project to materialise `CLAUDE.md` + `harness-manifest.json`.
 
 → Full installation guide: [docs/install.md](docs/install.md)
 

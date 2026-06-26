@@ -5,6 +5,38 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.16.0] — 2026-06-26
+
+ClaudeWarp is now installable as a **Claude Code plugin**, alongside the existing curl installer.
+The repo doubles as a single-plugin marketplace, so the same `skills/` tree serves both paths.
+
+### Added
+- **`.claude-plugin/plugin.json`** — plugin manifest (`name: claude-warp`, version tracks `VERSION`).
+  The repo root *is* the plugin: its root-level `skills/` tree (12 skills) is bundled directly, no
+  file movement.
+- **`.claude-plugin/marketplace.json`** — single-plugin marketplace catalog (`source: "."`). Users
+  install with `/plugin marketplace add lucagattoni/Claude-Warp` then
+  `/plugin install claude-warp@claude-warp`. Validated with `claude plugin validate .` (passes
+  `--strict`); verified end-to-end via local marketplace add → install → `details` (all 12 skills
+  exposed) → uninstall.
+
+### Changed
+- `docs/install.md` — new "Install as a Claude Code plugin" section plus a curl-vs-plugin
+  comparison table and a **Namespacing** note: plugin skills are namespaced
+  (`/claude-warp:claude-warp-<skill>`), bare-slug hand-offs in skill bodies still resolve in both
+  modes, and the plugin path does not auto-run `/claude-warp-setup`.
+- `README.md` — Install section now documents both options (curl + plugin).
+
+### Notes
+- **Additive, not a replacement** — the curl `install.sh` path is untouched. It still runs
+  `/claude-warp-setup` (per-project `CLAUDE.md` + `harness-manifest.json` + commit); the plugin path
+  only exposes the skills, so users run setup themselves afterwards.
+- Skill bodies were **not** rewritten for the namespace (that would break the bare-name standalone
+  path); cross-skill chaining relies on Claude resolving bare-slug instructions to the installed
+  skill in either mode.
+
+---
+
 ## [0.15.2] — 2026-06-26
 
 Self-host robustness — every manifest-touching skill is now safe to run in a repo without a

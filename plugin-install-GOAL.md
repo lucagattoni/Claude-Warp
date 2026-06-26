@@ -9,11 +9,11 @@ installs and exposes all skills under the `/claude-warp:` namespace, and the ins
 the new path.
 
 ## Done conditions
-- [ ] `.claude-plugin/plugin.json` exists with `name: claude-warp`, `description`, `version` (from VERSION), `author`
-- [ ] `.claude-plugin/marketplace.json` exists listing the `claude-warp` plugin with `source: "."`
-- [ ] `claude plugin validate .` exits 0
-- [ ] User-facing literal command slugs audited so they read correctly under both `/claude-warp:<skill>` and bare `/claude-warp-<skill>` forms (no logic changes to skill bodies)
-- [ ] `docs/install.md` and `README.md` document the plugin install path alongside the curl one-liner
+- [x] `.claude-plugin/plugin.json` exists with `name: claude-warp`, `description`, `version` (from VERSION), `author`
+- [x] `.claude-plugin/marketplace.json` exists listing the `claude-warp` plugin with `source: "."`
+- [x] `claude plugin validate .` exits 0 (passes `--strict` too)
+- [x] User-facing literal command slugs audited — bodies left namespace-neutral (bare slugs resolve in both modes); namespacing documented in `docs/install.md`. No logic changes.
+- [x] `docs/install.md` and `README.md` document the plugin install path alongside the curl one-liner
 
 ## Guardrails
 - Must not touch: `install.sh` (curl path stays as-is), `templates/`, `.claude/` (self-host symlinks)
@@ -34,3 +34,7 @@ is sufficient and no independent grader is required.
 ## Execution log
 <!-- Append entries at meaningful milestones — do not delete entries -->
 - [2026-06-26 19:55 IST] Goal scaffolded from approved contract.yaml (risk R1, readiness G2)
+- [2026-06-26 20:05 IST] Created `.claude-plugin/plugin.json` + `marketplace.json` (repo root = single plugin). `claude plugin validate .` passes (incl. `--strict`).
+- [2026-06-26 20:05 IST] Verified end-to-end: `marketplace add` → `install claude-warp@claude-warp` → `details` shows all 12 skills exposed → `uninstall` + marketplace remove (user config left clean).
+- [2026-06-26 20:05 IST] Documented plugin path + namespacing in `docs/install.md` and `README.md`. Slug audit: no skill-body edits (bare slugs resolve in both modes; would break standalone otherwise).
+- [2026-06-26 20:05 IST] Verifier exits 0. All done conditions met — GOAL COMPLETE. Bumped VERSION→0.16.0, plugin.json→0.16.0, CHANGELOG [0.16.0].
