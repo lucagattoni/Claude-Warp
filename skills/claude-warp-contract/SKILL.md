@@ -148,6 +148,12 @@ Rigor scales with the Phase 3 risk class:
 | R4 | + require an explicit human-approval step in the contract |
 | R5 | + require a SECURITY gate |
 
+**Depth also scales with shape (size of the plan).** Question count is adaptive, not fixed:
+a small **goal** should resolve in ≤ 3 questions; a **loop** sits in the middle; a **harness**
+(a big plan) needs the most — you must additionally elicit how it **decomposes into subplans**
+(the rough task units) so the handoff to `new-harness` has something to break down. Few
+questions for a small plan, many for a big one.
+
 After each answered property, **rewrite `contract.draft.yaml`** (update `_phase`).
 This keeps the negotiation resumable and out of one polluted context window.
 
@@ -254,6 +260,11 @@ the two kinds differ only in what else they project from it:
      multi-agent), `PROMPT.md` (first task).
    - **`kind: goal`** → `<slug>-GOAL.md` (doc-30 schema: objective, done conditions, guardrails,
      verifier, execution log). No loop anchor files.
+   - **`kind: harness`** → the decomposition into **subplans** is the harness's task queue, which
+     `/claude-warp-new-harness` already produces (its initializer agent). Do **not** decompose here —
+     write `contract.yaml` only, and let the handoff (Phase 10) trigger decomposition. (If
+     `--no-scaffold`, you may write a first-cut `<slug>-features.json` task list as the decomposition
+     artifact so the subplans are captured without scaffolding.)
 3. Delete `contract.draft.yaml`.
 4. Commit:
    ```bash
@@ -269,13 +280,16 @@ If `--no-scaffold`: stop here and print the path to `contract.yaml`.
 
 Invoke the scaffolder with the contract as structured input:
 
-- `kind: loop`  → `/claude-warp-new-loop "<name>" --contract contract.yaml`
-- `kind: goal`  → `/claude-warp-new-goal "<name>" --contract contract.yaml`
+- `kind: loop`     → `/claude-warp-new-loop "<name>" --contract contract.yaml`
+- `kind: goal`     → `/claude-warp-new-goal "<name>" --contract contract.yaml`
+- `kind: harness`  → `/claude-warp-new-harness "<name>" --contract contract.yaml` — its initializer
+  decomposes the plan into subplans (task units); each subplan then runs as its own unit.
 
 For **R5**, also scaffold a security hook on top:
 `/claude-warp-new-hook "security scan for <slug>"`.
 
-Do not reproduce the scaffolder's logic here — delegate fully.
+Do not reproduce the scaffolder's logic here — delegate fully. The harness is how a plan **too
+big for one shape** gets decomposed: contract classifies it (Phase 1), `new-harness` breaks it down.
 
 ---
 

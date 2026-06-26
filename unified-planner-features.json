@@ -30,8 +30,8 @@
         1
       ],
       "wave": 2,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "Phase 9 materialise + Phase 10 handoff now handle kind:harness \u2014 delegate decomposition to new-harness"
     },
     {
       "id": 3,
@@ -44,8 +44,8 @@
         1
       ],
       "wave": 2,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "Phase 4 documents depth scaling with shape: goal <=3 Qs, harness needs subplan elicitation"
     },
     {
       "id": 4,
