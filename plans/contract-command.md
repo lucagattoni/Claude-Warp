@@ -101,7 +101,7 @@ not specification. Collaboratively refining a contract *before* any work runs is
 correct time to disagree; persisting the draft to disk each phase keeps the negotiation
 out of a single polluted context window (doc-17: *context pollution*).
 
-## Critical-pass checklist (Phase 4)
+## Critical-pass checklist (Phase 5)
 
 Each maps to a named failure pattern. Run all; the *intensity* of pushback scales with risk.
 
@@ -232,24 +232,18 @@ the repo root (doc-27 convention); the in-progress draft is `loop-contract.draft
 
 ## Self-application (dogfooding)
 
-This command is a plan-quality engine, so its strongest acceptance test is reflexive:
-**running it against its own design goal should reconstruct an equivalent contract.**
+This command is a plan-quality engine, so its strongest property is reflexive:
+**a converged contract must survive its own critical pass with zero new findings**
+(the fixpoint property, C13).
 
 The plan you are reading was itself refined by applying the command's methodology to it —
-draft → risk-classify → critical pass → readiness gate. That pass found and fixed 8 gaps
-(schema undefined, Loop readiness rubric missing, single-shot risk classification,
-no draft persistence, self-review bias on high-risk, execution-vs-spec confusion,
-no fixtures, no dogfooding test). C13 makes the reflexivity a standing test.
-
-## Changes to existing skills
-
-- `new-loop`: accept an optional `--contract <file>` input; when present, skip Phase 1b
-  derivation and read the six properties + DO_NOT + autonomy level from the contract.
-- `new-goal`: accept `--contract <file>`; read objective, done-conditions, guardrails, budget.
-- `claude-warp-new` (router): when the goal is vague/underspecified, route to
-  `/claude-warp-contract` first (replaces the spec-refine pointer).
-- Remove `claude-warp-spec-refine`; update README, docs/loop-harness.md, CLAUDE.md.tpl,
-  goal-readiness.md cross-links.
+draft → risk-classify → critical pass → readiness gate — across four passes. Gaps found
+per pass: **8 → 3 → 3 → 3**, then 0. The first pass fixed structural gaps (undefined
+schema, missing Loop readiness rubric, single-shot risk classification, no draft
+persistence, self-review bias, execution-vs-spec confusion, no fixtures, no reflexive
+test); later passes caught progressively smaller issues, including two the editing itself
+introduced (a duplicated section and a stale phase number) — exactly what C13's fixpoint
+test is designed to catch.
 
 ## Metrics (definition of "ready")
 
