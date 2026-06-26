@@ -18,22 +18,33 @@ Parse flags from `$ARGUMENTS`: `--no-scaffold` (stop after Phase 9).
 
 ---
 
-## Phase 1 — Branch
+## Phase 1 — Branch (classify the shape)
 
 If `contract.draft.yaml` exists in the repo root, ask the user whether to
 **resume** that draft or start over. If resume: load it and jump to the phase its
 `_phase` field records.
 
-Otherwise apply the Goals-vs-Loops decision (doc-30):
+Otherwise **classify the execution shape** — this is the router (folded in from the former
+`/claude-warp-new`). Assess recurrence, stage count, and scope size:
 
 ```
-Does this work recur on a schedule or event?
-├── Yes → kind: loop  (six-property Loop Contract)
-└── No  → kind: goal  (four Goal primitives + GOAL.md)
+1. Recurring on a schedule or event?
+   └─ Yes → kind: loop      six-property Loop Contract (recurring)
+2. One-shot, but large / multi-stage — several interdependent pieces that each
+   need their own work and span more than one context window?
+   └─ Yes → kind: harness   decomposed into subplans = task units (doc-26 factory model)
+3. Otherwise: one-shot, fits a single context, one verifiable criterion
+   └─       kind: goal       four Goal primitives + GOAL.md (doc-30)
 ```
 
-If genuinely unclear, ask one question: *"Will this run repeatedly on a trigger, or
-run once until a result is reached?"*
+**Plan-vs-Shape.** The thing you are specifying is a **plan**; `loop` / `goal` / `harness`
+are the **shapes** it can take. A *small* plan is a goal; a *big* plan with subplans is a
+harness; a *recurring* plan is a loop. Size and recurrence pick the shape — they are not
+separate kinds of input.
+
+Do not classify on recurrence alone: a large non-recurring plan is a **harness**, not a goal.
+If genuinely unclear between goal and harness, ask: *"Is this one focused change with a single
+done-condition, or several interdependent pieces that each need their own work?"*
 
 ---
 

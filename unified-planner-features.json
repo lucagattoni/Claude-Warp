@@ -5,24 +5,30 @@
   "verification": "bash scripts/dev.sh verify (exit 0) + cold re-read of the Plan-vs-Shape doc",
   "risk": "R1",
   "generated_at": "2026-06-26",
-  "decomposed_by": "manual (contract harness branch not yet built — this IS task 1's fix, applied by hand)",
+  "decomposed_by": "manual (contract harness branch not yet built \u2014 this IS task 1's fix, applied by hand)",
   "tasks": [
     {
       "id": 1,
       "title": "single-entry-router",
       "description": "Extend contract Phase 1 branch from loop/goal to single-shot/loop/harness. Port /claude-warp-new's recurrence + stage-count + scope-size assessment so the contract auto-classifies the shape (and would have caught THIS spec as a harness).",
-      "files_in_scope": ["skills/claude-warp-contract/SKILL.md"],
+      "files_in_scope": [
+        "skills/claude-warp-contract/SKILL.md"
+      ],
       "depends_on": [],
       "wave": 1,
-      "status": "pending",
-      "result": null
+      "status": "done",
+      "result": "Phase 1 branch now classifies single-shot/loop/harness; ported recurrence+stage+scope assessment; states Plan-vs-Shape inline"
     },
     {
       "id": 2,
       "title": "subplan-decomposition",
       "description": "For kind:harness, contract hands the contract off to /claude-warp-new-harness (which already decomposes into task units). Define the harness branch's materialise + handoff so a big plan becomes subplans.",
-      "files_in_scope": ["skills/claude-warp-contract/SKILL.md"],
-      "depends_on": [1],
+      "files_in_scope": [
+        "skills/claude-warp-contract/SKILL.md"
+      ],
+      "depends_on": [
+        1
+      ],
       "wave": 2,
       "status": "pending",
       "result": null
@@ -31,8 +37,12 @@
       "id": 3,
       "title": "adaptive-question-depth",
       "description": "Confirm + document that question count scales with complexity (small goal <=3 Qs; big plan asks as many as needed). Mostly surfacing the existing risk-adaptive rigor in the right place.",
-      "files_in_scope": ["skills/claude-warp-contract/SKILL.md"],
-      "depends_on": [1],
+      "files_in_scope": [
+        "skills/claude-warp-contract/SKILL.md"
+      ],
+      "depends_on": [
+        1
+      ],
       "wave": 2,
       "status": "pending",
       "result": null
@@ -41,8 +51,16 @@
       "id": 4,
       "title": "deprecate-new",
       "description": "Remove /claude-warp-new; repoint references (README, docs, CLAUDE.md.tpl); contract description becomes the 'start here' entry. SURFACE-GATE the deletion commit (breaking CLI change).",
-      "files_in_scope": ["skills/claude-warp-new/", "README.md", "docs/loop-harness.md", "templates/CLAUDE.md.tpl"],
-      "depends_on": [1, 2],
+      "files_in_scope": [
+        "skills/claude-warp-new/",
+        "README.md",
+        "docs/loop-harness.md",
+        "templates/CLAUDE.md.tpl"
+      ],
+      "depends_on": [
+        1,
+        2
+      ],
       "wave": 3,
       "status": "pending",
       "result": null
@@ -51,8 +69,17 @@
       "id": 5,
       "title": "conceptual-model-doc",
       "description": "Write ONE unambiguous Plan-vs-Shape section (docs + README): a PLAN is the spec (any size); goal/loop/harness are SHAPES; small plan = single-shot, big plan w/ subplans = harness. Written LAST, reflecting the shipped design.",
-      "files_in_scope": ["docs/loop-harness.md", "docs/goal-readiness.md", "README.md"],
-      "depends_on": [1, 2, 3, 4],
+      "files_in_scope": [
+        "docs/loop-harness.md",
+        "docs/goal-readiness.md",
+        "README.md"
+      ],
+      "depends_on": [
+        1,
+        2,
+        3,
+        4
+      ],
       "wave": 4,
       "status": "pending",
       "result": null
@@ -61,8 +88,17 @@
       "id": 6,
       "title": "no-regression + release",
       "description": "bash scripts/dev.sh verify exits 0 after each task; cut a release when all tasks done.",
-      "files_in_scope": ["CHANGELOG.md", "VERSION"],
-      "depends_on": [1, 2, 3, 4, 5],
+      "files_in_scope": [
+        "CHANGELOG.md",
+        "VERSION"
+      ],
+      "depends_on": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
       "wave": 5,
       "status": "pending",
       "result": null
