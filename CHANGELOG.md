@@ -5,6 +5,21 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.14.0] — 2026-06-26
+
+Acts on the `/claude-warp-retro` findings (RETRO.md) — a goal-coherence sweep across the
+loop-centric state readers, the same root cause fixed in the contract command in v0.13.0.
+
+### Fixed
+- `skills/claude-warp-retro` — now **schema-aware**: Phase 1 detects whether each state file is a
+  loop (`<!-- state:` header), a doc-30 **goal** (`*-GOAL.md`), or a harness (`features.json`) and
+  branches accordingly. A one-shot goal is analysed by completion + rework, not a run series;
+  Phases 3 and 5 gain a goal variant. (Previously assumed a loop state header every goal lacks.)
+- `skills/claude-warp-inventory` — Phase 5 likewise detects schema: reports done-conditions progress
+  for goals and task counts for harnesses, instead of trying to read a loop state header from them.
+
+---
+
 ## [0.13.0] — 2026-06-26
 
 Specified via `/claude-warp-contract` and executed as a goal (`improve-planning-skills-GOAL.md`)
