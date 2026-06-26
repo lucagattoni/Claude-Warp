@@ -249,7 +249,7 @@ test is designed to catch.
 
 | ID | Metric | Status |
 |---|---|---|
-| C1 | `/claude-warp-contract "goal"` runs the full 9-phase flow interactively | ⬜ |
+| C1 | `/claude-warp-contract "goal"` runs the full Phase 0–9 flow interactively | ⬜ |
 | C2 | Phase 0 branches F1–F6 to the expected Loop/Goal path | ⬜ |
 | C3 | Phase 2/4 assign the expected R0–R5 class for F1–F6 | ⬜ |
 | C4 | Rigor scales: F1 (R0) finishes in ≤3 questions; F2 (R3) forces an escalation gate | ⬜ |
