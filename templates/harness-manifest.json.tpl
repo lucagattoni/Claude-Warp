@@ -52,5 +52,7 @@
       "status": "active"
     }
   ],
-  "loops": []
+  "loops": [],
+  "harnesses": [],
+  "agents": []
 }

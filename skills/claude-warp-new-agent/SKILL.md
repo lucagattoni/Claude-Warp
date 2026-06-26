@@ -47,10 +47,10 @@ Key rules for the persona:
 - State what it must NOT do (e.g. "Do not fix code — only report findings")
 - End with the output format (e.g. "Report each finding as: file:line — description")
 
-## Phase 3 — Register in manifest
+## Phase 3 — Register in manifest (if present)
 
-Read `harness-manifest.json` (if present). Append to an `agents` array (create
-it if absent):
+If `harness-manifest.json` exists, read it and append to an `agents` array (create the array
+if the manifest lacks one):
 ```json
 {
   "name": "<AGENT_NAME>",
@@ -59,12 +59,17 @@ it if absent):
   "created_at": "<LOCAL_TIMESTAMP>"
 }
 ```
-Write back.
+Write it back.
+
+If `harness-manifest.json` does **not** exist (self-hosted source repo, or no
+`/claude-warp-setup`), **skip registration** — the agent works without it. Do not create a
+manifest here; print `no harness-manifest.json — skipped registry`.
 
 ## Phase 4 — Commit
 
 ```bash
-git add .claude/agents/<AGENT_NAME>.md harness-manifest.json
+git add .claude/agents/<AGENT_NAME>.md
+git add harness-manifest.json 2>/dev/null || true   # only if the registry exists
 git commit -m "feat(agent): scaffold <AGENT_NAME>"
 ```
 

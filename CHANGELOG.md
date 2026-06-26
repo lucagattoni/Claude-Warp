@@ -5,6 +5,31 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.15.2] — 2026-06-26
+
+Self-host robustness — every manifest-touching skill is now safe to run in a repo without a
+`harness-manifest.json` (a self-hosted source repo, or any project not set up via
+`/claude-warp-setup`). Closes the last self-host edge.
+
+### Fixed
+- **Scaffolders register gracefully.** `new-loop`, `new-harness`, and `new-agent` now register
+  in `harness-manifest.json` only **if it exists** (creating the relevant array if the manifest
+  lacks one); if absent they **skip registration** with a note — the scaffolded artifact works
+  regardless (`inventory` finds it by scanning). Their commit step adds the manifest only if
+  present. (`new-goal` already had no manifest dependency.) This unblocks letting
+  `/claude-warp-contract` scaffold in a self-hosted repo without `--no-scaffold`.
+- **`/claude-warp-update` refuses in a self-hosted repo** — it now detects symlinked
+  `.claude/skills/` and stops, instead of overwriting the symlinks (and local source edits) with
+  GitHub copies. A real footgun, now guarded.
+- **`/claude-warp-sync` no-ops** when there is no manifest ("nothing to sync") instead of erroring.
+
+### Changed
+- `templates/harness-manifest.json.tpl` — added `harnesses[]` and `agents[]` arrays alongside
+  `loops[]`, so a fresh manifest tracks all three registries symmetrically.
+- `docs/loop-harness.md` — documented the self-host safety guarantees in the Developing section.
+
+---
+
 ## [0.15.1] — 2026-06-26
 
 ### Changed

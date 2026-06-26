@@ -168,9 +168,10 @@ Read `templates/trigger.crontab.tpl` and fill:
 
 (File is not installed — it is a reference snippet the user pastes into crontab.)
 
-## Phase 3 — Register loop in manifest
+## Phase 3 — Register loop in manifest (if present)
 
-Read `harness-manifest.json`. Append to the `loops` array:
+If `harness-manifest.json` exists in the project root, read it and append to the `loops`
+array (create the array if the manifest lacks one):
 ```json
 {
   "slug": "<SKILL_SLUG>",
@@ -179,14 +180,21 @@ Read `harness-manifest.json`. Append to the `loops` array:
   "created_at": "<LOCAL_TIMESTAMP>"
 }
 ```
-Write back.
+Write it back.
+
+If `harness-manifest.json` does **not** exist — a self-hosted source repo, or a project set
+up without `/claude-warp-setup` — **skip registration**. The loop is fully functional without
+it (`/claude-warp-inventory` discovers loops by scanning `.claude/skills/` and state files
+regardless). Do not create a manifest here; print:
+`no harness-manifest.json — skipped registry (run /claude-warp-setup to enable it)`.
 
 ## Phase 4 — Commit
 
 ```bash
 git add .claude/skills/<SKILL_SLUG>/ scripts/guard-<SKILL_SLUG>.sh \
         scripts/run-<SKILL_SLUG>.sh scripts/trigger-<SKILL_SLUG>.crontab \
-        <STATE_FILE> harness-manifest.json
+        <STATE_FILE>
+git add harness-manifest.json 2>/dev/null || true   # only if the registry exists
 git commit -m "feat(loop): scaffold <SKILL_SLUG>"
 ```
 

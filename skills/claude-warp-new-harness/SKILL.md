@@ -380,10 +380,10 @@ Make executable:
 chmod +x scripts/run-<HARNESS_SLUG>.sh
 ```
 
-## Phase 7 — Register in manifest
+## Phase 7 — Register in manifest (if present)
 
-Read `harness-manifest.json` (if present). Append to a `harnesses` array (create
-if absent):
+If `harness-manifest.json` exists, read it and append to a `harnesses` array (create the
+array if the manifest lacks one):
 ```json
 {
   "slug": "<HARNESS_SLUG>",
@@ -393,7 +393,12 @@ if absent):
   "created_at": "<LOCAL_TIMESTAMP>"
 }
 ```
-Write back.
+Write it back.
+
+If `harness-manifest.json` does **not** exist — a self-hosted source repo, or a project set
+up without `/claude-warp-setup` — **skip registration** (the harness is fully functional
+without it). Do not create a manifest here; print
+`no harness-manifest.json — skipped registry`.
 
 ## Phase 8 — Commit
 
@@ -403,8 +408,8 @@ git add .claude/agents/<HARNESS_SLUG>-initializer.md \
         <HARNESS_SLUG>-features.json \
         <HARNESS_SLUG>-session-init.md \
         VISION.md AGENTS.md PROMPT.md \
-        scripts/run-<HARNESS_SLUG>.sh \
-        harness-manifest.json
+        scripts/run-<HARNESS_SLUG>.sh
+git add harness-manifest.json 2>/dev/null || true   # only if the registry exists
 
 # Add QA agent if --with-qa was used
 # git add .claude/agents/<HARNESS_SLUG>-qa.md

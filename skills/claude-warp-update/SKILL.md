@@ -6,6 +6,21 @@ description: Pull the latest ClaudeWarp skills from GitHub into this project's .
 Update the ClaudeWarp skills installed in this project to the latest version from
 the ClaudeWarp GitHub repo.
 
+## Phase 0 — Refuse in a self-hosted source repo
+
+If `.claude/skills/` entries are **symlinks** into a sibling `skills/` directory, this is the
+ClaudeWarp **source repo** self-hosted via `scripts/dev.sh selfhost` — not a consumer install.
+**Stop immediately** and print:
+`self-hosted source repo — do not run update here. It would overwrite the symlinks (and your
+local source edits) with GitHub copies. Edit skills/ directly; the symlinks are already live.`
+
+```bash
+# detect: first .claude/skills entry is a symlink AND a sibling skills/ exists
+[ -d skills ] && [ -L "$(ls -d .claude/skills/*/ 2>/dev/null | head -1 | sed 's:/$::')" ] && echo SELF_HOST
+```
+
+Otherwise continue.
+
 ## Phase 1 — Get current state
 
 1. Get local time:
@@ -13,7 +28,8 @@ the ClaudeWarp GitHub repo.
    date '+%Y-%m-%d %H:%M %Z'
    ```
 
-2. Read `harness-manifest.json` — get current `harness.version`.
+2. Read `harness-manifest.json` if present — get current `harness.version` (treat as "unknown"
+   if there is no manifest).
 
 3. List skills currently installed in this project:
    ```bash

@@ -351,6 +351,14 @@ consumer projects):
 | `scripts/dev.sh verify` | Five deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, and docs coherence. Exits non-zero on failure — suitable for CI. |
 | `scripts/dev.sh verify --live` | Additionally runs the real `/claude-warp-setup` (`claude -p`) into a throwaway repo for full fidelity. Costs tokens; opt-in. |
 
+**Self-host safety.** Every skill is safe to run in this self-hosted repo (which has no
+`harness-manifest.json`): the scaffolders (`new-loop`/`new-goal`/`new-harness`/`new-agent`)
+skip manifest registration when it is absent (the artifact still works; `inventory` finds it by
+scanning), `/claude-warp-sync` no-ops with "nothing to sync", and `/claude-warp-update`
+**refuses** to run (it would overwrite the symlinks with GitHub copies — edit `skills/` directly
+instead). So you can `/claude-warp-contract` a plan and let it scaffold here without
+`--no-scaffold` if you actually want the artifacts.
+
 **Scope of `verify`:** it checks source integrity and the install *copy contract* — it cannot
 reproduce the LLM behaviour of `/claude-warp-setup` itself (that is non-deterministic). Use
 `--live` when you need to exercise the actual setup skill end to end.

@@ -16,7 +16,10 @@ Synchronise the ClaudeWarp harness against the current Claude Code version.
    claude --version
    ```
    Record as `CC_VERSION`.
-3. Read `harness-manifest.json` — get `claude_code.last_sync` and `components[]`.
+3. Read `harness-manifest.json`. **If it does not exist** — a self-hosted source repo, or a
+   project without a `/claude-warp-setup` install — there are no tracked components to prune:
+   print `no harness-manifest.json — nothing to sync (not a ClaudeWarp install)` and stop.
+   Otherwise get `claude_code.last_sync` and `components[]`.
 
 ## Phase 2 — Fetch changelog
 
