@@ -5,6 +5,35 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.12.0] — 2026-06-26
+
+`/claude-warp-sync-research` run against Claude-Loops `5378f9e` (v2.4.0).
+
+### Added
+- `templates/loop.SKILL.md.tpl` — **Self-Coverage Gate** in Phase 3b: every SCOPE item
+  must have a verification artifact before the loop can pass. A scope item with no check is
+  a coverage gap (incomplete verification layer), distinct from a failing check (wrong
+  implementation); on a gap the loop adds the check or writes `handoff`, never `pass`.
+  Source: Claude-Loops doc-04 Self-Coverage Gate (eugenelim/agent-ready-repo RFC-0051).
+- `templates/loop.SKILL.md.tpl` — **multi-loop `acting_on` coordination**: new `acting_on`
+  field in the STATE header plus a claim/skip rule — a loop reads every sibling `*_LOG.md`
+  header and skips items another loop already claims (one owner per item), resetting its
+  claim on completion. Opt-in; prevents two loops fixing the same PR in one window.
+  Source: Claude-Loops doc-34 Multi-Loop STATE.md (ryanjkelly/harnery).
+
+### Changed
+- `docs/usage.md` — **Deployment posture** section mapping autonomy levels to deployment
+  patterns: L1→Approval-First, L2→Curated Allow-list, L3→Sandboxed Full-Auto; distinguishes
+  in-process controls (hooks, permission-mode) from out-of-process (container, OS user, network).
+  Source: Claude-Loops doc-24 Harness vs Environment Engineering.
+
+### Surfaced (not implemented — see CLAUDE_WARP_UPDATE_LOG.md)
+- Traceability-lint (doc-04) — subsumed by the Self-Coverage Gate for ClaudeWarp's model.
+- `--resume` / compaction persistence (doc-24) — already covered by loop IN_PROGRESS recovery
+  and contract draft resume.
+
+---
+
 ## [0.11.1] — 2026-06-26
 
 Coherence and structure review against the latest loop-engineering news
