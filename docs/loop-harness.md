@@ -146,7 +146,7 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 | File | Purpose |
 |---|---|
 | `.claude/agents/<slug>-initializer.md` | Planner agent definition |
-| `<slug>-features.json` | Task queue: `pending` → `in_progress` → `done` / `failed` |
+| `<slug>-features.json` | Task queue: `pending` → `in_progress` → `done` / `failed` (+ optional honest-uncertainty statuses `done_with_concerns` / `needs_context` / `blocked`) |
 | `<slug>-session-init.md` | Read by coding agent at every context window start |
 | `VISION.md` | High-level goal and success criteria (anchor file) |
 | `AGENTS.md` | Role definitions and handoff protocol (anchor file) |
@@ -165,6 +165,21 @@ unchanged:
 - `must_not_change` — the task's **negative scope**: path/globs enforced mechanically via
   `git diff`, plus behaviours the worker must attest it preserved. Complements the positive
   `files_in_scope` allow-list.
+
+**Honest-uncertainty statuses + mandatory R2+ qualify (optional / risk-scaled).** Beyond `done` /
+`failed`, a worker may set three honest statuses instead of faking a `done` or flattening a
+recoverable hold to a failure (all optional — a harness that never uses them is unchanged):
+- `done_with_concerns` — acceptance met **but** with a recorded `concern`. **Completes** (the wave
+  proceeds) and the runner **surfaces** the concern in its report. "Done but unsure about X."
+- `needs_context` — cannot finish without missing information; a **holding** status (counts as
+  not-complete, surfaced for a human). "I won't guess and mark it done."
+- `blocked` — externally blocked; also a holding status, surfaced.
+
+`needs_context` / `blocked` are Type-B holds — the runner never auto-resolves them to `done`.
+Separately, the **qualify/QA re-read is mandatory and non-overridable at risk R2+** (it runs by
+default, no `--no-qa`) — the structural one-level-down enforcement of constitution P2 (merge-gated
+work needs an independent verifier). When a task's output isn't independently gradable, QA re-runs its
+`acceptance` `cmd:` checks as the grade (a check it can't run is `not run`, never PASS).
 
 **Converge — reconcile-and-re-ticket closure (`/claude-warp-converge`, optional `--converge`).**
 After a harness runs, converge answers one question honestly: *does the actual tree satisfy the

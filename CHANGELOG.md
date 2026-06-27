@@ -5,6 +5,40 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.21.0] — 2026-06-27
+
+**Honest-uncertainty task statuses + mandatory R2+ qualify** (second-batch PR5). Closes the two
+execution-side gaps the first shortlist skipped — including the one the competitive study named its
+*biggest* gap. Extends ClaudeWarp's anti-verifier-theater identity from plan-time into task-level
+reporting. Both additive: an R0/R1 harness that never uses the new statuses behaves exactly as today.
+
+### Added
+- **`/claude-warp-new-harness` — honest-uncertainty task statuses** (all optional). Beyond
+  `done | failed`, a worker may report:
+  - `done_with_concerns` — acceptance met but with a recorded one-line `concern`; **completes** (the
+    wave proceeds) and the runner **surfaces** the concern. Replaces a falsely-clean `done`.
+  - `needs_context` — cannot finish without missing information; a **holding** status (counts as
+    not-complete, surfaced for a human) — the worker won't guess and mark done.
+  - `blocked` — externally blocked; also a holding status, surfaced.
+  The optional `concern` field carries the reason. `needs_context` / `blocked` are Type-B holds the
+  runner never auto-resolves (constitution P3). The QA agent re-reads `done_with_concerns` tasks with
+  extra scrutiny; `/claude-warp-converge` consumes the statuses as gap inputs.
+- **`/claude-warp-new-harness` — mandatory qualify at R2+.** The QA/qualify evaluator is now generated
+  and run by default for risk **R2+** harnesses (a `RISK` runner variable auto-enables it;
+  **non-overridable** — there is deliberately no `--no-qa`). The structural one-level-down enforcement
+  of constitution **P2** (merge-gated work needs an independent verifier), consistent with the R2+
+  `cmd:` rule. When output isn't independently gradable, QA re-runs each task's `acceptance` `cmd:`
+  checks as its grade (a check it can't run is `not run`, never PASS). R0/R1 harnesses keep QA opt-in.
+
+### Changed
+- **`docs/loop-harness.md`** — documents the honest-uncertainty statuses and the mandatory R2+ qualify.
+
+### Notes
+- **Backwards-compatible / self-host safe:** the new statuses are optional and the mandatory qualify is
+  gated on R2+ — an existing R0/R1 `features.json` and runner behave exactly as before. Closes
+  competitive-study gaps #1 (honest-uncertainty statuses — its named "biggest gap") and #2 (qualify was
+  previously opt-in only).
+
 ## [0.20.0] — 2026-06-27
 
 **Worth-it gate — success metric + kill criterion before scope** (shortlist PR4, the final item;
