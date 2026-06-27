@@ -93,11 +93,35 @@ Each task entry (populated by the initializer) will have the shape:
   "origin": "initial",
   "gap_type": null,
   "source_ref": null,
+  "concern": null,
   "result": null
 }
 ```
 
 Valid status values: `pending` → `in_progress` → `done` | `failed`.
+
+**Honest-uncertainty statuses (all OPTIONAL — additive, backwards-compatible).** Beyond the binary
+`done | failed`, a worker may report three honest terminal/holding statuses instead of silently
+swallowing uncertainty or faking a `done`. A harness that never uses them behaves exactly as today:
+
+- `done_with_concerns` — the task's `acceptance` was met, but the worker has a real caveat (a fragile
+  assumption, an untested edge, a workaround). It is a **completing** status — the wave **proceeds** —
+  but the worker MUST record a one-line `concern` (see below) and the runner **surfaces** it in the
+  final report. Use this instead of a clean `done` whenever "done but unsure about X" is the honest
+  state.
+- `needs_context` — the task cannot be completed without information the worker does not have (a
+  decision, a missing spec, an answer only a human or an upstream task can give). A **holding**
+  status: it does **not** count as complete; the runner surfaces it and stops treating the harness as
+  done. Record the missing input in `concern`.
+- `blocked` — the task is externally blocked (a failing dependency, an unavailable service, a
+  `must_not_change` conflict it cannot resolve). Also a **holding** status — surfaced, not complete.
+  Record the blocker in `concern`.
+
+`done_with_concerns` counts toward completion; `needs_context` and `blocked` are **Type-B holds** —
+the runner reports them and never auto-resolves them to `done` (honesty rule: never fake a gate). The
+optional `concern` string field carries the one-line reason for any of the three; `/claude-warp-converge`
+reads these statuses as gap inputs (a `done_with_concerns` or `needs_context` task is exactly what a
+closure pass should re-ticket).
 
 **Per-task acceptance + negative scope (both OPTIONAL — backwards-compatible).**
 A task may carry two extra arrays; a task with **neither** behaves exactly as today (no
@@ -151,8 +175,9 @@ The coding agent may only touch: <SCOPE>
 
 ## Task queue
 Read `<HARNESS_SLUG>-features.json`. Find the first task with status `pending`
-or `in_progress`. Execute that task only. When done, set status to `done` and
-commit. Then stop — do not start the next task.
+or `in_progress`. Execute that task only. When finished, set the status that is
+**honestly true** (see "Choosing an honest status" below), record a `concern` when
+required, commit, and stop — do not start the next task.
 
 ## Recovery
 If the task was already `in_progress` when you started, treat it as incomplete.
@@ -178,6 +203,25 @@ If the current task has a `must_not_change` array, enforce its **negative scope*
   "I did not see a change" is not evidence (not_observed ≠ absent) — point at the proof.
 
 A task carrying neither field follows the global verification only (unchanged behaviour).
+
+## Choosing an honest status (never fake a `done`)
+When you finish a task, set the status that is **honestly true** — do not round "unsure" up to `done`
+or a recoverable hold down to `failed`:
+- `done` — every `acceptance` entry passed (with evidence) and you have **no** caveat.
+- `done_with_concerns` — acceptance passed, but you have a real caveat (a fragile assumption, an
+  untested edge, a workaround). Set `concern` to a one-line description. The wave still proceeds; the
+  runner surfaces your concern. Prefer this over a clean `done` whenever "done but unsure about X" is
+  true.
+- `needs_context` — you cannot complete the task without information you don't have (a decision, a
+  missing spec, an upstream answer). Set `concern` to the exact missing input. Do **not** guess and
+  mark `done`. This holds the harness for a human.
+- `blocked` — an external blocker (failing dependency, unavailable service, an unresolvable
+  `must_not_change` conflict) stops you. Set `concern` to the blocker. This holds the harness.
+- `failed` — you attempted the work and could not meet `acceptance`; this is a genuine failure, not a
+  missing input (that is `needs_context`) or a caveat (that is `done_with_concerns`).
+
+`done_with_concerns`, `needs_context`, and `blocked` are all OPTIONAL — if none applies, use `done` /
+`failed` exactly as before.
 
 ## Epistemic honesty (non-negotiable)
 1. **NOT RUN ≠ pass** — a check you could not run is reported `not run`, never green.
@@ -229,7 +273,15 @@ Both `acceptance` and `must_not_change` are optional in the schema, but you shou
 Output: write the updated JSON and stop. Do not implement anything.
 ```
 
-## Phase 5b — Write the QA evaluator agent (optional — only if `--with-qa` requested)
+## Phase 5b — Write the QA evaluator agent (mandatory at R2+, else opt-in via `--with-qa`)
+
+Scaffold a QA/Evaluator agent whenever **either** the harness contract risk is **R2 or higher**
+(`<RISK>`) **or** the user passed `--with-qa`. At R2+ the QA step is **not optional** — merge-gated
+work needs an independent verifier (constitution P2), so the qualify re-read runs by default and
+cannot be disabled (there is deliberately no `--no-qa`). For R0/R1 harnesses it stays opt-in, exactly
+as before. **Fallback when output isn't gradable:** if the goal has no independently gradable output,
+the QA agent still runs and re-executes each task's `acceptance` `cmd:` checks as its grading — a
+check it cannot run is reported `not run`, never PASS (NOT RUN ≠ pass); it never fabricates a green.
 
 If the user's goal involves output that can be independently tested or graded
 (UI components, generated code, docs, APIs), scaffold a QA/Evaluator agent.
@@ -271,6 +323,13 @@ For each criterion: PASS, FAIL, or NOT RUN with one sentence of evidence.
 If any criterion FAILs: write a `qa_feedback` field on the task in features.json
 and set status back to `pending`. The coding agent will re-read the feedback.
 If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
+
+**Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
+worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the
+*only* gap (not a symptom of a FAIL the worker rounded up). Leave the status as `done_with_concerns`
+and surface the concern in `qa_feedback`; do not silently upgrade it to `approved`. A `needs_context`
+or `blocked` task is a Type-B hold — do not grade it as done; report it for a human (never fake the
+gate it is waiting on).
 ```
 
 **Runner integration note:** the runner script in Phase 6 will invoke this agent
@@ -286,7 +345,8 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 # Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves] [--converge]
 # --retry           Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
-#                   coding agent re-works the task if QA fails.
+#                   coding agent re-works the task if QA fails. Auto-enabled and
+#                   non-overridable at risk R2+ (mandatory qualify; constitution P2).
 # --parallel-waves  Run tasks within each wave concurrently using claude --bg --worktree;
 #                   tasks in different waves still run sequentially (dependency order).
 # --converge        After all waves complete, run /claude-warp-converge once to reconcile the
@@ -301,12 +361,19 @@ RETRY=0
 WITH_QA=0
 PARALLEL_WAVES=0
 CONVERGE=0
+RISK="<RISK>"          # harness contract risk class (R0–R5), templated at scaffold time
 for arg in "$@"; do
   [[ "$arg" == "--retry" ]] && RETRY=1
   [[ "$arg" == "--with-qa" ]] && WITH_QA=1
   [[ "$arg" == "--parallel-waves" ]] && PARALLEL_WAVES=1
   [[ "$arg" == "--converge" ]] && CONVERGE=1
 done
+
+# Mandatory qualify at R2+: merge-gated work needs an independent verifier (constitution P2).
+# QA runs by default for R2/R3/R4/R5 — non-overridable (there is deliberately no --no-qa).
+case "$RISK" in
+  R2|R3|R4|R5) WITH_QA=1 ;;
+esac
 
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
@@ -410,12 +477,26 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] Wave $wave complete." >> "$LOG"
   done
 
+  # Holding statuses (needs_context, blocked) count as NOT complete and must be surfaced,
+  # the same as pending/in_progress. done_with_concerns counts as complete but is surfaced below.
   pending=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo -1)
+print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress','needs_context','blocked')]))" 2>/dev/null || echo -1)
+
+  # Surface honest-uncertainty statuses (Type-B holds + caveats) regardless of completion.
+  python3 -c "
+import json
+d=json.load(open('$FEATURES'))
+for t in d['tasks']:
+    if t.get('status') in ('done_with_concerns','needs_context','blocked'):
+        print('  [%s] task %s — %s: %s' % (t['status'], t.get('id'), t.get('title',''), t.get('concern') or '(no concern recorded)'))
+" 2>/dev/null | while IFS= read -r line; do
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE:$line" >> "$LOG"
+  done
+
   if [ "$pending" -gt 0 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: $pending tasks still pending after all waves." >> "$LOG"
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: $pending tasks not complete (pending/in_progress/needs_context/blocked) after all waves." >> "$LOG"
     return 2
   fi
   return 0
@@ -542,7 +623,7 @@ Harness scaffolded ✓
   Session init: <HARNESS_SLUG>-session-init.md
   Anchor files: VISION.md, AGENTS.md, PROMPT.md
   Runner      : scripts/run-<HARNESS_SLUG>.sh
-  QA agent    : .claude/agents/<HARNESS_SLUG>-qa.md  ← if --with-qa
+  QA agent    : .claude/agents/<HARNESS_SLUG>-qa.md  ← if --with-qa, or always at risk R2+ (mandatory qualify)
 
 To run:
   bash scripts/run-<HARNESS_SLUG>.sh                          # standard (sequential)
@@ -556,12 +637,15 @@ The runner will:
   1. Invoke the initializer once to populate the task list with wave assignments
   2. Execute waves in order (wave 1 → wave 2 → ...); tasks in the same wave run
      in parallel (--parallel-waves) or sequentially (default)
-  3. On --with-qa: invoke the QA evaluator after each task; task reverts to
-     pending if QA fails, with feedback written back into features.json
+  3. On --with-qa (auto-on and non-overridable at R2+): invoke the QA evaluator after
+     each task; task reverts to pending if QA fails, with feedback in features.json
   4. On --retry: if stalled, re-invoke the initializer with failure context
   5. On --converge: after all waves, run /claude-warp-converge once to reconcile the
      actual tree against intent; if it appends a convergence wave, run one closing
      coding loop (no re-converge). Severe contradictions Surface instead of auto-running.
+  6. Surface honest-uncertainty statuses: any task left done_with_concerns / needs_context /
+     blocked is logged with its concern; needs_context + blocked count as NOT complete (a
+     human must resolve them), done_with_concerns completes but is flagged.
 
 Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
 Verification : <VERIFICATION_CMD>
