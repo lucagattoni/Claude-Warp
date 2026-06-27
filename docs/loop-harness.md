@@ -166,7 +166,22 @@ unchanged:
   `git diff`, plus behaviours the worker must attest it preserved. Complements the positive
   `files_in_scope` allow-list.
 
-Install path: `skills/claude-warp-new-harness/SKILL.md`
+**Converge — reconcile-and-re-ticket closure (`/claude-warp-converge`, optional `--converge`).**
+After a harness runs, converge answers one question honestly: *does the actual tree satisfy the
+intent, and if not, what is left?* It is **read-only of source** and judges the **present state of
+the tree** against the contract + task intent (it is a reconciler, **not a diff tool**). It
+classifies every gap — `missing | partial | contradicts | unrequested` — using a **hybrid**
+assessment (run task `acceptance`/`stop.check` for `missing`/`partial`; LLM judgment for
+`unrequested`/`contradicts`), then **append-only** re-tickets each gap as a `convergence` wave
+(tasks tagged `origin: convergence` + `gap_type` + `source_ref`, so a re-run is idempotent). If
+nothing is unmet it leaves `features.json` byte-for-byte unchanged and reports `converged`. A
+`contradicts` on a `must_not_touch` path or an R4/R5 guardrail **Surfaces** for a human instead of
+auto-running. The runner's `--converge` tail (default off) runs it once after all waves and, if it
+appended tasks, runs **one** closing coding loop — no re-converge (guards the infinite-fix loop).
+For a `kind: goal`, converge reports + prints a ready-to-run `/claude-warp-new-goal` follow-up
+rather than mutating `GOAL.md`.
+
+Install paths: `skills/claude-warp-new-harness/SKILL.md`, `skills/claude-warp-converge/SKILL.md`
 
 ---
 

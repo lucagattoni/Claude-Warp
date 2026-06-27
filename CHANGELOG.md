@@ -5,6 +5,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.19.0] — 2026-06-27
+
+**Reconcile-and-re-ticket (converge) closure step** (shortlist PR3, the headline feature; builds on
+PR2). A read-only step that assesses *actual repo state* against contract + task intent, classifies
+every gap, and **append-only** re-tickets the unmet pieces — instead of silently retrying or
+declaring done. Additive and self-host safe: optional fields + a default-off runner flag.
+
+### Added
+- **`/claude-warp-converge`** (new skill) — reconciles the present tree against `contract.yaml`
+  intent + each task's `acceptance`, classifies gaps `missing | partial | contradicts | unrequested`
+  with R0–R5 severity (**hybrid**: mechanical re-run for missing/partial, judgment for
+  unrequested/contradicts), and **appends** a `convergence` wave to `<slug>-features.json` — never
+  renumbering existing tasks. Idempotent: nothing unmet ⇒ file byte-for-byte unchanged, reports
+  `converged`. A `contradicts` on a `must_not_touch` path or R4/R5 guardrail **Surfaces** instead of
+  auto-running. For `kind: goal` it reports + prints a ready-to-run `/claude-warp-new-goal` follow-up
+  rather than mutating `GOAL.md`. Read-only of source; runs with no manifest.
+- **`/claude-warp-new-harness` — convergence provenance fields** — tasks gain optional
+  `origin` (`initial`/`convergence`/`retry`), `gap_type`, and `source_ref` so re-ticketing is
+  traceable and idempotent. All optional; existing feature lists need no migration.
+- **`/claude-warp-new-harness` — `--converge` runner tail** (default OFF) — after all waves, runs
+  converge once; if it appends tasks, runs **one** closing coding loop, then stops (no re-converge —
+  guards the infinite-fix loop).
+
+### Changed
+- **`docs/loop-harness.md`**, **`README.md`** — document the converge step and the new task fields.
+
 ## [0.18.0] — 2026-06-27
 
 Per-task **acceptance criteria** and **negative scope** for the harness task queue (shortlist PR2

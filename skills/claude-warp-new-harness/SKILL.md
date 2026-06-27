@@ -90,6 +90,9 @@ Each task entry (populated by the initializer) will have the shape:
     "src/legacy/**",
     "the public signature of formatAmount()"
   ],
+  "origin": "initial",
+  "gap_type": null,
+  "source_ref": null,
   "result": null
 }
 ```
@@ -111,6 +114,18 @@ migration needed for existing feature lists):
   cannot be diffed; the worker must **attest with evidence** that it did not violate them, and QA
   re-checks the attestation. (Negative scope complements `files_in_scope`, which is the positive
   allow-list.)
+
+**Convergence provenance (all OPTIONAL — backwards-compatible).** Three fields make a task's
+*origin* traceable so the `/claude-warp-converge` closure step (Phase 6 `--converge` tail) can
+re-ticket unmet intent without confusion. A task that omits them is treated as `origin: "initial"`:
+
+- `origin` — `"initial"` (planned by the initializer), `"convergence"` (appended by converge to
+  close a gap), or `"retry"` (re-queued after a stall). Lets converge skip tasks it already
+  ticketed, so a second pass is idempotent.
+- `gap_type` — for `origin: "convergence"` tasks only: `missing` | `partial` | `contradicts` |
+  `unrequested` — which kind of gap this task closes.
+- `source_ref` — the intent this task traces to, e.g. `stop.check`, `task:7.acceptance[1]`,
+  `scope.must_not_touch:secrets/**`. Keeps re-ticketing auditable.
 
 **Wave scheduling:** the initializer must also populate `depends_on` (list of task IDs
 that must be `done` before this task starts) and `wave` (integer, derived from the
@@ -268,12 +283,15 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 ```bash
 #!/usr/bin/env bash
 # Two-part harness runner for: <HARNESS_NAME>
-# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves]
+# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves] [--converge]
 # --retry           Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails.
 # --parallel-waves  Run tasks within each wave concurrently using claude --bg --worktree;
 #                   tasks in different waves still run sequentially (dependency order).
+# --converge        After all waves complete, run /claude-warp-converge once to reconcile the
+#                   actual tree against intent; if it appends a convergence wave, run ONE more
+#                   coding loop to close it, then stop (no re-converge). Default OFF.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -282,10 +300,12 @@ cd "$REPO_ROOT"
 RETRY=0
 WITH_QA=0
 PARALLEL_WAVES=0
+CONVERGE=0
 for arg in "$@"; do
   [[ "$arg" == "--retry" ]] && RETRY=1
   [[ "$arg" == "--with-qa" ]] && WITH_QA=1
   [[ "$arg" == "--parallel-waves" ]] && PARALLEL_WAVES=1
+  [[ "$arg" == "--converge" ]] && CONVERGE=1
 done
 
 mkdir -p logs
@@ -440,6 +460,33 @@ and write a revised task breakdown in $FEATURES with smaller, more granular task
 fi
 
 [ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
+
+# ── Step 4: Converge — reconcile actual state vs intent, re-ticket gaps ───────
+# Opt-in (--converge). Runs ONCE; if it appends a convergence wave, runs ONE more
+# coding loop to close it — then stops. No re-converge (guards the infinite-fix loop).
+if [ "$CONVERGE" -eq 1 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] --converge: reconciling actual state vs intent..." >> "$LOG"
+  BEFORE=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+
+  claude \
+    --permission-mode auto \
+    --max-turns 20 \
+    --effort high \
+    --allowedTools "Read,Glob,Grep,Bash,Edit" \
+    -p "/claude-warp-converge --slug <HARNESS_SLUG> --contract contract.yaml" \
+    >> "$LOG" 2>&1
+
+  AFTER=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+  if [ "$AFTER" -gt "$BEFORE" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] converge appended $((AFTER-BEFORE)) task(s); running one closing loop..." >> "$LOG"
+    run_coding_loop          # single closing pass — do NOT re-invoke converge afterward
+    LOOP_RC=$?
+    [ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
+  else
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] converged — actual state satisfies intent (no tasks appended)." >> "$LOG"
+  fi
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness complete: <HARNESS_NAME>" >> "$LOG"
 ```
 
@@ -503,6 +550,7 @@ To run:
   bash scripts/run-<HARNESS_SLUG>.sh --retry                  # Inner/Outer Dual Loop on stall
   bash scripts/run-<HARNESS_SLUG>.sh --with-qa                # QA evaluator after each task
   bash scripts/run-<HARNESS_SLUG>.sh --parallel-waves --with-qa  # parallel + QA
+  bash scripts/run-<HARNESS_SLUG>.sh --converge               # reconcile vs intent + re-ticket gaps at the end
 
 The runner will:
   1. Invoke the initializer once to populate the task list with wave assignments
@@ -511,6 +559,9 @@ The runner will:
   3. On --with-qa: invoke the QA evaluator after each task; task reverts to
      pending if QA fails, with feedback written back into features.json
   4. On --retry: if stalled, re-invoke the initializer with failure context
+  5. On --converge: after all waves, run /claude-warp-converge once to reconcile the
+     actual tree against intent; if it appends a convergence wave, run one closing
+     coding loop (no re-converge). Severe contradictions Surface instead of auto-running.
 
 Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
 Verification : <VERIFICATION_CMD>
