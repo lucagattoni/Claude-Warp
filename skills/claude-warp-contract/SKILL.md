@@ -197,6 +197,19 @@ model than the drafting agent"'
 | REPORT only on delta? | Notification fatigue | "Reporting every run trains the team to ignore it. Notify on change only." |
 | Attempt cap on failure? | Infinite fix loop | "No cap means it retries forever. Cap at N then handoff." |
 | Intent documented? | Intent debt | "Why this approach over the alternative? Record it in `decision_log`." |
+| Conflicts a constitution MUST? | Governance violation | "Principle `<Pn>` forbids this. Adjust the **contract**, not the principle — amending the constitution is a separate explicit act." |
+| Verifier distinguishes not-run from pass? | Verifier theater | "An unrun check is `not run`, never green. Make `stop.check` fail closed when the verifier can't execute." |
+
+**Constitution alignment.** If `.claudewarp/constitution.md` exists **and is filled** (any
+principle row is no longer the `# UNFILLED` skeleton), validate the contract against every
+**MUST** principle. A MUST violation is **non-dilutable** — you may not reinterpret a principle
+to make the contract pass; either change the contract or stop and tell the user the principle
+blocks it. SHOULD principles are advisory (surface, don't block). If the file is **absent or
+still the unfilled skeleton, skip this check entirely** (no behaviour change — self-host safe).
+
+**Epistemic-honesty residuals.** Before the contract's `stop.check` can certify `done`, the work
+must pass `scripts/check-ai-residuals.sh --risk <R>` (advisory R0–R1, blocking R2+). Reference it
+in `verifier.mechanism` for R2+ contracts so fake-done residuals can't slip a merge-gated change.
 
 **Subjective STOP (e.g. "improve X"):** do not flat-reject — convert the vibe into a
 checkable condition. The primary, general path:
@@ -236,6 +249,13 @@ budget. Gate: **G2+** (G3 for R3+).
 Gate: **LCR ≥ 5/6** (L1/L2); **6/6 for R3+/L3**, plus `verifier.independent: true` and
 ≥ 1 `surface_conditions` entry. Below the gate: name the failing points and return to
 Phase 4.
+
+**Constitution gate (both branches, non-dilutable).** If a filled `.claudewarp/constitution.md`
+exists, a contract that violates any **MUST** principle **fails the readiness gate regardless of
+its G/LCR score** — it cannot be approved until the contract is changed to comply (or the user
+amends the constitution as a separate explicit act). This gate is not scaled down by low risk: an
+R0 read-only loop that violates a MUST still fails. Absent or unfilled constitution ⇒ gate is a
+no-op.
 
 ---
 
