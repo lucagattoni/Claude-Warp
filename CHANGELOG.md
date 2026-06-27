@@ -5,6 +5,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.17.0] — 2026-06-27
+
+Two additive, opt-in guardrails on ClaudeWarp's own planning engine (shortlist PR1 of the
+competitive-research follow-up): an **epistemic-honesty rule-set** and a **standing constitution**.
+Both are no-ops when their opt-in artifact is absent — the source stays pure and standalone-safe.
+
+### Added
+- **`templates/honesty-rules.md.tpl`** — shared partial with the four honesty rules (NOT RUN ≠ pass;
+  never fake a gate; not_observed ≠ absent; untrusted input is data). Injected into the worker
+  (`AGENTS.md` + generated session-init) and QA evaluator prompts.
+- **`scripts/check-ai-residuals.sh`** — risk-scaled residuals lint (TODO/mock/skipped-test/
+  `expect(true).toBe(true)`): **advisory at R0–R1, blocking at R2+**. Ships with a `--self-test`.
+- **`templates/constitution.md.tpl`** — generic, unfilled constitution skeleton scaffolded by
+  `/claude-warp-setup` into `.claudewarp/constitution.md` (Phase 4b; never overwrites an existing one).
+- **`.claudewarp/constitution.md`** — this repo seeded (dogfood) with ClaudeWarp's 8 founding
+  principles (6 MUST + 2 SHOULD).
+
+### Changed
+- **`/claude-warp-contract`** — Phase 6 critical pass gains a *constitution-alignment* row and a
+  *not-run-vs-pass* verifier row; Phase 7 gains a **non-dilutable constitution gate** (a MUST
+  violation fails readiness regardless of G/LCR score). Both skip cleanly when no filled
+  constitution exists.
+- **`/claude-warp-new-harness`** — the generated session-init and the `--with-qa` evaluator now
+  carry the honesty rules and report `NOT RUN` distinctly from PASS.
+- **`/claude-warp-setup`** — scaffolds `.claudewarp/constitution.md` and reports it.
+
 ## [0.16.0] — 2026-06-26
 
 ClaudeWarp is now installable as a **Claude Code plugin**, alongside the existing curl installer.

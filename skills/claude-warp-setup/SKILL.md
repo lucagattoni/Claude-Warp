@@ -86,6 +86,22 @@ conventions, Escalation rules, Scheduling, and Token/context discipline. **Omit*
 the tagline, and the `## Project` identity block (the host `CLAUDE.md` already provides those).
 Demote the template's `##` headings to `###` so they nest under the `## ClaudeWarp` heading.
 
+## Phase 4b — Scaffold the project constitution
+
+Standing project governance the contract critical pass validates against (see
+`/claude-warp-contract` Phase 6/7). Scaffold it **only if absent** — never overwrite a
+constitution the user has filled in.
+
+```bash
+mkdir -p .claudewarp
+```
+
+If `.claudewarp/constitution.md` does **not** exist, read `$TEMPLATE_ROOT/constitution.md.tpl`,
+replace `{{PROJECT_NAME}}` (detected name) and `{{INSTALLED_AT}}` (Phase 1 local time), and write
+it to `.claudewarp/constitution.md`. It ships **unfilled** — the constitution check is a no-op
+until the user replaces the `# UNFILLED` example rows, so this is safe on every project. If the
+file already exists, leave it untouched.
+
 ## Phase 5 — Write harness-manifest.json
 
 **If `harness-manifest.json` already exists** (re-install or upgrade), do **not** overwrite it —
@@ -116,7 +132,7 @@ Stage only the files setup created or changed — never blanket-add `plans/` or 
 in an existing repo would sweep the user's unrelated uncommitted work into the install commit:
 
 ```bash
-git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore
+git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore .claudewarp/constitution.md
 git commit -m "chore: install ClaudeWarp loop harness v<HARNESS_VERSION>"
 ```
 
@@ -129,6 +145,8 @@ ClaudeWarp installed ✓
 Project : <name> (<type>)
 Skills  : <N> installed (list them from .claude/skills/, e.g.
           /claude-warp-contract, /claude-warp-new-loop, /claude-warp-new-goal, …)
+Govern  : .claudewarp/constitution.md scaffolded (unfilled — fill it to enable the
+          constitution gate in /claude-warp-contract)
 Next    : run /claude-warp-contract "your goal here" — the single entry: it specifies
           your plan, auto-routes to the shape (single-shot/loop/harness), and scaffolds
           run /claude-warp-inventory to verify the install
