@@ -5,6 +5,27 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.18.0] — 2026-06-27
+
+Per-task **acceptance criteria** and **negative scope** for the harness task queue (shortlist PR2
+of the competitive-research follow-up). Builds on PR1. Both fields are optional — a task that
+carries neither behaves exactly as today, so existing `*-features.json` files need no migration.
+
+### Added
+- **`/claude-warp-new-harness` — `acceptance` task field** — each `features.json` task may carry its
+  own done-bar: an array mixing Given/When/Then prose and `cmd:`-prefixed shell checks. The worker
+  runs every `cmd:` (exit 0 = pass) and confirms each prose criterion with evidence before `done`;
+  a task at risk tier **R2+** must include at least one `cmd:` check (merge-gated work can't pass on
+  prose alone). The `--with-qa` evaluator grades against `task.acceptance`, falling back to the
+  global QA criteria when a task has none.
+- **`/claude-warp-new-harness` — `must_not_change` task field** — per-task **negative scope**:
+  path/glob entries enforced mechanically via `git diff --name-only`; behavioural entries the worker
+  must **attest with evidence** it preserved (re-checked by QA). Complements the positive
+  `files_in_scope` allow-list and leans on PR1's honesty rules (not_observed ≠ absent).
+
+### Changed
+- **`docs/loop-harness.md`** — documents the two optional per-task fields and the R2+ `cmd:` rule.
+
 ## [0.17.0] — 2026-06-27
 
 Two additive, opt-in guardrails on ClaudeWarp's own planning engine (shortlist PR1 of the
