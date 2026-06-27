@@ -48,6 +48,46 @@ done-condition, or several interdependent pieces that each need their own work?"
 
 ---
 
+## Phase 1.5 — Worth-it gate (fuzzy/greenfield plans only)
+
+Before drafting, decide whether the plan is even worth doing — the "fuzzy intention" front half a
+plan deserves when its *worth* is unsettled. This gate scores **worth, not blast radius**, so it is
+independent of the R0–R5 risk class.
+
+**Trigger — only for genuinely fuzzy/greenfield requests.** Detect fuzziness from three signals
+together: a **vague verb** ("help with", "improve", "do something about"), **no existing target
+code** the plan clearly attaches to, and **exploratory framing** ("maybe", "some kind of", "I want
+something that…"). A **concrete change** — a refactor, a migration, a defined feature with settled
+scope — **skips this gate entirely** and proceeds straight to Phase 2 (do not block a concrete
+change; its worth is already decided by the request).
+
+**When it is genuinely ambiguous** whether the request is fuzzy or concrete, **ask one question**:
+*"Is this exploratory (you're not sure yet what/whether to build) or settled-scope (you know the
+change, you want it executed)?"* — fuzziness is itself a Type-B judgment call; resolve it honestly
+rather than guessing. A clearly-concrete request is not interrupted.
+
+**When triggered — honest-advisor pass.** Pressure-test the idea **two-sidedly** (the strongest case
+*for* and *against* — do not cheerlead), then force two answers and a verdict:
+
+- `success_metric` — one **measurable** outcome that means this worked (not "users are happy" — a
+  number, a behaviour, a checkable state).
+- `kill_criterion` — the condition under which you should **not** build this, or should stop.
+- `verdict` — `go` | `iterate` | `park`, measured against the metric:
+  - **go** — worth doing now; proceed to Phase 2.
+  - **iterate** — promising but the metric/scope isn't sharp enough yet; refine with the user, then re-judge.
+  - **park** — not worth building now. Write a `steelman` (the strongest *honest* case for it) and
+    `flip_evidence` (what would move it park→go), then **stop before Phase 2** and report the parked
+    contract. **Do not scaffold and do not write anchor files** on a park.
+
+**Park is an overridable recommendation, not a hard veto.** Surface the park with its steelman +
+flip-evidence and stop the automated flow — but if the user, having read it, explicitly says *build
+it anyway*, honor that (the gate informs worth; the user keeps the last word). Record the override in
+`decision_log` and proceed to Phase 2 with `verdict: go`.
+
+Write the result into the draft's `worth_it` block (schema below). Non-fuzzy plans never populate it.
+
+---
+
 ## Phase 2 — Draft-first
 
 Draft a **complete** contract from the goal alone, filling every field with your best
@@ -101,12 +141,23 @@ report:                               # loop branch
   on: delta                           # only on new/changed/actionable findings
   to: "<channel/file>"
 
+worth_it:                             # NEW — populated ONLY for fuzzy/greenfield plans (Phase 1.5)
+  success_metric: "<one measurable outcome that means this worked>"
+  kill_criterion: "<the condition under which we should NOT build this>"
+  verdict: go | iterate | park        # park => stop, do not scaffold
+  steelman: "<strongest honest case>"      # required when verdict != go
+  flip_evidence: "<what would move park→go>"
+
 decision_log:                         # anti intent-debt
   - "<why this approach over the alternative>"
 ```
 
 For `kind: goal`, drop `trigger`/`report`; the state file materialised in Phase 9 is
 `GOAL.md` (doc-30 schema), not the loop anchor files.
+
+The `worth_it` block is **optional and absent by default** — only a plan that entered Phase 1.5
+(a fuzzy/greenfield request) carries it. A concrete change has no `worth_it` block, exactly as
+before this gate existed (backwards-compatible).
 
 ---
 
@@ -249,6 +300,12 @@ budget. Gate: **G2+** (G3 for R3+).
 Gate: **LCR ≥ 5/6** (L1/L2); **6/6 for R3+/L3**, plus `verifier.independent: true` and
 ≥ 1 `surface_conditions` entry. Below the gate: name the failing points and return to
 Phase 4.
+
+**Worth-it gate (only for plans that entered Phase 1.5).** If the plan carries a `worth_it` block,
+it cannot reach Approve unless `success_metric` and `kill_criterion` are both non-empty **and**
+`worth_it.verdict == go`. A `park` or `iterate` verdict fails the readiness gate — a parked plan is
+reported and **not scaffolded** (unless the user explicitly overrode the park; see Phase 1.5). Plans
+that never entered the gate have no `worth_it` block and this point is a no-op for them.
 
 **Constitution gate (both branches, non-dilutable).** If a filled `.claudewarp/constitution.md`
 exists, a contract that violates any **MUST** principle **fails the readiness gate regardless of

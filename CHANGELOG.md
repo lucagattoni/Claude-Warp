@@ -5,6 +5,36 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.20.0] — 2026-06-27
+
+**Worth-it gate — success metric + kill criterion before scope** (shortlist PR4, the final item;
+builds on PR3). `/claude-warp-contract` gains a front-half it lacked: for genuinely fuzzy/greenfield
+plans it now pressure-tests *whether the idea is worth building* before negotiating *how*. Concrete
+changes are untouched — additive and backwards-compatible.
+
+### Added
+- **`/claude-warp-contract` Phase 1.5 — worth-it gate** (fuzzy/greenfield plans only). Detects
+  fuzziness (vague verb + no target code + exploratory framing), runs a two-sided honest-advisor
+  pass, and forces a measurable `success_metric` + a `kill_criterion` before any drafting. Lands a
+  `go | iterate | park` verdict:
+  - **go** → proceed to Phase 2 as normal.
+  - **iterate** → metric/scope not sharp enough; refine with the user, re-judge.
+  - **park** → not worth building now: write a `steelman` + `flip_evidence`, **stop before Phase 2,
+    scaffold nothing**. Park is an **overridable recommendation** — surfaced with its reasoning, but
+    the user keeps the last word and may say build-anyway (recorded in `decision_log`).
+- When fuzzy-vs-concrete is genuinely ambiguous, the gate **asks one question** ("exploratory or
+  settled-scope?") rather than guessing — fuzziness is itself a Type-B call.
+- **Contract schema** gains an **optional `worth_it` block** (`success_metric`, `kill_criterion`,
+  `verdict`, `steelman`, `flip_evidence`) — populated only for plans that entered the gate.
+- **Phase 7 readiness gate** gains a worth-it point: a gated plan cannot reach Approve unless
+  `success_metric` + `kill_criterion` are non-empty and `verdict == go` (or the park was overridden).
+
+### Notes
+- **Backwards-compatible / self-host safe:** a concrete change never sees the gate and carries no
+  `worth_it` block — identical to pre-0.20.0 behaviour. The gate scores *worth*, independent of the
+  R0–R5 risk class. Embodies constitution **P3** (a `park` is Type-B → surfaced, never auto-resolved)
+  and **P6** (the advisor pass is two-sided, not a cheerlead).
+
 ## [0.19.0] — 2026-06-27
 
 **Reconcile-and-re-ticket (converge) closure step** (shortlist PR3, the headline feature; builds on
