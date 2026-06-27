@@ -5,6 +5,83 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.20.0] — 2026-06-27
+
+**Worth-it gate — success metric + kill criterion before scope** (shortlist PR4, the final item;
+builds on PR3). `/claude-warp-contract` gains a front-half it lacked: for genuinely fuzzy/greenfield
+plans it now pressure-tests *whether the idea is worth building* before negotiating *how*. Concrete
+changes are untouched — additive and backwards-compatible.
+
+### Added
+- **`/claude-warp-contract` Phase 1.5 — worth-it gate** (fuzzy/greenfield plans only). Detects
+  fuzziness (vague verb + no target code + exploratory framing), runs a two-sided honest-advisor
+  pass, and forces a measurable `success_metric` + a `kill_criterion` before any drafting. Lands a
+  `go | iterate | park` verdict:
+  - **go** → proceed to Phase 2 as normal.
+  - **iterate** → metric/scope not sharp enough; refine with the user, re-judge.
+  - **park** → not worth building now: write a `steelman` + `flip_evidence`, **stop before Phase 2,
+    scaffold nothing**. Park is an **overridable recommendation** — surfaced with its reasoning, but
+    the user keeps the last word and may say build-anyway (recorded in `decision_log`).
+- When fuzzy-vs-concrete is genuinely ambiguous, the gate **asks one question** ("exploratory or
+  settled-scope?") rather than guessing — fuzziness is itself a Type-B call.
+- **Contract schema** gains an **optional `worth_it` block** (`success_metric`, `kill_criterion`,
+  `verdict`, `steelman`, `flip_evidence`) — populated only for plans that entered the gate.
+- **Phase 7 readiness gate** gains a worth-it point: a gated plan cannot reach Approve unless
+  `success_metric` + `kill_criterion` are non-empty and `verdict == go` (or the park was overridden).
+
+### Notes
+- **Backwards-compatible / self-host safe:** a concrete change never sees the gate and carries no
+  `worth_it` block — identical to pre-0.20.0 behaviour. The gate scores *worth*, independent of the
+  R0–R5 risk class. Embodies constitution **P3** (a `park` is Type-B → surfaced, never auto-resolved)
+  and **P6** (the advisor pass is two-sided, not a cheerlead).
+
+## [0.19.0] — 2026-06-27
+
+**Reconcile-and-re-ticket (converge) closure step** (shortlist PR3, the headline feature; builds on
+PR2). A read-only step that assesses *actual repo state* against contract + task intent, classifies
+every gap, and **append-only** re-tickets the unmet pieces — instead of silently retrying or
+declaring done. Additive and self-host safe: optional fields + a default-off runner flag.
+
+### Added
+- **`/claude-warp-converge`** (new skill) — reconciles the present tree against `contract.yaml`
+  intent + each task's `acceptance`, classifies gaps `missing | partial | contradicts | unrequested`
+  with R0–R5 severity (**hybrid**: mechanical re-run for missing/partial, judgment for
+  unrequested/contradicts), and **appends** a `convergence` wave to `<slug>-features.json` — never
+  renumbering existing tasks. Idempotent: nothing unmet ⇒ file byte-for-byte unchanged, reports
+  `converged`. A `contradicts` on a `must_not_touch` path or R4/R5 guardrail **Surfaces** instead of
+  auto-running. For `kind: goal` it reports + prints a ready-to-run `/claude-warp-new-goal` follow-up
+  rather than mutating `GOAL.md`. Read-only of source; runs with no manifest.
+- **`/claude-warp-new-harness` — convergence provenance fields** — tasks gain optional
+  `origin` (`initial`/`convergence`/`retry`), `gap_type`, and `source_ref` so re-ticketing is
+  traceable and idempotent. All optional; existing feature lists need no migration.
+- **`/claude-warp-new-harness` — `--converge` runner tail** (default OFF) — after all waves, runs
+  converge once; if it appends tasks, runs **one** closing coding loop, then stops (no re-converge —
+  guards the infinite-fix loop).
+
+### Changed
+- **`docs/loop-harness.md`**, **`README.md`** — document the converge step and the new task fields.
+
+## [0.18.0] — 2026-06-27
+
+Per-task **acceptance criteria** and **negative scope** for the harness task queue (shortlist PR2
+of the competitive-research follow-up). Builds on PR1. Both fields are optional — a task that
+carries neither behaves exactly as today, so existing `*-features.json` files need no migration.
+
+### Added
+- **`/claude-warp-new-harness` — `acceptance` task field** — each `features.json` task may carry its
+  own done-bar: an array mixing Given/When/Then prose and `cmd:`-prefixed shell checks. The worker
+  runs every `cmd:` (exit 0 = pass) and confirms each prose criterion with evidence before `done`;
+  a task at risk tier **R2+** must include at least one `cmd:` check (merge-gated work can't pass on
+  prose alone). The `--with-qa` evaluator grades against `task.acceptance`, falling back to the
+  global QA criteria when a task has none.
+- **`/claude-warp-new-harness` — `must_not_change` task field** — per-task **negative scope**:
+  path/glob entries enforced mechanically via `git diff --name-only`; behavioural entries the worker
+  must **attest with evidence** it preserved (re-checked by QA). Complements the positive
+  `files_in_scope` allow-list and leans on PR1's honesty rules (not_observed ≠ absent).
+
+### Changed
+- **`docs/loop-harness.md`** — documents the two optional per-task fields and the R2+ `cmd:` rule.
+
 ## [0.17.0] — 2026-06-27
 
 Two additive, opt-in guardrails on ClaudeWarp's own planning engine (shortlist PR1 of the

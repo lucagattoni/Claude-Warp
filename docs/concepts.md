@@ -64,6 +64,12 @@ So the contract front-loads the rigor *before* any work runs. Its aims, concrete
    dark factory, …) before approving it.
 5. **Decompose what's too big.** A plan that doesn't fit one shape becomes a harness, broken
    into subplans by `/claude-warp-new-harness`.
+6. **Gate fuzzy ideas on worth, before scope.** For a genuinely exploratory/greenfield request
+   (vague verb, no target code, "maybe / some kind of"), a **worth-it gate** (Phase 1.5) runs first:
+   it forces a measurable `success_metric` and a `kill_criterion`, then lands a `go | iterate | park`
+   verdict. A `park` is reported with a steelman + what evidence would flip it, and **nothing is
+   scaffolded** — but the user keeps the last word and may override. A **concrete change skips the
+   gate entirely**; its `worth_it` block is simply absent, exactly as before.
 
 **The framing** (from [doc-27](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md)):
 specifying a plan is like writing a **job description** — title and scope, deliverables, working

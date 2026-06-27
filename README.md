@@ -79,6 +79,7 @@ claude -p "/claude-warp-update"
 | `/claude-warp-new-loop "goal"` | Scaffold a recurring single-agent loop or fan-out loop |
 | `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
 | `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |
+| `/claude-warp-converge` | Reconcile the actual repo state against contract + task intent, classify gaps (missing/partial/contradicts/unrequested), and append-only re-ticket the unmet pieces (read-only; idempotent) |
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
 | `/claude-warp-new-hook "description"` | Scaffold a hook (8 patterns): verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer |
 | `/claude-warp-inventory` | Self-inspect installed skills, agents, hooks, loops — report versions and health issues |

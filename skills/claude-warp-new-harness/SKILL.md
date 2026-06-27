@@ -82,11 +82,50 @@ Each task entry (populated by the initializer) will have the shape:
   "depends_on": [],
   "wave": 1,
   "status": "pending",
+  "acceptance": [
+    "Given a logged-out user, when they submit valid creds, then a session cookie is set",
+    "cmd: npm test -- login.test.ts"
+  ],
+  "must_not_change": [
+    "src/legacy/**",
+    "the public signature of formatAmount()"
+  ],
+  "origin": "initial",
+  "gap_type": null,
+  "source_ref": null,
   "result": null
 }
 ```
 
 Valid status values: `pending` → `in_progress` → `done` | `failed`.
+
+**Per-task acceptance + negative scope (both OPTIONAL — backwards-compatible).**
+A task may carry two extra arrays; a task with **neither** behaves exactly as today (no
+migration needed for existing feature lists):
+
+- `acceptance` — the task's own done-bar. Each entry is **either** a Given/When/Then prose
+  criterion **or** a `cmd:`-prefixed shell check (everything after `cmd:` is run; exit 0 = pass).
+  Prose criteria are confirmed by the worker with evidence; `cmd:` criteria are executed.
+  This is *narrower* than the global `verification` command — it grades **this task**, not the
+  whole harness.
+- `must_not_change` — the task's **negative scope**: paths/globs or behaviours that must remain
+  untouched. **Path/glob entries** (e.g. `src/legacy/**`) are enforced mechanically via
+  `git diff --name-only`. **Behavioural entries** (e.g. "public signature of formatAmount()")
+  cannot be diffed; the worker must **attest with evidence** that it did not violate them, and QA
+  re-checks the attestation. (Negative scope complements `files_in_scope`, which is the positive
+  allow-list.)
+
+**Convergence provenance (all OPTIONAL — backwards-compatible).** Three fields make a task's
+*origin* traceable so the `/claude-warp-converge` closure step (Phase 6 `--converge` tail) can
+re-ticket unmet intent without confusion. A task that omits them is treated as `origin: "initial"`:
+
+- `origin` — `"initial"` (planned by the initializer), `"convergence"` (appended by converge to
+  close a gap), or `"retry"` (re-queued after a stall). Lets converge skip tasks it already
+  ticketed, so a second pass is idempotent.
+- `gap_type` — for `origin: "convergence"` tasks only: `missing` | `partial` | `contradicts` |
+  `unrequested` — which kind of gap this task closes.
+- `source_ref` — the intent this task traces to, e.g. `stop.check`, `task:7.acceptance[1]`,
+  `scope.must_not_touch:secrets/**`. Keeps re-ticketing auditable.
 
 **Wave scheduling:** the initializer must also populate `depends_on` (list of task IDs
 that must be `done` before this task starts) and `wave` (integer, derived from the
@@ -123,6 +162,23 @@ Re-read the relevant files and redo the work from scratch.
 After completing each task, run: `<VERIFICATION_CMD>`
 Do not mark a task `done` until verification passes.
 
+## Per-task acceptance + negative scope (only when the task carries these fields)
+If the current task has an `acceptance` array, it is this task's done-bar — clear **every**
+entry before `done`, on top of the global verification above:
+- An entry starting `cmd:` — run the command after `cmd:`; it must exit 0. Paste the actual
+  output. A check you could not run is `not run`, never a pass (see honesty rules).
+- A prose (Given/When/Then) entry — confirm it holds and state the one-line evidence that proves it.
+
+If the current task has a `must_not_change` array, enforce its **negative scope** before `done`:
+- **Path/glob entries** — run `git diff --name-only` (and `--staged`) and confirm none of your
+  changed paths match any listed path/glob. If one does, you violated negative scope: revert that
+  change or stop and surface it.
+- **Behavioural entries** (cannot be diffed, e.g. "public signature of X") — explicitly **attest
+  with evidence** that you did not violate the behaviour (e.g. show the unchanged signature line).
+  "I did not see a change" is not evidence (not_observed ≠ absent) — point at the proof.
+
+A task carrying neither field follows the global verification only (unchanged behaviour).
+
 ## Epistemic honesty (non-negotiable)
 1. **NOT RUN ≠ pass** — a check you could not run is reported `not run`, never green.
 2. **Never fake a gate** — a condition needing a human signal is surfaced, never auto-passed.
@@ -158,8 +214,17 @@ Produce a task list in `<HARNESS_SLUG>-features.json`:
 - Break the goal into the smallest independently committable units
 - Each task must be completable in a single coding agent session (<MAX_TURNS_WORKER> turns)
 - List concrete files in `files_in_scope` for each task
+- Populate `acceptance` for each task — its own done-bar: a short array mixing Given/When/Then
+  prose criteria and `cmd:`-prefixed shell checks. Prefer machine-checkable `cmd:` entries.
+  **A task at risk tier R2 or higher MUST carry at least one `cmd:` acceptance check** (tasks
+  inherit the harness contract risk, `<RISK>`); merge-gated work cannot pass on prose alone.
+- Populate `must_not_change` where a task has real negative scope — paths/globs that must not be
+  edited, or behaviours/APIs that must be preserved. Omit (or leave empty) when there is none.
 - Set `generated_at` to the current timestamp
 - Set all task statuses to `pending`
+
+Both `acceptance` and `must_not_change` are optional in the schema, but you should fill
+`acceptance` for every non-trivial task; only an R0/R1 throwaway task may legitimately omit it.
 
 Output: write the updated JSON and stop. Do not implement anything.
 ```
@@ -188,8 +253,15 @@ You are a QA evaluator. You do not implement — you grade completed work.
 Read `<HARNESS_SLUG>-features.json` to identify the most recently completed task.
 Read the files listed in `files_in_scope` for that task.
 
-Grade against these criteria:
+**Grade against the task's own bar first.** If the completed task has an `acceptance` array,
+grade against **those** entries — they are the authored done-bar for this specific task. Run each
+`cmd:` entry (exit 0 = pass) and confirm each prose criterion with evidence. Only if the task has
+**no** `acceptance` array, fall back to the global criteria below:
+
 <QA_CRITERIA — one per line, each machine-checkable>
+
+If the task has a `must_not_change` array, also verify the worker honoured it: confirm no changed
+path matches a listed path/glob, and that any behavioural attestation the worker gave actually holds.
 
 Honesty rules bind your grading: a criterion you could not actually run is reported `not run`,
 never PASS (NOT RUN ≠ pass); "I did not see a problem" is not "there is no problem"
@@ -211,12 +283,15 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 ```bash
 #!/usr/bin/env bash
 # Two-part harness runner for: <HARNESS_NAME>
-# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves]
+# Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves] [--converge]
 # --retry           Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails.
 # --parallel-waves  Run tasks within each wave concurrently using claude --bg --worktree;
 #                   tasks in different waves still run sequentially (dependency order).
+# --converge        After all waves complete, run /claude-warp-converge once to reconcile the
+#                   actual tree against intent; if it appends a convergence wave, run ONE more
+#                   coding loop to close it, then stop (no re-converge). Default OFF.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -225,10 +300,12 @@ cd "$REPO_ROOT"
 RETRY=0
 WITH_QA=0
 PARALLEL_WAVES=0
+CONVERGE=0
 for arg in "$@"; do
   [[ "$arg" == "--retry" ]] && RETRY=1
   [[ "$arg" == "--with-qa" ]] && WITH_QA=1
   [[ "$arg" == "--parallel-waves" ]] && PARALLEL_WAVES=1
+  [[ "$arg" == "--converge" ]] && CONVERGE=1
 done
 
 mkdir -p logs
@@ -383,6 +460,33 @@ and write a revised task breakdown in $FEATURES with smaller, more granular task
 fi
 
 [ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
+
+# ── Step 4: Converge — reconcile actual state vs intent, re-ticket gaps ───────
+# Opt-in (--converge). Runs ONCE; if it appends a convergence wave, runs ONE more
+# coding loop to close it — then stops. No re-converge (guards the infinite-fix loop).
+if [ "$CONVERGE" -eq 1 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] --converge: reconciling actual state vs intent..." >> "$LOG"
+  BEFORE=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+
+  claude \
+    --permission-mode auto \
+    --max-turns 20 \
+    --effort high \
+    --allowedTools "Read,Glob,Grep,Bash,Edit" \
+    -p "/claude-warp-converge --slug <HARNESS_SLUG> --contract contract.yaml" \
+    >> "$LOG" 2>&1
+
+  AFTER=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+  if [ "$AFTER" -gt "$BEFORE" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] converge appended $((AFTER-BEFORE)) task(s); running one closing loop..." >> "$LOG"
+    run_coding_loop          # single closing pass — do NOT re-invoke converge afterward
+    LOOP_RC=$?
+    [ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
+  else
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] converged — actual state satisfies intent (no tasks appended)." >> "$LOG"
+  fi
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness complete: <HARNESS_NAME>" >> "$LOG"
 ```
 
@@ -446,6 +550,7 @@ To run:
   bash scripts/run-<HARNESS_SLUG>.sh --retry                  # Inner/Outer Dual Loop on stall
   bash scripts/run-<HARNESS_SLUG>.sh --with-qa                # QA evaluator after each task
   bash scripts/run-<HARNESS_SLUG>.sh --parallel-waves --with-qa  # parallel + QA
+  bash scripts/run-<HARNESS_SLUG>.sh --converge               # reconcile vs intent + re-ticket gaps at the end
 
 The runner will:
   1. Invoke the initializer once to populate the task list with wave assignments
@@ -454,6 +559,9 @@ The runner will:
   3. On --with-qa: invoke the QA evaluator after each task; task reverts to
      pending if QA fails, with feedback written back into features.json
   4. On --retry: if stalled, re-invoke the initializer with failure context
+  5. On --converge: after all waves, run /claude-warp-converge once to reconcile the
+     actual tree against intent; if it appends a convergence wave, run one closing
+     coding loop (no re-converge). Severe contradictions Surface instead of auto-running.
 
 Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
 Verification : <VERIFICATION_CMD>
