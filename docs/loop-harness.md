@@ -153,6 +153,8 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 | `PROMPT.md` | Current work unit — edit to re-task without changing rules (anchor file) |
 | `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall |
 
+**Decomposition approval gate.** Between the initializer and the coding loop, the runner can pause for the operator to review the proposed task breakdown before any budget is spent executing it. It is **required at R2+** (the same threshold that makes QA non-overridable) and **opt-in below** via `--approve-plan`. When the gate fires, the runner prints the breakdown (wave / id / title / `depends_on`) and **stops with exit 0** — no coding work runs — until you re-run with `--plan-approved` (or `CLAUDEWARP_PLAN_APPROVED=1`). Because `features.json` persists, the approved re-run skips the initializer and proceeds straight to execution. The gate is non-interactive by design, so a scheduled/unattended harness never executes an unreviewed decomposition. (It fires on the initial decomposition only, not on a `--retry` re-init, which is an explicit autonomous stall-recovery mode you've already opted into.)
+
 **`--retry` flag (Inner/Outer Dual Loop):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` clears the task list, re-invokes the initializer with failure context, and runs a final coding pass with a revised task breakdown.
 
 **Per-task acceptance + negative scope (optional).** Beyond the global `verification` command, each
@@ -440,6 +442,8 @@ Every harness scaffolded by `/claude-warp-new-harness` follows this flow:
 
 ```
 Initializer (once)  →  features.json populated (tasks + wave/depends_on)
+Approval gate       →  print breakdown → STOP for review (R2+, or --approve-plan);
+                       proceeds once --plan-approved
 Runner loop         →  coding agent invoked per pending task (waves run in order;
                        --parallel-waves runs a wave's tasks concurrently)
 Coding agent        →  reads session-init → executes one task → commits → stops
