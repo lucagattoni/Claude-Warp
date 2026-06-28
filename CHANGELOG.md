@@ -5,6 +5,36 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.22.0] — 2026-06-28
+
+**Release-readiness gate — "PR merged" is not "release ready"** (follow-up PR6; COMPETITIVE-FINDINGS
+gap #4). Adds a release-gate *verb* distinct from "task done" / "PR merged": it assesses whether a
+release is actually ready, packages the evidence, and emits a verdict — turning the project's SemVer
+convention into a checkable gate. Read-only and self-host safe.
+
+### Added
+- **`/claude-warp-release` — new release-readiness gate skill.** Run before cutting a release. It is
+  **read-only** (never tags, commits, or pushes — it prints the commands; releasing stays a Surface,
+  keeping the readiness-checker independent of the shipper, constitution **P2**) and emits a
+  **two-tier verdict**:
+  - **BLOCK** (hard, fail-closed) on the **mechanical** boundaries — VERSION not bumped vs the last
+    tag, no matching dated CHANGELOG entry, target tag already exists, a still-populated
+    `[Unreleased]`, or a dirty tree. Objective checks, each fails closed.
+  - **WARN + Surface** on the **one judgment** call — whether the bump *severity* matches the inferred
+    change type (breaking→MAJOR, new capability→MINOR, fix/doc→PATCH; highest type wins). A suspected
+    mismatch Surfaces for a human and is **never** auto-escalated to a BLOCK (constitution **P3/P6** —
+    a Type-B judgment is not auto-resolved into a hard verdict).
+  Packages evidence (verifier output + residuals + diffstat since last tag); overall **PASS** requires
+  zero BLOCKs and every evidence check actually run (NOT RUN ≠ pass).
+
+### Changed
+- **`docs/loop-harness.md`** and **`README.md`** — document the release-gate verb (P8).
+
+### Notes
+- **Self-host safe / backwards-compatible:** with no `CHANGELOG.md` / `VERSION` the gate reports
+  not-applicable and exits 0; it requires no manifest and changes no existing behaviour. Closes
+  competitive-study gap #4 (release gate distinct from "done").
+
 ## [0.21.0] — 2026-06-27
 
 **Honest-uncertainty task statuses + mandatory R2+ qualify** (second-batch PR5). Closes the two

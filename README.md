@@ -80,6 +80,7 @@ claude -p "/claude-warp-update"
 | `/claude-warp-new-goal "goal"` | Scaffold a one-shot bounded goal that runs once and stops at a verifiable criterion |
 | `/claude-warp-new-harness "goal"` | Scaffold a two-part harness for large multi-stage goals |
 | `/claude-warp-converge` | Reconcile the actual repo state against contract + task intent, classify gaps (missing/partial/contradicts/unrequested), and append-only re-ticket the unmet pieces (read-only; idempotent) |
+| `/claude-warp-release` | Release-readiness gate distinct from "done"/"merged" — packages evidence and emits a two-tier verdict (BLOCK on mechanical boundaries: VERSION/CHANGELOG/tag/`[Unreleased]`/dirty tree; WARN+Surface on the bump-severity judgment). Read-only; prints the tag/release commands, never runs them |
 | `/claude-warp-new-agent "role"` | Scaffold a specialized subagent in `.claude/agents/` |
 | `/claude-warp-new-hook "description"` | Scaffold a hook (8 patterns): verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer |
 | `/claude-warp-inventory` | Self-inspect installed skills, agents, hooks, loops — report versions and health issues |

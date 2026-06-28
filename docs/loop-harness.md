@@ -196,7 +196,28 @@ appended tasks, runs **one** closing coding loop — no re-converge (guards the 
 For a `kind: goal`, converge reports + prints a ready-to-run `/claude-warp-new-goal` follow-up
 rather than mutating `GOAL.md`.
 
-Install paths: `skills/claude-warp-new-harness/SKILL.md`, `skills/claude-warp-converge/SKILL.md`
+**Release gate — "PR merged" is not "release ready" (`/claude-warp-release`).** Run before cutting a
+release to answer one question honestly: *is this ready to ship, or just merged?* It is **read-only**
+— it never tags, commits, or pushes; it **assesses**, packages the evidence (verifier output +
+diffstat since the last tag), prints the exact tag/release commands, and emits a **two-tier verdict**:
+
+- **BLOCK** (hard, fail-closed) on the **mechanical** boundaries — VERSION not bumped vs the last tag,
+  no matching dated CHANGELOG entry, the target tag already exists, a still-populated `[Unreleased]`,
+  or a dirty tree. These are objective; each has one right answer, so each fails closed.
+- **WARN + Surface** on the **one judgment** call — whether the bump *severity* matches the inferred
+  change type (breaking→MAJOR, new capability→MINOR, fix/doc→PATCH; highest type wins). Because that
+  classification is an inference, a suspected mismatch Surfaces for a human and is **never**
+  auto-escalated to a BLOCK (constitution P3/P6 — a Type-B judgment is not auto-resolved).
+
+Overall verdict is **PASS** only with zero BLOCKs and every evidence check actually run (NOT RUN ≠
+pass). Keeping the gate read-only is deliberate: the readiness-checker stays independent of the
+shipper (P2), and the act of releasing remains a Surface. Self-host safe — with no `CHANGELOG.md` /
+`VERSION` it reports not-applicable and exits 0. It operationalizes the project's SemVer convention
+(release per complete batch, highest-severity bump wins, never leave `[Unreleased]` populated) as a
+checkable gate.
+
+Install paths: `skills/claude-warp-new-harness/SKILL.md`, `skills/claude-warp-converge/SKILL.md`,
+`skills/claude-warp-release/SKILL.md`
 
 ---
 
