@@ -8,9 +8,9 @@ here with the **behavioural claim** it makes, the **catch it predicts** on a del
 defect, and a **status** that says how far the claim has been validated.
 
 It exists so the gap stays **visible** instead of accumulating silently: five reviewer features
-(v0.28.0 → v0.32.0) each asserted behaviour that only live use can confirm — claims #1–#4 are now
-`verified-live`; claim #5 (command-verification, v0.32.0) ships `unverified`, the honest default — the
-backlog stands at **4/5 `verified-live`**. The reproducible procedure
+(v0.28.0 → v0.32.0) each asserted behaviour that only live use can confirm — and all five have now been
+flipped by a live spawned independent pass. The backlog stands at **5/5 `verified-live`** (claim #5,
+command-verification, flipped by Dogfood D5 on 2026-06-29). The reproducible procedure
 that moves a claim from *present* to *fires* is [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md),
 run against the tracked fixture [`tests/dogfood/trivially-passing-contract.yaml`](tests/dogfood/trivially-passing-contract.yaml).
 Future `/claude-warp-retro` runs append dogfood results here.
@@ -148,7 +148,7 @@ framing of the /ultrareview ecosystem, with research grounding in **NABAOS / too
   reproduction-pass analog of a planted defect). The flip is for the **reproduce/downgrade** behaviour
   with that scope honestly stated, not for a fully-autonomous two-live-agent chain (a panel stays held).
 
-### 5. Command-verification of checkable predicates — v0.32.0 — STATUS: `unverified`
+### 5. Command-verification of checkable predicates — v0.32.0 — STATUS: `verified-live 2026-06-29`
 
 - **Behavioural claim:** in the reproduction pass, a blocker whose predicate is a **checkable fact**
   ("field X is missing", "value is Y", "path Z exists") must be reproduced by a **read-only command**
@@ -160,12 +160,17 @@ framing of the /ultrareview ecosystem, with research grounding in **NABAOS / too
   `grep -n loop_max_usd contract.yaml` returns a hit). An agent following the charter runs the command,
   tags the finding `[CMD_CONTRADICTED]` quoting the matching line, and **demotes it** — rather than
   rubber-stamping or re-asserting it from a second silent reading.
-- **Why still `unverified`:** the charter text is present (`skills/claude-warp-new-harness/SKILL.md`,
-  reproduction-pass rules) and the `working/` verifier proves it is *present* and coherent — but no live
-  spawned pass has yet been shown to actually **run the command and demote** on the fixture. The honest
-  default for a freshly-shipped instruction-only feature; a live Dogfood D5 would flip it. Adapted from
-  **agent-review-panel** (wan-huiyan); the deterministic `scripts/reviewer-guard.sh` read-only guard
-  (from **dementev-dev/adversarial-review**) is mechanical (self-tested), so it carries no behavioural claim.
+- **Live evidence (Dogfood D5, below):** a spawned **Sonnet** pass-2 agent (different in-house model,
+  reasoning-blind, fresh context, given no hint which finding was true) ran read-only `grep` on the artifact
+  for **both** findings: it confirmed Finding A (`grep -n 'check'` → `27: check: "true"`, **`[CMD_CONFIRMED]`**,
+  kept `critical`) and contradicted Finding B (`grep -n 'loop_max_usd'` → `20: loop_max_usd: 5`,
+  **`[CMD_CONTRADICTED]`**, **demoted `critical` → `major`**), with a `[pass-2 / sonnet]` verdict. The
+  reproduce-by-executing-and-demote behaviour fired under genuine independence → claim **#5 flips
+  `unverified` → `verified-live 2026-06-29`**. The spawn was wrapped by `scripts/reviewer-guard.sh`, which
+  confirmed the tree was **unchanged** (the reviewer was provably read-only), so the evidence is
+  integrity-clean. Adapted from **agent-review-panel** (wan-huiyan). The deterministic
+  `scripts/reviewer-guard.sh` read-only guard (from **dementev-dev/adversarial-review**) is mechanical
+  (self-tested), so it carries no behavioural claim of its own — but D5 is the first run to exercise it live.
 
 ## Dogfood log
 
@@ -310,3 +315,31 @@ framing of the /ultrareview ecosystem, with research grounding in **NABAOS / too
   instruction-only reviewer feature (v0.28.0 → v0.30.0) has now produced its predicted catch under a real
   spawned independent agent. The backlog stays a live ledger: a future same-model blind spot, or a
   cross-vendor independence test, would still be a new, weaker-until-proven claim (P6 holds).
+
+### Dogfood D5 — 2026-06-29 (verified-live, command-verification)
+
+- **Procedure:** [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md) step 3 (live spawned pass), applied
+  to claim #5 (command-verification). The spawn was wrapped by `scripts/reviewer-guard.sh` (v0.32.0 #3):
+  `snapshot` before, `verify` after — the integrity guard's first **live** exercise.
+- **Fixture:** the existing [`tests/dogfood/repro-fixture/`](tests/dogfood/repro-fixture/) pair — its
+  Finding B (*"`budget.loop_max_usd` is missing"*) is **command-falsifiable and false**
+  (`loop_max_usd: 5` is present at line 20), and Finding A (`stop.check: "true"`) is true-by-fixture. No
+  reuse change needed; the agent was given the two findings + the artifact path + the command-verification
+  rule, **reasoning-blind** (told nothing about which finding was correct).
+- **Live agent:** a spawned **Sonnet** subagent (different in-house model, fresh context, reasoning-blind),
+  instructed to reproduce each checkable predicate by a **read-only** command only and to write nothing.
+- **Catch produced (verbatim):**
+  - **Finding A** — ran `grep -n 'check' …/contract-under-review.yaml` → `27:  check: "true"`; tagged
+    **`[CMD_CONFIRMED]`**; severity unchanged **critical — BLOCK**.
+  - **Finding B** — ran `grep -n 'loop_max_usd' …/contract-under-review.yaml` → `20:  loop_max_usd: 5`;
+    tagged **`[CMD_CONTRADICTED]`** (*"The field is not missing; a ceiling of $5 is explicitly set"*);
+    applied the one-level demotion **critical → major**. Final verdict tagged `[pass-2 / sonnet]`.
+- **Integrity:** `reviewer-guard.sh verify` after the pass returned **`PASS — tree unchanged (reviewer was
+  read-only)`** (exit 0) — the spawned reviewer mutated nothing, so the evidence is integrity-clean and the
+  v0.32.0 read-only guard (#3) is shown working in a real spawn, not just its `--self-test`.
+- **Verdict:** the command-verification behaviour — *reproduce a checkable predicate by executing a read-only
+  command, tag `[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]`, and demote a contradicted blocker one level* — **fired
+  under genuine independence** → claim **#5 flips `unverified` → `verified-live 2026-06-29`**. **With this
+  flip the backlog reaches 5/5 `verified-live`.** P6 holds: pass-1 was a constructed input artifact, only
+  pass-2 (the mechanism) was the live agent; a future cross-vendor or same-model-blind-spot test would still
+  be a new, weaker-until-proven claim.
