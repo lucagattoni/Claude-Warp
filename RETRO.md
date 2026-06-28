@@ -289,3 +289,23 @@ share it.
    feat commits here and forced a soft-reset recovery.
 
 ---
+
+## Retro: mdhas-pattern-guard (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 5/5 done conditions met
+**Milestones:** 1 execution-log entry | rework: none — first-run clean (self-test, working verifier, dev.sh, CI all green on the first attempt)
+
+### What worked
+- **Retro-to-fix closure.** D4 retro improvement #2 ("encode the `md_has` normalization rule where verifier-authors hit it") became a shipped guardrail in the very next batch. The lesson moved out of `RETRO.md` and into the helper authors actually read (`--help`) plus a live `--self-test` assert — documentation that is *enforced*, not just written.
+- **Behaviour-not-presence verifier.** The `working/` check asserted the self-test *PASSES* (so the placeholder-FAILS case actually held), not merely that the note string exists — the P6 discipline carried over correctly.
+- **The irony landed clean.** The batch that fixes the `.`-for-a-stripped-backtick trap had **zero first-run FAILs** — the first such batch in a while. Staging was explicit (retro #3), the two commits were structured (contract + feat), and the matcher-semantics guard ("def intact") confirmed no behavioural drift.
+
+### What failed / friction
+- **None structural.** The change was small and self-contained; the established rhythm (contract → implement → verify → PR → CI → merge → tag → release → retro) absorbed it without incident. The only judgement call — whether a comment+test change warrants the full contract ceremony — was resolved in favour of consistency with the repo's own dogfood discipline.
+
+### Top 3 improvements
+1. Phase 2 (verifier-lib authoring) — **the guard now exists; the next lever is discoverability at write-time, not read-time.** A future nicety: a `--lint-pattern '<pat>' <file>` mode that warns if a pattern contains a literal backtick or a `.` adjacent to where normalization would strip one — catching the slip as the author types it, before the verifier even runs. Low priority; the self-test + `--help` note already close the recurring failure.
+2. Phase 9 (ship) — **consider a "trivial-PATCH" express lane.** A comment+test change to a non-merge-gating helper carried a full contract.yaml + GOAL.md + working verifier. That ceremony is *correct dogfooding* but heavy for a one-line-class fix; a documented threshold (e.g. R0 doc/comment-only → skip the GOAL anchor, keep the verifier) would right-size the rhythm without losing rigor where it matters.
+3. Milestone hygiene — **nothing to fix; record the clean run as the baseline.** This batch is the template for a low-risk PATCH: explicit staging, two structured commits, behaviour-asserting verifier, semantics-untouched guard. Future batches that regress from this (stray `git add -A`, presence-only asserts) should be measured against it.
+
+---
