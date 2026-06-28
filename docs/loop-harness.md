@@ -103,6 +103,26 @@ it neutralizes author-bias, not a shared-model-family blind spot (pair with repr
 that bites). This is Option 1 of the multi-lens-review design space — disciplines on the seams
 ClaudeWarp already owns, **not** a parallel review panel.
 
+**Red-team / Skeptic charter on the reviewers (v0.29.0).** The two places ClaudeWarp spawns an
+*independent reviewer* — the contract Phase 6 R3+ checker and the `new-harness` QA evaluator (plus the
+optional DOER/CHECKER) — carry a **red-team charter**: try to *break* the work, not confirm it. The
+charter is additive to the v0.28.0 honesty riders above.
+
+| Element | Where | What it forces | Source |
+|---|---|---|---|
+| **Try-to-break (Skeptic) charter** | both reviewers | Assume it's wrong; find the way it passes *without doing the work* | [CCH TeamAgent Debate](https://github.com/Chachamaru127/claude-code-harness) |
+| **Trivially-passing-AC check** | both reviewers | Flag any acceptance criterion / `stop.check` an empty stub, hardcoded value, or always-0 check satisfies | [CCH TeamAgent Debate](https://github.com/Chachamaru127/claude-code-harness) |
+| **Control-validation** | QA evaluator | A passing `cmd:` must be confirmed to **FAIL** on a broken impl — *a check that can't fail proves nothing* | [agent-review-panel](https://github.com/wan-huiyan/agent-review-panel) |
+| **Reasoning-blind grading** | both reviewers | Judge the artifact + repo, not the author's defence of it (the R3+ checker is a fresh subagent by construction) | [devils-advocate](https://github.com/brandonsimpson/devils-advocate) |
+| **Single fresh-context pass** | R3+ checker | One pass, no debate loop (conformity drift) | [Karpathy LLM Council](https://github.com/karpathy/llm-council) → `/council` |
+
+Adapted **critically**: a "trivially-passing AC" that is actually a deliberate human-gated decision
+**Surfaces** as a Type-B call, never auto-fails; a clean red-team result is valid (anti-fabrication
+still binds — no invented breaks); same-model reasoning-blind neutralizes author-bias, not a shared
+model-family blind spot (that is Option 2.5, held). This is Option 2 of the multi-lens-review design
+space — it **strengthens the reviewers ClaudeWarp already spawns**, it does **not** add a parallel
+review panel (that is Option 3, held).
+
 ---
 
 ### `/claude-warp-new-goal "goal"`
@@ -577,10 +597,11 @@ layer), and credit them here:
 | Project | Author | Influenced |
 |---|---|---|
 | [**PAUL** — *Plan · Apply · Unify Loop*](https://github.com/ChristopherKahler/paul) | Christopher Kahler | Diagnostic failure routing on `--retry` (v0.26.0); per-task acceptance criteria (v0.18.0); the richer `done_with_concerns` / `needs_context` / `blocked` task-status enum |
-| [**claude-code-harness** — *CCH TeamAgent Debate*](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`); the severity→verdict gating honesty rider (v0.28.0) |
+| [**claude-code-harness** — *CCH TeamAgent Debate*](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`); the severity→verdict gating honesty rider (v0.28.0); the red-team / Skeptic "try-to-break" reviewer charter + trivially-passing-AC check (v0.29.0) |
 | [**idea-to-ship-skills**](https://github.com/nelsonwerd/idea-to-ship-skills) | nelsonwerd | The worth-it gate — `success_metric` + `kill_criterion` (contract Phase 1.5, v0.20.0); the epistemic-honesty rule-set ("NOT RUN ≠ pass", v0.17.0); the confidence-capped-by-verified-ratio honesty rider (v0.28.0) |
-| [**devils-advocate**](https://github.com/brandonsimpson/devils-advocate) | brandonsimpson | The anti-fabrication rule ("'no blockers' is a valid result") and the "Unverified" set in verdict outputs — honesty riders (v0.28.0) |
-| [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0) |
+| [**devils-advocate**](https://github.com/brandonsimpson/devils-advocate) | brandonsimpson | The anti-fabrication rule ("'no blockers' is a valid result") and the "Unverified" set in verdict outputs — honesty riders (v0.28.0); the reasoning-blind reviewer gate — judge the artifact, not the author's defence (v0.29.0) |
+| [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0); the single fresh-context reviewer pass (no debate loop) in the red-team checker (v0.29.0) |
+| [**agent-review-panel**](https://github.com/wan-huiyan/agent-review-panel) | wan-huiyan | The control-validation rule in the QA evaluator's red-team charter — *a check that can't fail proves nothing*: a passing `cmd:` must be confirmed to fail on a deliberately broken implementation (v0.29.0) |
 | [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
 
 Where a specific mechanism is borrowed, the relevant skill or doc names its source inline (for

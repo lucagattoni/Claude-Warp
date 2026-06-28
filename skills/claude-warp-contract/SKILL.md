@@ -258,16 +258,38 @@ push back with intensity matching the risk class. **For R3+, run this as an inde
 checker** (a cross-model subagent, not self-review — self-critique is reviewer bias):
 
 ```
-claude -p '/claude-warp-new-agent "contract-checker: reviews a contract.yaml
-against the failure-pattern checklist; raises blocking findings only; uses a different
-model than the drafting agent"'
+claude -p '/claude-warp-new-agent "contract-checker (red-team / Skeptic): tries to
+BREAK the contract, not confirm it. Reviews contract.yaml against the failure-pattern
+checklist AND asks: which acceptance criteria / stop.check admit a trivially-passing
+implementation (an empty stub, a hardcoded value, a check that always exits 0)? which
+load-bearing claim does the contract rely on that was assumed, not verified against the
+repo? Raises blocking findings only; severity-tags them. REASONING-BLIND: it is given
+contract.yaml + the repo, NOT the drafting conversation reasoning — it must judge whether
+the contract holds from the artifact alone, not from the author defence of it. Single
+fresh-context pass (no debate loop). Uses a different model than the drafting agent."'
 ```
+
+**Red-team charter (the checker tries to break it).** Beyond the checklist, the checker — and the
+in-conversation critical pass below it — must adopt a Skeptic posture: assume the contract is wrong
+and look for the way it passes *without doing the work*. The two checks this adds (rows in the table)
+are the load-bearing ones; the **reasoning-blind** framing (judge the artifact, not the author's
+defence of it) is what keeps the pass from rubber-stamping its own draft. A clean red-team result is
+valid — do not manufacture a break (the anti-fabrication rider still binds). A "trivially-passing AC"
+that is actually a deliberate human-gated decision **Surfaces** as a Type-B call, never auto-fails.
+This charter adapts external prior art (credited in `docs/loop-harness.md` + CHANGELOG): **CCH
+TeamAgent Debate** (Chachamaru127) — the Skeptic / try-to-break charter; **brandonsimpson/devils-advocate**
+(MIT) — the reasoning-blind independence gate; **Karpathy LLM Council** → **/council** — the
+fresh-context, single-round rule (one pass, no debate loop); **agent-review-panel** (wan-huiyan) — the
+control-validation idea ("a check that can't fail proves nothing"). Adapt critically: same-model
+reasoning-blind neutralises author-bias, not a shared model-family blind spot (that is Option 2.5).
 
 | Check | Detects | Fix prompt |
 |---|---|---|
 | SCOPE ⊇ ACTION writes? | Over-reach | "ACTION commits to `src/` but SCOPE is read-only — which is wrong?" |
 | BUDGET present + sane? | Cost runaway | "Every 15 min at $2/run = $192/day. Intended?" |
 | STOP is a command, not a vibe? | Verifier theater / no stopping condition | "'Looks done' isn't checkable. What command exits 0 when done?" |
+| AC admits a trivially-passing impl? *(red-team)* | Verifier theater — a `stop.check` an empty stub passes | "Could this `stop.check` exit 0 on an empty or hardcoded implementation? A check that can't fail proves nothing — name the trivial pass, or make the check discriminate." |
+| Load-bearing claim verified, not assumed? *(red-team)* | Unproven assumption gates the merge | "Which claim the contract leans on was assumed from memory, not checked against the repo? Verify it against the source, or move it to the `Unverified` set." |
 | Independent verifier (R2+)? | Reviewer bias | "The loop can't grade its own work for merge-gated changes." |
 | Escalation gate defined (R3+)? | Dark factory | "No human checkpoint on a prod-adjacent loop. Add a Surface condition." |
 | TRIGGER has work to do? | Polling loop | "Cron every 5 min with usually nothing to do burns tokens — event trigger?" |
