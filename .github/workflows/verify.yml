@@ -27,3 +27,17 @@ jobs:
 
       - name: Run scripts/dev.sh verify
         run: bash scripts/dev.sh verify
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # Lint the workflow files themselves — catches malformed expressions, bad keys, and
+      # shellcheck issues in run: scripts that GitHub's runtime parser would accept silently.
+      # Uses the author's first-party image, pinned by tag.
+      - name: Lint workflow files with actionlint
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color

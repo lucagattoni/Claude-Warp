@@ -13,6 +13,9 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   instead of relying on the operator. README gains a `verify` status badge. CI config is chore/meta,
   so it stays here in `[Unreleased]` until folded into the next functional release's notes — no
   version bump of its own.
+- **`actionlint` job** in the same workflow — lints every workflow file (first-party
+  `docker://rhysd/actionlint`, pinned by tag) on each PR and push, catching malformed expressions,
+  bad keys, and `run:`-script shellcheck issues that GitHub's runtime parser accepts silently.
 
 ## [0.24.2] — 2026-06-28
 
