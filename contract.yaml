@@ -1,32 +1,38 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Red-team / Skeptic charter + reasoning-blind discipline on the independent reviewers (Option 2)
-slug: red-team-checker
+name: Reproduction-required corroboration on the merge-gating reviewers (Option 2.5)
+slug: reproduction-required
 risk: R2
 
 scope:
   may_touch:
-    - skills/claude-warp-contract/SKILL.md            # Phase 6: upgrade the R3+ checker spawn charter + add 2 red-team checklist rows
-    - skills/claude-warp-new-harness/SKILL.md          # QA evaluator persona: add the Skeptic/red-team charter; DOER/CHECKER spawn: same charter
-    - docs/loop-harness.md                             # document the red-team discipline + extend the prior-art table (agent-review-panel row)
+    - skills/claude-warp-new-harness/SKILL.md          # QA evaluator: add the Reproduction-required corroboration section; runner Phase 6: add --corroborate (auto-R3+) second pass + provenance/graceful-degradation; DOER/CHECKER note
+    - skills/claude-warp-contract/SKILL.md             # stop.evidence: add the corroboration clause (R2+ merge-gating PASS should be corroborated; a solo pass is labeled uncorroborated) + one Phase 6 row
+    - docs/loop-harness.md                             # document Option 2.5 + extend the prior-art table (/ultrareview, alecnielsen/ng, robertoecf rows)
     - CHANGELOG.md
     - VERSION
-    - working/red-team-checker-verify.sh               # independent verifier (gitignored scratch)
+    - working/reproduction-required-verify.sh          # independent verifier (gitignored scratch)
   must_not_touch:
-    - "the honesty riders shipped in v0.28.0 — the red-team charter is ADDED alongside them, not a rewrite (anti-fabrication, anonymized-author, severity gating, confidence cap, Unverified set stay verbatim)"
-    - "any NEW parallel review runtime (no --review-panel, no fork/worktree plumbing — that is Option 3, held)"
-    - "the worth-it gate / Phase 1.5 (untouched — Option 2 is a reviewer discipline, not a planning-side change)"
+    - "the v0.28.0 honesty riders + v0.29.0 red-team / Skeptic charter at both seams — corroboration is ADDED alongside them, not a rewrite (anti-fabrication, anonymized-author, severity gating, confidence cap, Unverified set, the try-to-break/control-validation/reasoning-blind charter all stay verbatim)"
+    - "any cross-vendor dependency (Decision 3a, held) — the reproduction pass runs on a DIFFERENT IN-HOUSE model (Opus<->Sonnet, Decision-3 b.5), never a second vendor"
+    - "any NEW parallel review runtime (no --review-panel, no fork/worktree fan-out — that is Option 3, held); --corroborate is ONE sequential second pass, not a panel"
+    - "the --with-qa R2+ mandatory threshold (untouched — corroboration rides BEHIND the existing QA gate; it does not change when QA itself runs)"
 
 action: >
-  Give ClaudeWarp's two independent reviewers a Skeptic / red-team charter and an explicit
-  reasoning-blind framing. (1) contract Phase 6 R3+ checker: upgrade its spawn charter from "raises
-  blocking findings" to "try to BREAK it — which acceptance criteria / stop.check admit a
-  trivially-passing implementation (empty stub, hardcoded value, a check that always exits 0)? which
-  load-bearing claim is unverified?", state it judges the artifact + repo NOT the drafting
-  conversation's reasoning, and add two red-team rows to the critical-pass checklist. (2) new-harness
-  QA evaluator + optional DOER/CHECKER: add the same Skeptic charter, incl. agent-review-panel's
-  control-validation ("a check that cannot fail proves nothing — confirm each passing cmd: would FAIL
-  on a deliberately broken implementation"). Riders from v0.28.0 are untouched; this is additive.
+  Add reproduction-required corroboration to ClaudeWarp's two merge-gating reviewers — the cheapest
+  real-independence proxy (no second vendor, no panel). (1) new-harness QA evaluator gains a
+  "Reproduction-required corroboration" section: a blocking (critical/major) FAIL reverts the task
+  ONLY if a second reproduction pass independently reproduces it — else it is DOWNGRADED to a recorded
+  non-blocking minor with provenance; a merge-gating PASS is marked CORROBORATED only if the second
+  pass also passes, else UNCORROBORATED. (2) new-harness runner Phase 6 gains a --corroborate flag
+  (auto-on at R3+, opt-in at R2 and below) that runs ONE reproduction pass after a blocking QA FAIL or
+  a merge-gating PASS, ideally on a DIFFERENT in-house model via a CLAUDEWARP_QA_MODEL swap (Opus<->Sonnet,
+  Decision-3 b.5 free diversity). Every finding/verdict carries a [pass-N / model] PROVENANCE tag
+  (robertoecf) so agreement is N traceable data points, not headcount. GRACEFUL DEGRADATION (robertoecf):
+  if the second pass cannot run, mark "single-pass, uncorroborated" LOUD — never silently treat a solo
+  pass as corroborated (P6: NOT corroborated != corroborated). (3) contract stop.evidence gains a
+  corroboration clause: at R2+, evidence for a merge-gating PASS should be corroborated; a solo pass is
+  labeled uncorroborated, never silently counted as full evidence.
 
 budget:
   loop_max_usd: 0
@@ -36,29 +42,34 @@ budget:
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/red-team-checker-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify && bash scripts/check-ai-residuals.sh --risk R2"
+  check: "bash working/reproduction-required-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify && bash scripts/check-ai-residuals.sh --risk R2"
 
 verifier:
   independent: true
   mechanism: >
-    working/red-team-checker-verify.sh — sources scripts/verifier-lib.sh and asserts (md_has on prose)
-    that each charter element is PRESENT at BOTH reviewer seams: the Skeptic/try-to-break framing, the
-    trivially-passing-AC check, the unverified-load-bearing-claim check, the reasoning-blind framing,
-    and the control-validation rule; plus the four external-source credits (CCH, devils-advocate,
-    /council, agent-review-panel) at each place the mechanism lives, the docs prior-art row, the
-    CHANGELOG 0.29.0 entry, and VERSION. Cross-checked by verifier-lib --self-test, dev.sh verify 6/6,
-    and check-ai-residuals --risk R2 (blocking) clean.
+    working/reproduction-required-verify.sh — sources scripts/verifier-lib.sh and asserts (md_has on
+    prose, plus literal grep for the flag token) that each mechanism is PRESENT at both seams: the QA
+    evaluator's Reproduction-required corroboration section (reproduce-before-block, downgrade rule,
+    corroborated/uncorroborated PASS), the runner's --corroborate flag parse + auto-R3+ + CLAUDEWARP_QA_MODEL
+    second-pass + the help/runner-will lines, the provenance-tag rule, the graceful-degradation-loud rule,
+    and the contract stop.evidence corroboration clause; plus the v0.28.0 riders + v0.29.0 charter preserved
+    (non-regression), the three external-source credits (/ultrareview, alecnielsen/ng, robertoecf) mapped
+    to mechanism, the docs prior-art rows, the CHANGELOG 0.30.0 entry, and VERSION. Cross-checked by
+    verifier-lib --self-test, dev.sh verify 6/6, and check-ai-residuals --risk R2 (blocking) clean.
 
 surface_conditions:
-  - "Seam scope (one checker vs both reviewers) — RESOLVED: BOTH. The analysis §6bis (lines 471–472) states Options 1/2/2.5 are disciplines that apply to BOTH seams; the 'one checker' phrasing meant 'no NEW parallel checker' (vs Option 3), not a limit on which existing reviewers get the discipline. User delegated the call ('help me decide'); recorded here."
+  - "Accepted prototype ceiling (analysis verdict: iterate/prototype): the edited files are LLM-instruction files, so the verifier asserts each corroboration mechanism is PRESENT, not that the second pass executes and reconciles end-to-end. The analysis success-metric (false-positive blocks -> ~0 because unreproduced findings downgrade) is confirmable only in live dogfooding, not by this static verifier. Same ceiling as Option 1 / Option 2."
+  - "A downgrade (unreproduced finding) or an 'uncorroborated' mark must SURFACE, never auto-resolve a Type-B human gate: a blocking finding that is actually a deliberate human-gated decision still routes to needs_context/blocked, it is not silently downgraded to minor."
 
 escalation:
   after_attempts: 3
 
 decision_log:
-  - "kind=goal not harness: one coherent discipline added across two existing reviewer spawn-charters + docs; single done-bar (every charter element present at both seams)."
-  - "R2 not R3: edits the contract skill (the negotiation spine every PR traverses) and the new-harness QA evaluator (mandatory at R2+). A regression that garbles a reviewer charter weakens merge-gating review, so an independent verifier asserting each element at both seams is required."
-  - "Both reviewer seams, not just the contract checker: analysis §6bis explicitly maps Options 1/2/2.5 to BOTH seams (disciplines). Option 1's honesty riders already span both; scoping Option 2 narrower would split the disciplines asymmetrically and leave the harness CODE reviewer — where 'trivially-passing AC' is most directly applicable — without red-team teeth."
-  - "MINOR (v0.29.0): adds a new reviewer capability/discipline (red-team charter + control-validation), not a bug fix. Stacked on v0.28.1."
-  - "Reasoning-blind is named, not newly built at R3+: the contract checker is ALREADY a fresh subagent that never sees the conversation — Option 2 makes that independence an explicit, deliberate charter line (devils-advocate) rather than an implicit side effect, and extends the spirit to the QA evaluator (set aside the worker's self-justification)."
-  - "Adapt critically: the red-team charter must still route Type-B judgment calls to Surface (a 'trivially-passing AC' that is actually a deliberate human-gated decision is surfaced, not auto-failed); same-model reasoning-blind neutralizes author-bias, NOT a shared model-family blind spot (that is Option 2.5, held)."
+  - "kind=goal not harness: one coherent discipline (reproduction-required corroboration) added across two existing reviewer seams + docs; single done-bar (each mechanism present at both seams). Fits one context."
+  - "R2 not R3: edits the new-harness QA/runner (mandatory at R2+) and the contract stop.evidence (the negotiation spine every PR traverses). A regression that garbles the corroboration logic could let a solo/unreproduced verdict gate a merge — so an independent verifier asserting each mechanism at both seams is required. It does not itself touch prod/data, so not R3."
+  - "AUTO-ON THRESHOLD RESOLVED to R3+ (opt-in --corroborate at R2 and below), NOT R2+. Why: Option 2.5 is prototype-grade ('iterate'); R2 is the most common merge-gating tier (every normal feature/fix goal), so auto-forcing a ~2x second review pass there would tax the entire common workflow for an unproven discipline. R3+ reserves the 2x cost for prod-adjacent stakes and keeps it opt-in below. It rides BEHIND the existing --with-qa R2+ gate (does not change when QA runs), and matches robertoecf's graceful-degradation ethos (don't mandate cost you can't always pay). The user authorized autonomous resolution ('ask me only if needed'); this default is analysis-faithful and overridable via the flag, so resolved without interrupting."
+  - "Different IN-HOUSE model (Opus<->Sonnet via CLAUDEWARP_QA_MODEL), NOT cross-vendor: Decision 3 picks (c) reproduction-required layered with (b.5) cross-model-same-vendor as the near-free diversity bump; cross-vendor (3a) is explicitly held (hard 2nd-vendor dependency, wrong altitude for a scaffolder). A same-model reproduction still filters non-reproducible findings; the model swap is an optional diversity upgrade, not a hard requirement (degrades gracefully to same-model)."
+  - "ONE sequential second pass, not a panel: --corroborate runs a single reproduction pass, reusing the existing QA-evaluator agent with a reproduction brief — no new parallel runtime, no fork/worktree (Option 3, held). Reproduction is /ultrareview's 'a finding counts only if a second agent reproduces it', applied to ONE corroborator, not a fan-out."
+  - "MINOR (v0.30.0): adds a new reviewer capability (--corroborate flag + the corroboration discipline), not a bug fix. Stacked on v0.29.0."
+  - "Adapt critically: reproduction-required filters non-reproducible findings but a SAME-FAMILY blind spot both passes share survives (the residual cross-vendor gap, accepted; flip-to-3a only if dogfooding shows a shared-blind-spot bug class). Provenance tags make 'agreement' N traceable data points, not headcount theater. The downgrade path must still route Type-B calls to Surface (a human-gated decision is never silently downgraded)."
+  - "Credits per credit-external-sources rule, mapped to mechanism: /ultrareview (Anthropic, /code-review ultra) -> reproduction-required (a finding counts only if reproduced); alecnielsen/ng adversarial-review -> consensus-gating (a finding needs corroboration to count, solo != confirmed); robertoecf/adversarial-review -> provenance tags + graceful-degradation-loud."
