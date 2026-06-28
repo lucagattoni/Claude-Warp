@@ -145,6 +145,9 @@ budget:                               # doc-27 2-layer ceiling
 stop:
   verdict: PASS                       # missing/ambiguous verdict = FAIL
   evidence: required                  # cannot exit without test output / diff
+  # R2+ (Option 2.5): a merge-gating PASS should be CORROBORATED — reproduced by a second pass or an
+  # independent verifier, not a solo green. A single uncorroborated pass is labeled "uncorroborated",
+  # never silently counted as full evidence (P6: NOT corroborated ≠ corroborated).
   check: "<command that exits 0 when done>"
 
 verifier:
@@ -300,6 +303,7 @@ reasoning-blind neutralises author-bias, not a shared model-family blind spot (t
 | External prior art credited? | Uncredited borrowing | "This adapts an external project/resource. Credit it by **full name + author + link** (and the specific source artifact) where the mechanism lives — docs, the skill, and the changelog — not a bare shorthand. Adapt it **critically**: note where its assumptions don't transfer." |
 | Conflicts a constitution MUST? | Governance violation | "Principle `<Pn>` forbids this. Adjust the **contract**, not the principle — amending the constitution is a separate explicit act." |
 | Verifier distinguishes not-run from pass? | Verifier theater | "An unrun check is `not run`, never green. Make `stop.check` fail closed when the verifier can't execute." |
+| Merge-gating PASS corroborated, not solo (R2+)? | Single-pass blind spot | "At R2+, a lone green is one data point. Should this PASS be reproduced by a second pass / independent verifier before it gates the merge? If a solo pass is accepted, it must be labeled `uncorroborated`, never silently treated as full evidence (Option 2.5)." |
 | Verifier asserts only tracked paths in git-diff checks? | Vacuous assertion | "A `git diff` against a gitignored/untracked path is always empty — it passes even if the file was rewritten. Assert on tracked paths, or check the file's content directly." |
 
 **Honesty riders on this pass's own findings.** The checks above are what the critical pass *looks

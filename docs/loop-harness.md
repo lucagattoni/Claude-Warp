@@ -119,9 +119,30 @@ charter is additive to the v0.28.0 honesty riders above.
 Adapted **critically**: a "trivially-passing AC" that is actually a deliberate human-gated decision
 **Surfaces** as a Type-B call, never auto-fails; a clean red-team result is valid (anti-fabrication
 still binds — no invented breaks); same-model reasoning-blind neutralizes author-bias, not a shared
-model-family blind spot (that is Option 2.5, held). This is Option 2 of the multi-lens-review design
+model-family blind spot (that is Option 2.5, below). This is Option 2 of the multi-lens-review design
 space — it **strengthens the reviewers ClaudeWarp already spawns**, it does **not** add a parallel
 review panel (that is Option 3, held).
+
+**Reproduction-required corroboration (v0.30.0).** The red-team charter above makes a reviewer *sharper*,
+but every reviewer is still **same-model** — they share a family blind spot. Option 2.5 adds the cheapest
+*independence* proxy without a second vendor or a panel: a finding only counts if it **reproduces**, and a
+merge-gating PASS must be **corroborated**, not solo. It attaches to the `new-harness` QA loop and the
+contract `stop.evidence` rule (a "new gate on the existing verify step"):
+
+| Element | Where | What it forces | Source |
+|---|---|---|---|
+| **Reproduce-before-block** | QA evaluator (`--corroborate`) | A blocking finding reverts the task only if a **second pass reproduces it**; an unreproduced finding is downgraded to a recorded non-blocking minor | [/ultrareview](https://www.shareuhack.com/en/posts/claude-code-pr-review-subagents-guide) (Anthropic — `/code-review ultra`) |
+| **Corroborated PASS** | QA evaluator + contract `stop.evidence` | A merge-gating PASS is `corroborated` only if a second pass agrees; a solo green is one data point, not confirmation | [adversarial-review](https://github.com/alecnielsen/adversarial-review) (alecnielsen) · [adversarial-review](https://github.com/ng/adversarial-review) (ng) — consensus-gating |
+| **Provenance tags** | both | Every finding/verdict carries `[pass-N / model]` so agreement is **N traceable data points, not headcount** | [adversarial-review](https://github.com/robertoecf/adversarial-review) (robertoecf) |
+| **Graceful degradation (loud)** | runner + `stop.evidence` | If the second pass can't run, mark `uncorroborated — single-pass` **loudly**; never silently treat a solo pass as corroborated (P6: NOT corroborated ≠ corroborated) | [adversarial-review](https://github.com/robertoecf/adversarial-review) (robertoecf) |
+| **Different in-house model** | runner (`CLAUDEWARP_QA_MODEL`) | The reproduction pass runs on Opus↔Sonnet for near-free diversity; same-model still filters non-reproducible findings | Decision-3 b.5 (cross-model same-vendor) |
+
+`--corroborate` is **auto-on at R3+** (prod-adjacent stakes justify the ~2× review) and **opt-in at R2 and
+below**; it rides *behind* the existing `--with-qa` gate (no first pass ⇒ nothing to corroborate ⇒ no-op).
+Adapted **critically**: this is **one sequential second pass**, not a panel (Option 3, held), on a
+different *in-house* model, not cross-vendor (Decision 3a, held — flip to it only if dogfooding shows a
+shared-blind-spot bug class that survives reproduction). A downgrade or `uncorroborated` mark **Surfaces**
+a Type-B call; it never silently downgrades a human-gated decision.
 
 ---
 
@@ -602,6 +623,9 @@ layer), and credit them here:
 | [**devils-advocate**](https://github.com/brandonsimpson/devils-advocate) | brandonsimpson | The anti-fabrication rule ("'no blockers' is a valid result") and the "Unverified" set in verdict outputs — honesty riders (v0.28.0); the reasoning-blind reviewer gate — judge the artifact, not the author's defence (v0.29.0) |
 | [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0); the single fresh-context reviewer pass (no debate loop) in the red-team checker (v0.29.0) |
 | [**agent-review-panel**](https://github.com/wan-huiyan/agent-review-panel) | wan-huiyan | The control-validation rule in the QA evaluator's red-team charter — *a check that can't fail proves nothing*: a passing `cmd:` must be confirmed to fail on a deliberately broken implementation (v0.29.0) |
+| [**/ultrareview**](https://www.shareuhack.com/en/posts/claude-code-pr-review-subagents-guide) | Anthropic (`/code-review ultra`) | Reproduction-required corroboration — a finding counts only if a second pass reproduces it; the `--corroborate` reproduce-before-block gate on the QA evaluator (v0.30.0) |
+| [**adversarial-review**](https://github.com/alecnielsen/adversarial-review) · [(ng fork)](https://github.com/ng/adversarial-review) | alecnielsen · ng | Consensus-gating — a finding needs corroboration to count, a solo pass ≠ confirmed; the corroborated-vs-uncorroborated merge-gating PASS (v0.30.0) |
+| [**adversarial-review**](https://github.com/robertoecf/adversarial-review) | robertoecf | Provenance tags (`[pass-N / model]` — agreement as N traceable data points, not headcount) and graceful-degradation-loud (a missing corroborator fails loud, never silently treated as corroborated) (v0.30.0) |
 | [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
 
 Where a specific mechanism is borrowed, the relevant skill or doc names its source inline (for

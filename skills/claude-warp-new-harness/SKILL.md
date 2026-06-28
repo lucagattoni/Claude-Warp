@@ -362,6 +362,39 @@ cap; **Karpathy LLM Council** → **/council** — anonymized-author; **brandons
 (MIT) — reasoning-blind grading; **agent-review-panel** (wan-huiyan) — control-validation ("a check
 that can't fail proves nothing"); **Karpathy LLM Council** → **/council** — the single fresh-context pass.
 
+**Reproduction-required corroboration (when invoked as the reproduction pass).** The runner may invoke
+you a **second time** on the same task as a *reproduction pass* (it says so in the prompt, and
+`--corroborate` is set — auto-on at R3+, opt-in below). The corroboration discipline is the cheapest
+real-independence proxy: a finding only counts if it **reproduces**, and a merge-gating PASS must be
+**corroborated**, not solo. Rules:
+- **Reproduce before block.** Re-derive your findings independently from the artifact + repo (reasoning-blind
+  — do **not** read pass-1's writeup as ground truth). A blocking (**critical/major**) finding from pass-1
+  reverts the task to `pending` **only if you independently reproduce it**. If you **cannot** reproduce it,
+  it is **downgraded** to a recorded non-blocking `minor` in `qa_feedback` (the task proceeds,
+  `"qa_status": "approved_with_notes"`) — a solo unreproduced finding does not stall the wave.
+- **Corroborated vs uncorroborated PASS.** A merge-gating PASS is `"qa_status": "approved (corroborated)"`
+  **only if** this pass also reaches PASS. If this pass finds a real blocker the first pass missed, the
+  task reverts as normal. If the second pass **cannot run** (budget/error/single-pass mode), the verdict
+  is marked `"approved (uncorroborated — single-pass)"` **loudly** — never silently upgraded to corroborated
+  (P6: NOT corroborated ≠ corroborated). This is graceful degradation: a missing corroborator fails *loud*,
+  not closed-over.
+- **Provenance tags.** Tag every finding and the final verdict with `[pass-N / <model>]` (e.g.
+  `[pass-2 / sonnet]`), so "agreement" is **N traceable data points**, not headcount — a reader can see
+  *which* pass on *which* model produced each call. The runner sets `CLAUDEWARP_QA_MODEL` so the reproduction
+  pass ideally runs on a **different in-house model** (Opus↔Sonnet) for near-free diversity; same-model still
+  filters non-reproducible findings (it does not catch a shared model-family blind spot — that residual is
+  the accepted cross-vendor gap).
+- **Type-B safety (unchanged).** A blocking finding that is actually a **deliberate human-gated decision**
+  routes to `needs_context`/`blocked` and is **Surfaced** — it is **never** silently downgraded to `minor`
+  by the reproduction rule. Reproduction filters *unconfirmed* findings, not *human-gated* ones.
+
+This corroboration discipline adapts external prior art (credited in `docs/loop-harness.md` + CHANGELOG):
+**/ultrareview** (Anthropic — `/code-review ultra`) — reproduction-required ("a finding counts only if a
+second agent reproduces it"); **alecnielsen/ng adversarial-review** — consensus-gating (a finding needs
+corroboration to count; solo ≠ confirmed); **robertoecf/adversarial-review** — provenance tags +
+graceful-degradation-loud. Adapt critically: this is ONE sequential second pass (not a panel — Option 3
+held) on a different *in-house* model (not cross-vendor — Decision 3a held).
+
 **Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
 worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the
 *only* gap (not a symptom of a FAIL the worker rounded up). Leave the status as `done_with_concerns`
@@ -397,6 +430,12 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 # --converge        After all waves complete, run /claude-warp-converge once to reconcile the
 #                   actual tree against intent; if it appends a convergence wave, run ONE more
 #                   coding loop to close it, then stop (no re-converge). Default OFF.
+# --corroborate     Reproduction-required corroboration (Option 2.5): after the QA evaluator, run ONE
+#                   reproduction pass on a DIFFERENT in-house model (CLAUDEWARP_QA_MODEL) before a
+#                   blocking FAIL reverts the task or a PASS is trusted — a finding must reproduce to
+#                   block; a PASS must be corroborated, else it is marked "uncorroborated" (loud).
+#                   Auto-on and non-overridable at R3+ (prod-adjacent stakes justify the ~2x review);
+#                   opt-in at R2 and below. No-op unless --with-qa is active (it rides behind QA).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -406,12 +445,14 @@ RETRY=0
 WITH_QA=0
 PARALLEL_WAVES=0
 CONVERGE=0
+CORROBORATE=0
 RISK="<RISK>"          # harness contract risk class (R0–R5), templated at scaffold time
 for arg in "$@"; do
   [[ "$arg" == "--retry" ]] && RETRY=1
   [[ "$arg" == "--with-qa" ]] && WITH_QA=1
   [[ "$arg" == "--parallel-waves" ]] && PARALLEL_WAVES=1
   [[ "$arg" == "--converge" ]] && CONVERGE=1
+  [[ "$arg" == "--corroborate" ]] && CORROBORATE=1
 done
 
 # Mandatory qualify at R2+: merge-gated work needs an independent verifier (constitution P2).
@@ -419,6 +460,17 @@ done
 case "$RISK" in
   R2|R3|R4|R5) WITH_QA=1 ;;
 esac
+
+# Reproduction-required corroboration (Option 2.5) is auto-on and non-overridable at R3+ — the
+# prod-adjacent stakes justify the ~2x review cost. At R2 and below it stays opt-in (--corroborate).
+# It rides BEHIND the QA gate: with no --with-qa there is no first pass to corroborate, so it no-ops.
+case "$RISK" in
+  R3|R4|R5) CORROBORATE=1 ;;
+esac
+# Pick the reproduction-pass model: a DIFFERENT in-house model than the primary QA pass (Opus<->Sonnet,
+# near-free diversity). Operator-overridable via CLAUDEWARP_QA_MODEL; empty => same-model reproduction
+# (still filters non-reproducible findings, just without the model-diversity bump).
+REPRO_MODEL="${CLAUDEWARP_QA_MODEL:-sonnet}"
 
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
@@ -509,13 +561,30 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
           >> "$LOG" 2>&1
 
         if [ "$WITH_QA" -eq 1 ]; then
-          echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator..." >> "$LOG"
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-1]..." >> "$LOG"
           claude \
             --permission-mode auto \
             --max-turns 10 \
             --effort high \
-            -p "Use the <HARNESS_SLUG>-qa agent to evaluate the most recently completed task in $FEATURES" \
+            -p "Use the <HARNESS_SLUG>-qa agent to evaluate the most recently completed task in $FEATURES. You are pass-1 — tag your findings and verdict [pass-1 / <your model>]." \
             >> "$LOG" 2>&1
+
+          # Reproduction-required corroboration (Option 2.5): one reproduction pass, ideally on a
+          # different in-house model. A blocking finding reverts the task only if reproduced here; a
+          # PASS is only "corroborated" if this pass agrees. If this pass cannot run, the first pass's
+          # verdict stands but is marked UNCORROBORATED (loud) — never silently treated as corroborated.
+          if [ "$CORROBORATE" -eq 1 ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-2 / $REPRO_MODEL] — reproduction-required corroboration..." >> "$LOG"
+            if ! claude \
+                --permission-mode auto \
+                --max-turns 10 \
+                --effort high \
+                ${REPRO_MODEL:+--model "$REPRO_MODEL"} \
+                -p "Use the <HARNESS_SLUG>-qa agent as the REPRODUCTION PASS (pass-2) for the most recently completed task in $FEATURES. Re-derive findings independently from the artifact + repo, reasoning-blind — do NOT trust pass-1's writeup. A pass-1 blocking finding reverts the task only if you reproduce it; if you cannot, downgrade it to a recorded non-blocking minor. A PASS is 'approved (corroborated)' only if you also pass; tag every finding and the verdict [pass-2 / $REPRO_MODEL]." \
+                >> "$LOG" 2>&1; then
+              echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: reproduction pass did not run — verdict stands but is UNCORROBORATED (single-pass). NOT corroborated ≠ corroborated." >> "$LOG"
+            fi
+          fi
         fi
       done
     fi
@@ -762,6 +831,7 @@ To run:
   bash scripts/run-<HARNESS_SLUG>.sh --parallel-waves         # parallel within each wave
   bash scripts/run-<HARNESS_SLUG>.sh --retry                  # Inner/Outer Dual Loop on stall
   bash scripts/run-<HARNESS_SLUG>.sh --with-qa                # QA evaluator after each task
+  bash scripts/run-<HARNESS_SLUG>.sh --with-qa --corroborate  # + reproduction pass (auto-on at R3+)
   bash scripts/run-<HARNESS_SLUG>.sh --parallel-waves --with-qa  # parallel + QA
   bash scripts/run-<HARNESS_SLUG>.sh --converge               # reconcile vs intent + re-ticket gaps at the end
 
@@ -771,6 +841,9 @@ The runner will:
      in parallel (--parallel-waves) or sequentially (default)
   3. On --with-qa (auto-on and non-overridable at R2+): invoke the QA evaluator after
      each task; task reverts to pending if QA fails, with feedback in features.json
+  3b. On --corroborate (auto-on at R3+, opt-in at R2/below): after QA, run ONE reproduction
+     pass on a different in-house model (CLAUDEWARP_QA_MODEL) — a finding must reproduce to
+     block; a PASS must be corroborated, else it is marked uncorroborated (loud, never silent)
   4. On --retry: if stalled, classify the root cause (code/spec/intent) and route —
      retry in place (code), re-invoke the initializer (spec), or Surface to a human (intent)
   5. On --converge: after all waves, run /claude-warp-converge once to reconcile the
