@@ -202,9 +202,20 @@ blocker whose predicate is a checkable fact must be reproduced by a **read-only 
 spots possible)*, never full cross-vendor independence, and agreement reached by reading the same lines is
 `[STATIC-INFERENCE-CONSENSUS]`, which does not compound. (3) A deterministic **read-only-reviewer guard**
 (`scripts/reviewer-guard.sh`) snapshots the tree before/after a spawned pass and fails loud on any mutation —
-turning "the reviewer is read-only" from an assertion into an enforced, self-tested check. The backlog is
-**4/5 `verified-live`** (claims #1–#4 live; #5 ships `unverified`, the honest default for a fresh
-instruction-only feature — a live Dogfood D5 would flip it).
+turning "the reviewer is read-only" from an assertion into an enforced, self-tested check. Command-verification
+shipped as claim #5 (`unverified`) — the honest default for a fresh instruction-only feature.
+
+**v0.32.2 — Dogfood D5 flips claim #5; the backlog reaches 5/5 `verified-live`.** A spawned **Sonnet** pass-2
+agent (different in-house model, reasoning-blind, no hint which finding was true) ran read-only `grep` on the
+repro fixture for both findings: it **confirmed** Finding A (`grep -n 'check'` → `check: "true"`,
+`[CMD_CONFIRMED]`, kept `critical`) and **contradicted** Finding B (`grep -n 'loop_max_usd'` → `loop_max_usd: 5`,
+`[CMD_CONTRADICTED]`, **demoted `critical` → `major`**), verdict `[pass-2 / sonnet]`. The spawn was wrapped by
+`scripts/reviewer-guard.sh`, whose post-pass `verify` returned *tree unchanged* — so the v0.32.0 read-only guard
+(#3) is itself shown working in a real spawn, and the evidence is integrity-clean. Command-verification therefore
+flips `unverified` → `verified-live 2026-06-29`, taking the backlog to **5/5 `verified-live`** — every
+instruction-only reviewer feature (v0.28.0 → v0.32.0) has now produced its predicted catch under a real spawned
+independent agent. The ledger stays live: a cross-vendor or same-model-blind-spot test would still be a new,
+weaker-until-proven claim (P6 holds).
 
 ---
 

@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.32.2] — 2026-06-29
+
+### Added
+- **Dogfood D5 — command-verification (claim #5) flips to `verified-live`; the backlog reaches 5/5.** A
+  spawned **Sonnet** pass-2 agent (different in-house model, reasoning-blind, fresh context, given no hint
+  which finding was true) ran read-only `grep` on the repro fixture for both pass-1 findings: it
+  **confirmed** Finding A (`grep -n 'check'` → `check: "true"`, `[CMD_CONFIRMED]`, kept `critical`) and
+  **contradicted** Finding B (`grep -n 'loop_max_usd'` → `loop_max_usd: 5` present, `[CMD_CONTRADICTED]`,
+  **demoted `critical` → `major`**), verdict `[pass-2 / sonnet]`. The reproduce-by-*executing*-and-demote
+  behaviour fired under genuine independence → claim **#5 `unverified` → `verified-live 2026-06-29`**, taking
+  the behavioural-claim backlog to **5/5 `verified-live`** (every instruction-only reviewer feature
+  v0.28.0 → v0.32.0 now has a live catch).
+- **First live exercise of the read-only-reviewer guard (#3).** The D5 spawn was wrapped by
+  `scripts/reviewer-guard.sh` (`snapshot` before, `verify` after); the post-pass check returned **tree
+  unchanged (reviewer was read-only)**, so the v0.32.0 integrity guard is now shown working in a real spawn,
+  not only via its `--self-test` — and the D5 evidence is integrity-clean. Evidence-only release; no charter
+  or tooling change.
+
 ## [0.32.1] — 2026-06-29
 
 ### Changed
