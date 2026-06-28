@@ -117,6 +117,30 @@ reconciliation surfaces `contradicts` + `missing` and reports **NOT converged**,
 declares done on the green `stop.check`. The fixture is **hint-stripped** (the D2 contamination guard):
 nothing in it names the gaps.
 
+### 5c. Reproduction-required corroboration dogfood (claim #4) — the two-pass live run
+
+Claim #4 (v0.30.0) lives in the **pass-2 reproduction agent** (the QA persona in
+[`../../skills/claude-warp-new-harness/SKILL.md`](../../skills/claude-warp-new-harness/SKILL.md)): a
+pass-1 blocking finding reverts **only if pass-2 reproduces it**; an unreproduced blocker is
+**downgraded to a non-blocking minor**. To dogfood it, point a **live independent pass-2 on a different
+in-house model** (Sonnet vs an Opus drafter, reasoning-blind) at the fixture
+[`repro-fixture/`](./repro-fixture/) — the hint-stripped `contract-under-review.yaml` twin plus a
+realistic [`pass1-findings.md`](./repro-fixture/pass1-findings.md):
+
+```bash
+# (b) a spawned subagent on model: sonnet (what Dogfood D4 used) — give it ONLY the reproduction-pass
+# charter + the artifact + pass-1's findings; do NOT tell it which finding is sound.
+```
+
+`pass1-findings.md` carries **two** equally-confident `critical` blockers — **A** `stop.check: "true"`
+admits a trivial pass (**true-by-fixture**) and **B** `budget.loop_max_usd` missing (**false-by-fixture**
+— `loop_max_usd: 5` is present). The catch is **two-directional**: a correct pass-2 **reproduces A and
+keeps it blocking** while **failing to reproduce B and downgrading it to minor**, tagging each
+`[pass-2 / <model>]`. Rubber-stamping B (or downgrading both) **fails** — a lazy agent cannot pass. The
+fixture labels neither finding (the D2 contamination guard); pass-1 is a constructed *input* artifact —
+the reproduction-pass analog of a planted defect — and **only pass-2 (the mechanism) is the live agent**
+(P6: record what was live vs constructed).
+
 ### 5. Update the backlog
 
 Write the evidence block and the new status into `BEHAVIOURAL-CLAIMS.md`. Future retros append here as
