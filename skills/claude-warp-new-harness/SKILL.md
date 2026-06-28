@@ -372,6 +372,19 @@ real-independence proxy: a finding only counts if it **reproduces**, and a merge
   reverts the task to `pending` **only if you independently reproduce it**. If you **cannot** reproduce it,
   it is **downgraded** to a recorded non-blocking `minor` in `qa_feedback` (the task proceeds,
   `"qa_status": "approved_with_notes"`) — a solo unreproduced finding does not stall the wave.
+- **Reproduce by *executing*, not just re-reading (checkable-fact predicates).** When a pass-1 blocker
+  rests on a **checkable fact** ("field X is missing", "the value is Y", "path Z exists"), reproduce it by
+  running a **read-only** command (`grep`/`cat`/`head`/`tail`/`wc` only) and tag the finding
+  `[CMD_CONFIRMED]` (output backs the predicate) or `[CMD_CONTRADICTED]` (output refutes it). A
+  `[CMD_CONTRADICTED]` blocker is **demoted one level** (critical→major→minor) — the same downgrade the
+  reproduce-before-block rule applies, now grounded in *command output* instead of a second reading. Keep
+  it **advisory**: a tag informs the verdict, it never deletes a finding outright. Predicates that are not
+  command-checkable (a design judgment, a missing test's *intent*) fall back to the re-derive rule above.
+- **Agreement by re-reading the same lines does not compound to "confirmed".** If your reproduction
+  reaches pass-1's conclusion only by reading the **same** source lines (or by citing pass-1's finding
+  rather than the source), that is consensus on an *interpretation*, not on a *fact* — tag it
+  `[STATIC-INFERENCE-CONSENSUS]` and do **not** count it as independent corroboration that can gate a
+  merge. Only a `[CMD_CONFIRMED]` predicate or an independently re-derived finding compounds to corroborated.
 - **Corroborated vs uncorroborated PASS.** A merge-gating PASS is `"qa_status": "approved (corroborated)"`
   **only if** this pass also reaches PASS. If this pass finds a real blocker the first pass missed, the
   task reverts as normal. If the second pass **cannot run** (budget/error/single-pass mode), the verdict
@@ -392,8 +405,14 @@ This corroboration discipline adapts external prior art (credited in `docs/loop-
 **/ultrareview** (Anthropic — `/code-review ultra`) — reproduction-required ("a finding counts only if a
 second agent reproduces it"); **alecnielsen/ng adversarial-review** — consensus-gating (a finding needs
 corroboration to count; solo ≠ confirmed); **robertoecf/adversarial-review** — provenance tags +
-graceful-degradation-loud. Adapt critically: this is ONE sequential second pass (not a panel — Option 3
-held) on a different *in-house* model (not cross-vendor — Decision 3a held).
+graceful-degradation-loud. The command-verification tags (`[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]`) and the
+`[STATIC-INFERENCE-CONSENSUS]` rule adapt **agent-review-panel** (wan-huiyan) — Phase-9 read-only command
+validation + the "same-lines consensus is interpretation, not fact" discipline; the recall-vs-precision
+split they ground (pass-1 finds, pass-2 verifies) is the **Find/Verify** framing from the /ultrareview
+ecosystem, with research grounding in **NABAOS / "tool receipts"** (arXiv 2603.10060 — distinguish
+*observation* from *inference*). Adapt critically: this is ONE sequential second pass (not a panel — Option 3
+held) on a different *in-house* model (not cross-vendor — Decision 3a held), and command-checks stay
+**advisory** (they demote, never auto-delete a finding).
 
 **Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
 worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the

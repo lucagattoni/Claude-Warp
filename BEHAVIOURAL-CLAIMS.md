@@ -7,8 +7,10 @@ This backlog is the standing ledger of that gap. Every instruction-only reviewer
 here with the **behavioural claim** it makes, the **catch it predicts** on a deliberately-planted
 defect, and a **status** that says how far the claim has been validated.
 
-It exists so the gap stays **visible** instead of accumulating silently: four consecutive features
-(v0.28.0 → v0.30.0) each asserted behaviour that only live use can confirm. The reproducible procedure
+It exists so the gap stays **visible** instead of accumulating silently: five reviewer features
+(v0.28.0 → v0.32.0) each asserted behaviour that only live use can confirm — claims #1–#4 are now
+`verified-live`; claim #5 (command-verification, v0.32.0) ships `unverified`, the honest default — the
+backlog stands at **4/5 `verified-live`**. The reproducible procedure
 that moves a claim from *present* to *fires* is [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md),
 run against the tracked fixture [`tests/dogfood/trivially-passing-contract.yaml`](tests/dogfood/trivially-passing-contract.yaml).
 Future `/claude-warp-retro` runs append dogfood results here.
@@ -33,6 +35,25 @@ as `verified-live`:
 the catch** — it is **NOT** proof that a **live spawned independent agent** catches it in production.
 A fixture pass is strictly weaker than a live pass and is never relabelled as one. The point of this
 backlog is to make that gap visible, not to paper over it.
+
+**Independence has tiers — `verified-live` is *same-family*, not cross-vendor.** Our live pass runs on a
+different *in-house* model (Opus↔Sonnet): it neutralises author-bias and filters non-reproducible findings,
+but two same-vendor models can share a training-induced blind spot. A `verified-live` claim is therefore
+**same-family corroboration (shared blind spots possible)**, never full cross-vendor independence — a
+strictly stronger, still-**unproven** level (Decision 3a, held). Two corollaries follow, and both bind the
+reproduction pass (claim #4):
+- **Static-inference consensus ≠ corroboration.** Agreement two passes reach by reading the **same source
+  lines** (or by one citing the other rather than the source) is `[STATIC-INFERENCE-CONSENSUS]` — consensus
+  on an *interpretation*, not corroboration of a *fact*. It does **not** compound to `verified-live` and
+  cannot gate a merge on its own.
+- **A command-confirmed predicate beats a re-read.** When a blocker's predicate is a checkable fact, a
+  read-only command that confirms (`[CMD_CONFIRMED]`) or refutes (`[CMD_CONTRADICTED]`) it is harder evidence
+  than a second reading; a `[CMD_CONTRADICTED]` blocker is demoted one level. Only an independently re-derived
+  catch or a `[CMD_CONFIRMED]` predicate compounds to corroborated.
+
+Credit: **agent-review-panel** (wan-huiyan) — read-only command-verification + the same-lines-consensus
+caution; **llm-council** (karpathy) — "unanimous ≠ independent"; the recall-vs-precision (find/verify)
+framing of the /ultrareview ecosystem, with research grounding in **NABAOS / tool-receipts** (arXiv 2603.10060).
 
 ## Registry
 
@@ -126,6 +147,25 @@ backlog is to make that gap visible, not to paper over it.
   test* — was the live agent; pass-1 was a constructed, realistic findings artifact (the input, the
   reproduction-pass analog of a planted defect). The flip is for the **reproduce/downgrade** behaviour
   with that scope honestly stated, not for a fully-autonomous two-live-agent chain (a panel stays held).
+
+### 5. Command-verification of checkable predicates — v0.32.0 — STATUS: `unverified`
+
+- **Behavioural claim:** in the reproduction pass, a blocker whose predicate is a **checkable fact**
+  ("field X is missing", "value is Y", "path Z exists") must be reproduced by a **read-only command**
+  (`grep`/`cat`/`head`/`tail`/`wc`) and tagged `[CMD_CONFIRMED]` or `[CMD_CONTRADICTED]`; a
+  `[CMD_CONTRADICTED]` blocker is **demoted one level**. Agreement reached only by re-reading the same
+  lines is `[STATIC-INFERENCE-CONSENSUS]` and does not gate a merge.
+- **Predicted catch:** feed a reproduction agent a pass-1 list with a confident `critical` blocker whose
+  predicate is **command-falsifiable and false** (e.g. *"`budget.loop_max_usd` is missing"* when
+  `grep -n loop_max_usd contract.yaml` returns a hit). An agent following the charter runs the command,
+  tags the finding `[CMD_CONTRADICTED]` quoting the matching line, and **demotes it** — rather than
+  rubber-stamping or re-asserting it from a second silent reading.
+- **Why still `unverified`:** the charter text is present (`skills/claude-warp-new-harness/SKILL.md`,
+  reproduction-pass rules) and the `working/` verifier proves it is *present* and coherent — but no live
+  spawned pass has yet been shown to actually **run the command and demote** on the fixture. The honest
+  default for a freshly-shipped instruction-only feature; a live Dogfood D5 would flip it. Adapted from
+  **agent-review-panel** (wan-huiyan); the deterministic `scripts/reviewer-guard.sh` read-only guard
+  (from **dementev-dev/adversarial-review**) is mechanical (self-tested), so it carries no behavioural claim.
 
 ## Dogfood log
 

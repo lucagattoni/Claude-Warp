@@ -7,6 +7,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-06-28
+
+### Added
+- **Corroboration rigor + honest independence — three reviewer-discipline additions that deepen the
+  reproduction axis without wiring in a second vendor.**
+  1. **Command-verification of checkable predicates** (reproduction pass, `skills/claude-warp-new-harness`).
+     A blocking finding whose predicate is a *checkable fact* ("field X is missing", "value is Y", "path Z
+     exists") must now be reproduced by a **read-only command** (`grep`/`cat`/`head`/`tail`/`wc` only) and
+     tagged `[CMD_CONFIRMED]` / `[CMD_CONTRADICTED]`; a `[CMD_CONTRADICTED]` blocker is **demoted one level**.
+     Reproduce by *executing*, not just re-reading — advisory (a tag informs the verdict, never auto-deletes a
+     finding). Registered as **behavioural claim #5 (`unverified`)** in `BEHAVIOURAL-CLAIMS.md` (the honest
+     default for a fresh instruction-only feature; the backlog is now **4/5 `verified-live`**). Adapted from
+     **agent-review-panel** (wan-huiyan); research grounding **NABAOS / tool-receipts** (arXiv 2603.10060).
+  2. **Same-family ≠ cross-vendor independence.** `verified-live` is now explicitly labeled *same-family
+     corroboration (shared blind spots possible)* — never full cross-vendor independence (a stronger,
+     still-unproven level). Agreement two passes reach by reading the **same source lines** (or by citing one
+     another) is `[STATIC-INFERENCE-CONSENSUS]` and does **not** compound to corroborated. Documented in the
+     controlled vocabulary (`BEHAVIOURAL-CLAIMS.md`), the reproduction charter, and `docs/loop-harness.md`.
+     Credit **agent-review-panel** (wan-huiyan) + **llm-council** (karpathy — *unanimous ≠ independent*).
+  3. **Read-only-reviewer integrity guard** — new `scripts/reviewer-guard.sh`. Snapshots the tree
+     (`git status --porcelain` + a tracked-content digest, ignoring `working/`) before a spawned reviewer
+     pass and re-checks after; **any** tracked-file mutation, new untracked file, or deletion fails the guard
+     **loud** (exit 3) — turning "the reviewer is read-only" from an assertion into an enforced, self-tested
+     check (`--self-test`, 5 cases). RUNBOOK step 3 now wraps the live spawn with it. Adapted from
+     **dementev-dev/adversarial-review** (porcelain + sha256 before/after snapshot).
+
 ## [0.31.5] — 2026-06-28
 
 ### Fixed

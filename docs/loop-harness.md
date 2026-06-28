@@ -136,6 +136,9 @@ contract `stop.evidence` rule (a "new gate on the existing verify step"):
 | **Provenance tags** | both | Every finding/verdict carries `[pass-N / model]` so agreement is **N traceable data points, not headcount** | [adversarial-review](https://github.com/robertoecf/adversarial-review) (robertoecf) |
 | **Graceful degradation (loud)** | runner + `stop.evidence` | If the second pass can't run, mark `uncorroborated — single-pass` **loudly**; never silently treat a solo pass as corroborated (P6: NOT corroborated ≠ corroborated) | [adversarial-review](https://github.com/robertoecf/adversarial-review) (robertoecf) |
 | **Different in-house model** | runner (`CLAUDEWARP_QA_MODEL`) | The reproduction pass runs on Opus↔Sonnet for near-free diversity; same-model still filters non-reproducible findings | Decision-3 b.5 (cross-model same-vendor) |
+| **Command-verification** | QA evaluator (reproduction pass) | A checkable-fact blocker must be reproduced by a **read-only command** (`grep`/`cat`/`head`/`tail`/`wc`) and tagged `[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]`; a contradicted blocker is demoted one level — advisory, never auto-deletes | [agent-review-panel](https://github.com/wan-huiyan/agent-review-panel) (wan-huiyan) — read-only command validation + find/verify split; **NABAOS / tool-receipts** (arXiv 2603.10060) |
+| **Static-inference consensus ≠ corroboration** | QA evaluator (reproduction pass) | Agreement reached by reading the **same source lines** (or citing pass-1) is `[STATIC-INFERENCE-CONSENSUS]`, not independent corroboration; only a re-derived catch or a `[CMD_CONFIRMED]` predicate compounds | [agent-review-panel](https://github.com/wan-huiyan/agent-review-panel) (wan-huiyan) · [llm-council](https://github.com/karpathy/llm-council) (karpathy) — "unanimous ≠ independent" |
+| **Read-only-reviewer guard** | `scripts/reviewer-guard.sh` (runner) | Snapshots the tree (`git status --porcelain` + a tracked-content digest) before/after a spawned review pass; ANY mutation fails **loud** — proving the reviewer was truly read-only | [adversarial-review](https://github.com/dementev-dev/adversarial-review) (dementev-dev) — porcelain + sha256 integrity snapshot |
 
 `--corroborate` is **auto-on at R3+** (prod-adjacent stakes justify the ~2× review) and **opt-in at R2 and
 below**; it rides *behind* the existing `--with-qa` gate (no first pass ⇒ nothing to corroborate ⇒ no-op).
@@ -190,6 +193,18 @@ non-blocking minor), with `[pass-2 / sonnet]` provenance — the exact reproduce
 P6 is preserved in the record: pass-1 was a constructed *input* artifact, only pass-2 (the mechanism)
 was the live agent, and a future cross-vendor or same-model-blind-spot test would still be a new,
 weaker-until-proven claim.
+
+**v0.32.0 — corroboration rigor + honest independence.** Three additions deepen the same axis without
+wiring in a second vendor. (1) **Command-verification** (claim #5, registered `unverified`): a reproduction
+blocker whose predicate is a checkable fact must be reproduced by a **read-only command** and tagged
+`[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]` — reproducing by *executing*, not just re-reading. (2) The
+**same-family caveat**: `verified-live` is now explicitly labeled *same-family corroboration (shared blind
+spots possible)*, never full cross-vendor independence, and agreement reached by reading the same lines is
+`[STATIC-INFERENCE-CONSENSUS]`, which does not compound. (3) A deterministic **read-only-reviewer guard**
+(`scripts/reviewer-guard.sh`) snapshots the tree before/after a spawned pass and fails loud on any mutation —
+turning "the reviewer is read-only" from an assertion into an enforced, self-tested check. The backlog is
+**4/5 `verified-live`** (claims #1–#4 live; #5 ships `unverified`, the honest default for a fresh
+instruction-only feature — a live Dogfood D5 would flip it).
 
 ---
 
@@ -674,12 +689,18 @@ layer), and credit them here:
 | [**claude-code-harness** — *CCH TeamAgent Debate*](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`); the severity→verdict gating honesty rider (v0.28.0); the red-team / Skeptic "try-to-break" reviewer charter + trivially-passing-AC check (v0.29.0) |
 | [**idea-to-ship-skills**](https://github.com/nelsonwerd/idea-to-ship-skills) | nelsonwerd | The worth-it gate — `success_metric` + `kill_criterion` (contract Phase 1.5, v0.20.0); the epistemic-honesty rule-set ("NOT RUN ≠ pass", v0.17.0); the confidence-capped-by-verified-ratio honesty rider (v0.28.0) |
 | [**devils-advocate**](https://github.com/brandonsimpson/devils-advocate) | brandonsimpson | The anti-fabrication rule ("'no blockers' is a valid result") and the "Unverified" set in verdict outputs — honesty riders (v0.28.0); the reasoning-blind reviewer gate — judge the artifact, not the author's defence (v0.29.0) |
-| [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0); the single fresh-context reviewer pass (no debate loop) in the red-team checker (v0.29.0) |
-| [**agent-review-panel**](https://github.com/wan-huiyan/agent-review-panel) | wan-huiyan | The control-validation rule in the QA evaluator's red-team charter — *a check that can't fail proves nothing*: a passing `cmd:` must be confirmed to fail on a deliberately broken implementation (v0.29.0) |
+| [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0); the single fresh-context reviewer pass (no debate loop) in the red-team checker (v0.29.0); the *unanimous ≠ independent* caution behind the same-family-corroboration label (v0.32.0) |
+| [**agent-review-panel**](https://github.com/wan-huiyan/agent-review-panel) | wan-huiyan | The control-validation rule in the QA evaluator's red-team charter — *a check that can't fail proves nothing*: a passing `cmd:` must be confirmed to fail on a deliberately broken implementation (v0.29.0); read-only command-verification of checkable predicates (`[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]`) + the static-inference-consensus caution (same-lines agreement ≠ corroboration) in the reproduction pass (v0.32.0) |
 | [**/ultrareview**](https://www.shareuhack.com/en/posts/claude-code-pr-review-subagents-guide) | Anthropic (`/code-review ultra`) | Reproduction-required corroboration — a finding counts only if a second pass reproduces it; the `--corroborate` reproduce-before-block gate on the QA evaluator (v0.30.0) |
 | [**adversarial-review**](https://github.com/alecnielsen/adversarial-review) · [(ng fork)](https://github.com/ng/adversarial-review) | alecnielsen · ng | Consensus-gating — a finding needs corroboration to count, a solo pass ≠ confirmed; the corroborated-vs-uncorroborated merge-gating PASS (v0.30.0) |
 | [**adversarial-review**](https://github.com/robertoecf/adversarial-review) | robertoecf | Provenance tags (`[pass-N / model]` — agreement as N traceable data points, not headcount) and graceful-degradation-loud (a missing corroborator fails loud, never silently treated as corroborated) (v0.30.0) |
+| [**adversarial-review**](https://github.com/dementev-dev/adversarial-review) | dementev-dev | The read-only-reviewer integrity guard (`scripts/reviewer-guard.sh`) — `git status --porcelain` + content-digest snapshot before/after a spawned review pass, hard-stop-loud on any mutation, proving the reviewer was truly read-only (v0.32.0) |
 | [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
+
+Beyond the projects above, the command-verification discipline (v0.32.0) draws research grounding from
+**NABAOS / "tool receipts"** ([arXiv 2603.10060](https://arxiv.org/abs/2603.10060)) — distinguishing what a
+reviewer *observed* (a command's output) from what it *inferred* — and from the recall-vs-precision
+**find/verify** framing of the /ultrareview ecosystem (pass-1 finds; pass-2 verifies by executing).
 
 Where a specific mechanism is borrowed, the relevant skill or doc names its source inline (for
 example, the `--retry` routing above credits PAUL's `apply-phase.md`). ClaudeWarp's own framing —
