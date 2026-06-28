@@ -7,6 +7,38 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-06-28
+
+### Added
+- **Behavioural-claim backlog** (`BEHAVIOURAL-CLAIMS.md`, tracked) — a standing registry that keeps the
+  instruction-only reviewer features honest. The static `working/` verifiers prove charter *text is
+  present*; they cannot prove the charter *fires*. The backlog logs each feature (honesty riders,
+  red-team charter, `/converge` reconcile, reproduction-required corroboration) with the behavioural
+  claim it makes, the catch it predicts on a planted defect, and a status from a controlled vocabulary
+  — `unverified` / `verified-on-fixture <date>` / `verified-live <date>` — that **never conflates an
+  in-context fixture pass with a live spawned-agent pass** (P6 applied to our own claims: a fixture pass
+  proves the instructions cause the catch, not that it survives independence).
+- **Repeatable fixture-dogfood procedure** (`tests/dogfood/`, tracked) — a deliberately-broken contract
+  fixture (`trivially-passing-contract.yaml`, every defect tagged `# PLANT[<row>]`) plus a `RUNBOOK.md`
+  for running the reviewer charters against it and recording the result. The live `claude -p`
+  spawned-agent run (the `verified-live` level) is an **optional** runbook step, never a hard requirement.
+- **First dogfood executed (D1)** — an in-context red-team pass on the fixture fired the predicted
+  catches for the v0.29.0 red-team charter (named the `stop.check: "true"` trivial pass + the
+  assumed-not-verified load-bearing claim + the missing R2 independent verifier) and the v0.28.0 honesty
+  riders (no fabricated findings, severity-gated nit, confidence line + Unverified set), flipping both to
+  `verified-on-fixture 2026-06-28`. `/converge` and reproduction-required stay `unverified` — they need
+  two independent passes / a live run, recorded honestly rather than papered over.
+
+### Credits
+- The dogfood-the-claim / NOT-RUN-≠-pass framing adapts **idea-to-ship-skills** (nelsonwerd) and
+  **/ultrareview** (Anthropic, `/code-review ultra`) — reproduce-before-trust — applied **critically**:
+  the subject under test is ClaudeWarp's *own* reviewers, and an in-context pass is explicitly logged as
+  weaker evidence than a live run (both already credited in `docs/loop-harness.md`).
+
+### Docs
+- `docs/loop-harness.md` — added a "Behavioural-claim backlog (v0.31.0)" subsection (the controlled
+  vocabulary + the dogfood procedure + the honesty crux) after the reproduction-required section.
+
 ## [0.30.0] — 2026-06-28
 
 ### Added

@@ -1,0 +1,47 @@
+# FIXTURE — deliberately broken. DO NOT copy this as a real contract.
+# This is a dogfood target for tests/dogfood/RUNBOOK.md: a reviewer applying the
+# claude-warp-contract Phase 6 red-team / Skeptic charter is expected to BLOCK it.
+# Each planted defect is tagged `# PLANT[<row>]` with the charter row it should trip.
+kind: goal
+name: Add token validation to the auth module
+slug: auth-token-validation
+risk: R2                       # merge-gated — so the R2+ red-team charter applies in full
+
+scope:
+  may_touch:
+    - src/auth/                # PLANT[load-bearing-claim]: the action below assumes
+                               # src/auth/ already exports validateToken(); never verified
+                               # against the repo — an assumed, not-checked, load-bearing claim.
+  must_not_touch:
+    - src/payments/
+
+action: >
+  Extend the existing validateToken() export in src/auth/ to reject expired tokens.
+  (Assumes validateToken() already exists and is exported — drafted from memory, not read.)
+
+budget:
+  loop_max_usd: 5
+  step_max_budget_usd: 1
+  max_turns: 20
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "true"                # PLANT[trivially-passing-AC]: `true` ALWAYS exits 0. This
+                               # stop.check passes on an empty stub, a hardcoded value, or no
+                               # implementation at all — a check that can't fail proves nothing.
+
+verifier:
+  independent: false           # PLANT[independent-verifier-R2]: R2 is merge-gated and REQUIRES
+                               # an independent verifier; this self-grades. Reviewer bias.
+  mechanism: "the loop re-runs its own stop.check"
+
+# PLANT[non-reproducible-finding] (for the corroboration/reproduction scenario, RUNBOOK step 4):
+#   A first reviewer pass is scripted (in the runbook) to raise a blocking finding —
+#   "budget.loop_max_usd is missing" — which is FALSE: loop_max_usd: 5 is present above.
+#   A reproduction pass that actually reads the fixture cannot reproduce it, so under
+#   reproduction-required corroboration (v0.30.0) the finding must be DOWNGRADED to a
+#   non-blocking minor, never used to revert/block. This exercises the downgrade rule.
+
+decision_log:
+  - "Drafted quickly from memory to ship the auth fix."   # PLANT[intent-from-memory]
