@@ -1,50 +1,65 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Install ClaudeWarp as a Claude Code plugin
-slug: plugin-install
-risk: R1                                  # reversible writes: new manifest files + docs
+name: Honesty riders for ClaudeWarp review/verdict outputs (multi-lens analysis Option 1)
+slug: honesty-riders
+risk: R2
 
 scope:
   may_touch:
-    - .claude-plugin/plugin.json          # NEW — plugin manifest (repo root = the plugin)
-    - .claude-plugin/marketplace.json      # NEW — single-plugin marketplace catalog
-    - docs/install.md                      # document the new install path alongside curl
-    - README.md                            # mention plugin install option
-    - CHANGELOG.md                         # release entry
-    - VERSION                              # version bump
-  may_touch_conditional:
-    - skills/**/SKILL.md                   # slug audit ONLY — re-phrase user-facing literal
-                                           #   /claude-warp-* slugs namespace-neutrally; no logic changes
+    - skills/claude-warp-contract/SKILL.md          # Phase 6 critical-pass table + Phase 1.5 worth-it verdict
+    - skills/claude-warp-new-harness/SKILL.md        # Phase 5b QA evaluator output contract
+    - docs/loop-harness.md                           # document the riders + attribution
+    - CHANGELOG.md
+    - VERSION
+    - working/honesty-riders-verify.sh               # the independent verifier (gitignored scratch)
   must_not_touch:
-    - install.sh                           # curl path stays as-is (additive, not replacement)
-    - templates/
-    - .claude/                             # self-host symlinks unchanged
+    - "skills/claude-warp-new-harness/SKILL.md Phase 6 runner script (no parallel/panel plumbing)"
+    - "any new skill / --review-panel / fork / worktree runtime (those are Options 3/4, held)"
+    - scripts/verifier-lib.sh                         # reuse via source; do not modify its matcher
+    - "reproduction-required (Option 2.5) and red-team checker charter (Option 2) — separate batches"
 
 action: >
-  Add a Claude Code plugin packaging layer so ClaudeWarp is installable via
-  `/plugin marketplace add lucagattoni/Claude-Warp` + `/plugin install claude-warp@claude-warp`,
-  reusing the existing repo-root skills/ tree as the plugin's skill set, without removing the curl
-  install path. Audit user-facing literal command slugs so they read correctly under the plugin
-  namespace (/claude-warp:<skill>) AND the bare standalone form.
+  Add five honesty riders to ClaudeWarp's existing verdict-emitting surfaces — the contract Phase 6
+  critical pass, the new-harness QA evaluator, and the Phase 1.5 worth-it verdict — extending those
+  outputs (not adding any parallel review subsystem): (1) severity→verdict gating
+  [critical|major|minor|recommendation; only critical/major block]; (2) confidence-capped-by-verified-ratio
+  line; (3) anonymized-author rider; (4) anti-fabrication rule; (5) explicit "Unverified" set.
+
+# Tier scoping — RESOLVED at approval (recommended split; user confirmed 2026-06-28):
+#   severity-gating + confidence-cap + unverified-set  → apply at R2+ (advisory below R2; they attach to
+#       the R2+-mandatory QA evaluator and merge-gated verdicts — sub-R2 goals are not taxed with ceremony).
+#   anti-fabrication + anonymized-author               → apply at ALL tiers (free instruction text, no
+#       ceremony, pure honesty — no reason to gate them by risk).
 
 budget:
-  loop_max_usd: 5
-  step_max_budget_usd: 5
-  max_turns: 30
+  loop_max_usd: 0          # one-shot goal; no recurring spend
+  step_max_budget_usd: 3
+  max_turns: 40
 
 stop:
   verdict: PASS
   evidence: required
-  check: "claude plugin validate . && test -f .claude-plugin/plugin.json && test -f .claude-plugin/marketplace.json"
+  check: "bash working/honesty-riders-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/check-ai-residuals.sh --risk R2"
 
 verifier:
-  independent: false                       # R1 — commit-level evidence (validate exit 0) is sufficient
-  mechanism: "claude plugin validate ."
+  independent: true
+  mechanism: >
+    working/honesty-riders-verify.sh — sources scripts/verifier-lib.sh and asserts (via md_has) each of
+    the five riders is present at its named seam in both edited skills + the docs + a CHANGELOG entry +
+    bumped VERSION; verifier-lib.sh --self-test stays green; check-ai-residuals.sh --risk R2 clean.
+    Asserts only on TRACKED paths (the skills/docs), not the gitignored verifier itself. Known limitation:
+    these are LLM-instruction files, so the verifier greps that each rider's instruction is PRESENT — it
+    cannot execute the rider behaviour end-to-end (the accepted ceiling for instruction-file changes).
 
 surface_conditions:
-  - "Whether plugin namespacing (/claude-warp:claude-warp-new-goal) breaks cross-skill invocation enough to require editing skill bodies — resolved at negotiation: package-only + slug audit; bodies stay namespace-neutral."
+  - "Tier-scoping decision (all-tiers vs R2+ per rider) — RESOLVED: recommended split (gating/cap/unverified at R2+; anti-fabrication + anonymized-author all tiers)."
+
+escalation:
+  after_attempts: 3
 
 decision_log:
-  - "Repo root IS the plugin (single-plugin marketplace) rather than a nested plugins/ dir, because skills/ already sits at repo root in the <name>/SKILL.md layout a plugin expects — zero file movement."
-  - "Additive, not a replacement: curl install.sh stays. Plugin install exposes skills; curl install additionally runs /claude-warp-setup to materialise per-project CLAUDE.md + manifest."
-  - "Done-condition = package-only (validate + install + skills exposed) PLUS a user-facing slug audit; NOT a full rewrite of cross-skill calls to the namespace, which would break the standalone/curl path that uses bare names. Runtime cross-skill chaining relies on the model mapping bare-name instructions to namespaced skills."
+  - "kind=goal not harness: one coherent output-discipline change across 3 seams, single done-condition — not independent subplans."
+  - "R2 not R3: modifies merge-gating logic (the QA/critical-pass output contract) but is not prod-adjacent; independent verifier suffices, no human-approval step required."
+  - "Extends existing QA + Phase 6 + worth-it; explicitly NOT a panel (Options 3/4 held) — matches analysis §6bis 'extends, does not add parallel component', effort S."
+  - "Tier split RESOLVED (user, 2026-06-28): gating/cap/unverified at R2+ (avoid R0/R1 ceremony — the analysis's own anti-theater caution); anti-fabrication + anonymized-author free at all tiers."
+  - "Sources credited per credit-external-sources rule, by full name + author + link, where each mechanism lives (skill + docs + CHANGELOG): CCH TeamAgent Debate (Chachamaru127) → severity→verdict; idea-to-ship-skills/ITS (nelsonwerd) → confidence-cap; Karpathy LLM Council → /council → anonymized-author; brandonsimpson/devils-advocate → anti-fabrication + Unverified set."
