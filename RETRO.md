@@ -180,3 +180,23 @@ share it.
 3. Phase (worth-it) — **The validation track has reached real diminishing returns** — why: two of four claims are verified-live, the cheap fixture + the one cheap live run are done, and what remains (heavier two-pass dogfoods, or the held Options 3/4 builds) all carry genuine cost. Surface the fork with a clear recommendation rather than auto-continuing.
 
 ---
+
+## Retro: verifier-lib-not-has (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 7/7 done conditions met. v0.31.2 shipped.
+**Milestones:** 1 execution-log entry | rework: none
+
+### What worked
+- **A retro item became a one-batch goal cleanly.** #2 had been deferred three times as "nice but not urgent"; doing it the moment it became the cheapest worth-it option (rather than another two-pass budget spend) was the right read of diminishing returns. Clean contract→ship, no friction, no risk re-classification.
+- **The red-team caught the obvious trap before drafting the verifier.** A `not_has` verifier is the textbook trivially-passing case — `grep -q 'not_has' lib` passes even if the function is broken. Phase 6 forced the verifier to assert *behaviour* (0-on-absent, 1-on-present, chk-composition + the converse), and the self-test mirrors it. The discipline dogfooded itself on a feature *about* the dogfood machinery.
+- **The honesty wrinkle was documented, not hidden.** `not_has` is not fail-closed (missing file → absent-0); rather than quietly shipping an inconsistency with `has`/`md_has`, it's called out in the lib header, the docs bullet, and the decision_log — so a future author can't misread it as a presence guard.
+
+### What failed / friction
+- **None of substance** (structural: a small, well-scoped additive change). The only judgment call was whether a frictionless PATCH still warrants a full retro — it does for the ledger trail, but the analysis is necessarily thin; that's honest, not a gap.
+
+### Top 3 improvements
+1. Phase (worth-it / cadence) — **The validation + verifier-DX track is now genuinely complete for this cycle** — why: 2/4 claims verified-live, both cheap evidence runs done, and the last flagged DX item (not_has) shipped. What remains (two-pass live dogfoods for #3/#4, or the held Options 3/4) all carry real budget/scope cost. Stop and surface, don't manufacture another batch.
+2. verifier-lib — **`not_has` should now replace the inline inversion in the existing self-test cases** — why: the self-test still hand-rolls `[ "$(has …)" -ne 0 ] && echo 0 || echo 1` in ~6 places that `not_has` now formalizes; a follow-up could DRY them, but only if it doesn't weaken the "raw grep MISSES it" defect-demonstration (those assert a *defect*, not a clean absence — keep them legible). Low priority, legibility-gated.
+3. Phase (retro) — **A frictionless PATCH deserves a lean retro, not a skipped one** — why: the ledger trail matters more than the per-entry depth; recording "clean, no friction" honestly is the right outcome, and over-investing analysis in a trivial goal would be its own theater.
+
+---
