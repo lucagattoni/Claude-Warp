@@ -353,3 +353,25 @@ share it.
 3. Phase (retro hygiene) — **record the first-run-clean baseline again.** Two of the last three goals (mdhas-pattern-guard, devsh-hardening) were first-run clean; corroboration-rigor had one caught-and-fixed FAIL. The trend is healthy — the behaviour-leaning verifier + Phase-2 reads are holding. Keep measuring regressions against this.
 
 ---
+
+## Retro: dogfood-d5 (goal) — 2026-06-29
+
+**Outcome:** COMPLETE — 7/7 done conditions met
+**Milestones:** 2 execution-log entries (contract @ 2cd39b7, feat @ e573a52) | rework: none — `working/dogfood-d5-verify.sh` PASS (24/24), `dev.sh verify` 7/7 on the first run; the live D5 pass itself fired correctly on its first spawn.
+
+### What worked
+- **The honesty gate paid off: a claim flipped only because it actually fired.** Claim #5 sat `unverified` since v0.32.0 precisely so the flip would require a real spawned independent pass. D5 ran that pass (Sonnet, reasoning-blind, no hint which finding was true) and it produced the two-directional catch — `[CMD_CONFIRMED]` on the true finding, `[CMD_CONTRADICTED]` + critical→major demotion on the false one. The `unverified`-by-default discipline did exactly its job: it made the flip earned, not asserted.
+- **Two features dogfooded in one spawn.** Wrapping the D5 reproduction pass in `reviewer-guard.sh` exercised claim #5 (command-verification) AND gave the v0.32.0 read-only guard (#3) its first *live* run — `verify` returned "tree unchanged". One live pass, two pieces of evidence, zero extra cost.
+- **The v0.32.1 count-coherence guard caught its own intended target in real use.** Flipping #5 changed the registry count 4/5 → 5/5; `dev.sh` step-7 recomputed `5/5` from the headings and *required* it in both `BEHAVIOURAL-CLAIMS.md` and docs. The previous batch's hardening actively forced this batch to update both files in lockstep — the single-source discipline held against a real edit, not a synthetic test.
+- **Behaviour-leaning verifier asserted the recorded evidence, not just the status.** `dogfood-d5-verify.sh` checks the CMD tags, the demotion, `[pass-2 / sonnet]`, and the tree-unchanged line are all *written down* — so a future silent regression that flipped status without evidence would FAIL. Backlog integrity, not just backlog state.
+
+### What failed / friction
+- **None functional.** The live pass fired as predicted on the first spawn; the verifier and `dev.sh verify` were clean first-run.
+- **Process note (not a failure):** this batch was interrupted mid-flight by a user redirect (review `NEXT-PLAN.md`), then resumed. The staged-but-uncommitted working tree survived the detour cleanly because the edits were already complete and `dev.sh verify` was green before the pivot — but a longer detour could have left ambiguous half-state. Worth a habit: reach a green verifier checkpoint before context-switching.
+
+### Top 3 improvements
+1. Phase (meta) — **the backlog is now 5/5; define what "next" means for it.** Every instruction-only reviewer claim is `verified-live` (same-family). The honest next tier is **cross-vendor independence** (Decision 3a, explicitly held). The backlog should state plainly that 5/5 is the *same-family* ceiling and that a cross-vendor pass is a new, weaker-until-proven claim — so a future reader doesn't mistake 5/5 for "fully independent." (Largely already noted; make it a standing header, not buried in claim bodies.)
+2. Phase 1 (retro hygiene) — **the trivial-PATCH express lane is now thrice-flagged** (mdhas-pattern-guard, devsh-hardening, and this evidence-only batch). Three sub-rhythm-worth PATCHes have run the full contract→PR→release→retro ceremony. The recommendation stands and is overdue: a documented lighter path for `must_not_touch: skills/**` evidence/tooling/doc changes (keep branch + verifier + CI + release; collapse the contract to one line).
+3. Phase 2 (draft) — **add a green-checkpoint-before-pivot note to the contract execution discipline.** This batch survived a mid-flight redirect only because it was already at a green `dev.sh verify`. Codify it: when work must pause, drive to the nearest passing-verifier checkpoint first, so the working tree is never left in ambiguous half-state across a context switch.
+
+---
