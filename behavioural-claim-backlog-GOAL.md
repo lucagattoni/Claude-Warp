@@ -25,15 +25,15 @@ Three deliverables:
 
 ## Done conditions
 
-- [ ] `BEHAVIOURAL-CLAIMS.md` exists (tracked, root) with a controlled-vocabulary legend distinguishing `unverified` / `verified-on-fixture` / `verified-live`, and the honesty note that a fixture pass shows the instructions cause the catch — NOT that a live spawned agent catches it in prod
-- [ ] The four instruction-only features each seeded with: feature + version + behavioural claim + predicted catch on a planted defect + a status from the controlled vocabulary
-- [ ] `tests/dogfood/` holds a tracked, deliberately-broken contract fixture: a trivially-passing acceptance criterion AND a planted non-reproducible-finding scenario for corroboration
-- [ ] `tests/dogfood/` holds a runbook documenting how to run the reviewer charter against the fixture, record the result, and (optional) escalate to a live `claude -p` spawned-agent run — with the verified-on-fixture vs verified-live distinction stated
-- [ ] ONE in-context fixture-dogfood executed and recorded with an auditable evidence block: the planted defect, the specific catch the reviewer produced, which charter row / rule fired, and a pointer to the tracked fixture
-- [ ] ≥ 1 claim flipped to `verified-on-fixture <date>` on the strength of that evidence (and ONLY if the catch actually fired — a dogfood that didn't fire stays `unverified` with the negative result; surface, never paper over)
-- [ ] `docs/loop-harness.md` documents the backlog + dogfood procedure; credits idea-to-ship-skills (nelsonwerd) + /ultrareview (Anthropic) for the dogfood-the-claim / NOT-RUN-≠-pass framing, adapted critically
-- [ ] CHANGELOG `[0.31.0]` + VERSION → 0.31.0 (MINOR — new standing capability/registry)
-- [ ] `working/behavioural-claim-backlog-verify.sh` PASS (registry well-formed, vocabulary, fixture + runbook tracked, dogfood evidence block present + references the fixture, docs row, CHANGELOG, VERSION); verifier-lib --self-test green; dev.sh verify 6/6; check-ai-residuals --risk R1 advisory clean
+- [x] `BEHAVIOURAL-CLAIMS.md` exists (tracked, root) with a controlled-vocabulary legend distinguishing `unverified` / `verified-on-fixture` / `verified-live`, and the honesty note that a fixture pass shows the instructions cause the catch — NOT that a live spawned agent catches it in prod
+- [x] The four instruction-only features each seeded with: feature + version + behavioural claim + predicted catch on a planted defect + a status from the controlled vocabulary
+- [x] `tests/dogfood/` holds a tracked, deliberately-broken contract fixture: a trivially-passing acceptance criterion AND a planted non-reproducible-finding scenario for corroboration
+- [x] `tests/dogfood/` holds a runbook documenting how to run the reviewer charter against the fixture, record the result, and (optional) escalate to a live `claude -p` spawned-agent run — with the verified-on-fixture vs verified-live distinction stated
+- [x] ONE in-context fixture-dogfood executed and recorded with an auditable evidence block: the planted defect, the specific catch the reviewer produced, which charter row / rule fired, and a pointer to the tracked fixture
+- [x] ≥ 1 claim flipped to `verified-on-fixture <date>` on the strength of that evidence (and ONLY if the catch actually fired — a dogfood that didn't fire stays `unverified` with the negative result; surface, never paper over)
+- [x] `docs/loop-harness.md` documents the backlog + dogfood procedure; credits idea-to-ship-skills (nelsonwerd) + /ultrareview (Anthropic) for the dogfood-the-claim / NOT-RUN-≠-pass framing, adapted critically
+- [x] CHANGELOG `[0.31.0]` + VERSION → 0.31.0 (MINOR — new standing capability/registry)
+- [x] `working/behavioural-claim-backlog-verify.sh` PASS (registry well-formed, vocabulary, fixture + runbook tracked, dogfood evidence block present + references the fixture, docs row, CHANGELOG, VERSION); verifier-lib --self-test green; dev.sh verify 6/6; check-ai-residuals --risk R1 advisory clean
 
 ## Guardrails (must not touch)
 
@@ -61,3 +61,19 @@ check-ai-residuals --risk R1 (advisory).
   verified-on-fixture flip must carry an auditable evidence block (planted defect + catch + firing rule
   + tracked-fixture pointer), not the bare status string — a check that can't fail proves nothing.
   Branch `feat/behavioural-claim-backlog` cut from main (v0.30.0).
+- 2026-06-28 — Implemented. `BEHAVIOURAL-CLAIMS.md` (root, tracked): controlled-vocabulary legend
+  (`unverified` / `verified-on-fixture` / `verified-live`) + honesty crux + four features seeded
+  (claim + predicted-catch + status). `tests/dogfood/` (tracked): `trivially-passing-contract.yaml`
+  (every defect tagged `# PLANT[<row>]` — trivially-passing `stop.check: "true"`, assumed
+  `validateToken()`, missing R2 independent verifier, a scripted non-reproducible finding) +
+  `RUNBOOK.md` (the two verification levels, live run optional). **Dogfood D1 executed** — an
+  in-context red-team / Skeptic pass on the fixture, reasoning-blind: 1 critical + 2 major findings,
+  the **trivially-passing-AC catch fired** (predicted catch for the v0.29.0 charter), plus
+  load-bearing-claim + independent-verifier rows; honesty riders observed (no fabrication, nit gated
+  to minor, `confidence: 9/10`, Unverified set). Flipped **v0.29.0 red-team** + **v0.28.0 honesty
+  riders** to `verified-on-fixture 2026-06-28`; **/converge** + **v0.30.0 reproduction-required** kept
+  `unverified` (need two independent passes / a live run — recorded honestly, not papered over).
+  docs/loop-harness.md backlog subsection + CHANGELOG 0.31.0 + VERSION bump. Verifier
+  `working/behavioural-claim-backlog-verify.sh` PASS 47/47; verifier-lib --self-test green; dev.sh
+  verify 6/6; check-ai-residuals --risk R1 exit 0 (HIGH=0, 5 pre-existing MEDIUM, none from this diff).
+  STOP.CHECK chain PASS. COMPLETE 9/9.

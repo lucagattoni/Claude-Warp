@@ -144,6 +144,30 @@ different *in-house* model, not cross-vendor (Decision 3a, held — flip to it o
 shared-blind-spot bug class that survives reproduction). A downgrade or `uncorroborated` mark **Surfaces**
 a Type-B call; it never silently downgrades a human-gated decision.
 
+**Behavioural-claim backlog (v0.31.0).** The four reviewer features above (honesty riders, red-team
+charter, `/converge` reconcile, reproduction-required corroboration) are all **instruction-only** — a
+static `working/` verifier proves the charter *text is present*, never that the charter *fires* on a
+real defect. [`BEHAVIOURAL-CLAIMS.md`](../BEHAVIOURAL-CLAIMS.md) is the standing registry that keeps
+that gap visible: each feature is logged with the **behavioural claim** it makes, the **catch it
+predicts** on a planted defect, and a **status** from a controlled vocabulary that never conflates two
+strengths of evidence —
+
+| Status | Means | Strength |
+|---|---|---|
+| `unverified` | charter text present; no dogfood has produced the catch yet (the default) | present only |
+| `verified-on-fixture <date>` | an **in-context** reviewer pass applied the charter to the tracked fixture and the catch fired — proves *the instructions cause the catch* | medium |
+| `verified-live <date>` | a **real spawned independent agent** (`claude -p`, different in-house model, reasoning-blind) produced the catch — proves it *survives independence* | strong |
+
+The reproducible procedure is [`tests/dogfood/RUNBOOK.md`](../tests/dogfood/RUNBOOK.md) run against the
+tracked fixture [`tests/dogfood/trivially-passing-contract.yaml`](../tests/dogfood/trivially-passing-contract.yaml)
+— a deliberately broken contract whose every planted defect is tagged `# PLANT[<row>]` with the charter
+row it should trip. The honesty crux is the vocabulary itself: **a fixture pass is strictly weaker than
+a live pass and is never relabelled as one** (P6 applied to our own claims — NOT corroborated ≠
+corroborated). This **dogfoods the claim** rather than asserting it, adapting the NOT-RUN-≠-pass
+discipline of **idea-to-ship-skills** (nelsonwerd) and the reproduce-before-trust framing of
+**/ultrareview** (Anthropic) **critically** — here the subject under test is ClaudeWarp's *own*
+reviewers, and an in-context pass is explicitly logged as weaker evidence than a live run.
+
 ---
 
 ### `/claude-warp-new-goal "goal"`
