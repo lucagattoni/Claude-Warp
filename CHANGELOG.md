@@ -7,6 +7,18 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.32.1] — 2026-06-29
+
+### Changed
+- **`dev.sh verify` now runs seven deterministic checks (was six) — closes two gaps the v0.32.0 retro
+  flagged.** (1) `scripts/reviewer-guard.sh` is folded into step 6's "shared executables fail closed"
+  net (alongside `verifier-lib.sh` + `ledger.sh`), so the read-only integrity guard's `--self-test` is
+  gated by CI on every PR, not only when a per-PR verifier happens to invoke it. (2) New step 7 —
+  **behavioural-claim count coherence**: the `M/N` verified-live count is *computed from the registry*
+  (`BEHAVIOURAL-CLAIMS.md` claim headings) and asserted identical in the backlog and `docs/loop-harness.md`,
+  so a count update (like v0.32.0's `4/5`) can no longer half-land across files. No behavioural/charter
+  change — tooling hardening only.
+
 ## [0.32.0] — 2026-06-28
 
 ### Added
