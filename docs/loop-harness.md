@@ -589,10 +589,10 @@ consumer projects):
 |---|---|
 | `scripts/dev.sh selfhost` | Symlinks every skill into `.claude/skills/` so they run as live `/claude-warp-*` commands **in this repo** (next session). Single source of truth — editing `skills/X` updates the live command; symlinks are gitignored so the repo stays a pure distribution source. |
 | `scripts/dev.sh unhost` | Removes those symlinks. |
-| `scripts/dev.sh verify` | Six deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, docs coherence, and the shared-executable self-tests (`verifier-lib.sh` + `ledger.sh` each run their own `--self-test`). Exits non-zero on failure — suitable for CI. |
+| `scripts/dev.sh verify` | Seven deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, docs coherence, the shared-executable self-tests (`verifier-lib.sh` + `ledger.sh` + `reviewer-guard.sh` each run their own `--self-test`), and behavioural-claim count coherence (the `M/N` verified-live count is computed from the registry and asserted identical in `BEHAVIOURAL-CLAIMS.md` and this doc). Exits non-zero on failure — suitable for CI. |
 | `scripts/dev.sh verify --live` | Additionally runs the real `/claude-warp-setup` (`claude -p`) into a throwaway repo for full fidelity. Costs tokens; opt-in. |
 
-The non-`--live` `verify` runs in CI on every PR and on push to `main` (`.github/workflows/verify.yml`), so the six deterministic checks gate merges automatically.
+The non-`--live` `verify` runs in CI on every PR and on push to `main` (`.github/workflows/verify.yml`), so the seven deterministic checks gate merges automatically.
 
 **Self-host safety.** Every skill is safe to run in this self-hosted repo (which has no
 `harness-manifest.json`): the scaffolders (`new-loop`/`new-goal`/`new-harness`/`new-agent`)
