@@ -1,0 +1,26 @@
+kind: goal
+name: Add a health endpoint and document it
+slug: api-health-endpoint
+risk: R1
+
+scope:
+  may_touch:
+    - src/api/
+    - docs/api.md
+  must_not_touch:
+    - src/db/
+
+action: >
+  Add a GET /health endpoint in src/api/ that returns 200, and document it in docs/api.md.
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "test -f src/api/health.js"
+
+verifier:
+  independent: false
+  mechanism: "the stop.check confirms the endpoint file exists"
+
+decision_log:
+  - "Health endpoint requested for uptime monitoring; documentation keeps the API reference complete."

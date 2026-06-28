@@ -94,6 +94,29 @@ independent passes** (ideally the live `CLAUDEWARP_QA_MODEL` swap above) — a s
 playing both passes is theatre, so this claim stays `unverified` until a live run is done. Recording
 that limitation honestly *is* the deliverable.
 
+### 5b. Converge reconciliation dogfood (claim #3)
+
+Claim #3 (`/converge`) is **not** a reviewer-verdict mechanism — it reconciles **actual repo state
+against contract intent** and classifies gaps. To dogfood it, point a reviewer at the self-contained
+fixture tree [`converge-fixture/`](./converge-fixture/) and have them run the `/converge` procedure
+(goal mode, read-only) against its `contract.yaml`:
+
+```bash
+# (a) the claude -p CLI, on a different model, with the fixture as the repo root
+CLAUDEWARP_QA_MODEL=sonnet claude -p --model sonnet '/claude-warp-converge — reconcile the present
+state of tests/dogfood/converge-fixture/ against its contract.yaml. Run the stop.check, classify every
+gap (missing/partial/contradicts/unrequested) with a source_ref + severity, surface a must_not_touch
+contradiction as Type-B, and conclude converged or NOT. Reasoning-blind: you are not told the expected
+gaps.'
+```
+
+…or **(b)** a spawned subagent on `model: sonnet` (what Dogfood D3 used). The fixture is built so the
+`stop.check` **passes** (`src/api/health.js` exists) while a `must_not_touch` path is **violated**
+(`src/db/` modified) and a `may_touch` intent item is **missing** (`docs/api.md` absent) — so a correct
+reconciliation surfaces `contradicts` + `missing` and reports **NOT converged**, where a naive one
+declares done on the green `stop.check`. The fixture is **hint-stripped** (the D2 contamination guard):
+nothing in it names the gaps.
+
 ### 5. Update the backlog
 
 Write the evidence block and the new status into `BEHAVIOURAL-CLAIMS.md`. Future retros append here as

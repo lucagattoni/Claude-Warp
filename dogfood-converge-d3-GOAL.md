@@ -12,15 +12,15 @@ disagree", but `/converge` reconciles **actual repo state vs contract intent** a
 
 ## Done conditions
 
-- [ ] Claim #3 rewritten to the state-reconciler framing; **no "two reviewer verdicts" language remains**.
-- [ ] Backlog records the correction was caught by the D3 honesty gate (not silently overwritten).
-- [ ] A tracked `tests/dogfood/converge-fixture/` partial-satisfaction mini-repo: stop.check passes, a
+- [x] Claim #3 rewritten to the state-reconciler framing; **no "two reviewer verdicts" language remains**.
+- [x] Backlog records the correction was caught by the D3 honesty gate (not silently overwritten).
+- [x] A tracked `tests/dogfood/converge-fixture/` partial-satisfaction mini-repo: stop.check passes, a
       must_not_touch path violated, a may_touch intent item missing. Hint-stripped (no answer-leak tags).
-- [ ] A live independent reasoning-blind agent ran `/converge` on it; **Dogfood D3** records its actual
+- [x] A live independent reasoning-blind agent ran `/converge` on it; **Dogfood D3** records its actual
       classification output (contradicts? missing? did it refuse "converged"?).
-- [ ] Claim #3 flipped to `verified-live`/`verified-on-fixture` **iff** it honestly fired; else negative recorded + stays `unverified`.
-- [ ] `working/dogfood-converge-d3-verify.sh` asserts the correction + the recorded D3 catch (behaviour, not presence) + fixture tracked/hint-stripped/3 conditions; PASSES.
-- [ ] RUNBOOK + docs updated; CHANGELOG + VERSION; verifier-lib --self-test; dev.sh 6/6; residuals R1 HIGH=0.
+- [x] Claim #3 flipped to `verified-live`/`verified-on-fixture` **iff** it honestly fired; else negative recorded + stays `unverified`.
+- [x] `working/dogfood-converge-d3-verify.sh` asserts the correction + the recorded D3 catch (behaviour, not presence) + fixture tracked/hint-stripped/3 conditions; PASSES.
+- [x] RUNBOOK + docs updated; CHANGELOG + VERSION; verifier-lib --self-test; dev.sh 6/6; residuals R1 HIGH=0.
 
 ## Guardrails
 
@@ -34,4 +34,4 @@ disagree", but `/converge` reconciles **actual repo state vs contract intent** a
 
 ## Execution log
 
-- (pending implementation)
+- 2026-06-28 — Phase-2 honesty gate caught claim #3 mischaracterizing /converge (verdict-reconciler vs the real state-reconciler); corrected the claim, built tracked partial-satisfaction fixture (converge-fixture/), ran a live Sonnet /converge pass reasoning-blind. It independently classified the missing doc gap + the contradicts must_not_touch breach, surfaced the latter as Type-B, concluded NOT converged. Claim #3 flipped unverified -> verified-live 2026-06-28 (severity-rating caveat recorded). Verifier PASS; self-test; dev.sh 6/6; residuals R1 HIGH=0. COMPLETE 7/7.

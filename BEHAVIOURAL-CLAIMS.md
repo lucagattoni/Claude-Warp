@@ -75,18 +75,34 @@ backlog is to make that gap visible, not to paper over it.
   BLOCK, `confidence: 9/10`. The catch survived independence, not just self-review. **Flipped
   `verified-on-fixture` → `verified-live`.**
 
-### 3. `/converge` reconcile — v0.19.0 — STATUS: `unverified`
+### 3. `/converge` reconcile — v0.19.0 — STATUS: `verified-live 2026-06-28`
 
-- **Behavioural claim:** given two reviewer passes that **disagree**, `/converge` produces a single
-  reconciled verdict that **surfaces the dissent** (re-tickets the conflict) rather than silently
-  picking one side.
-- **Predicted catch:** feed two conflicting verdicts on the fixture → `/converge` records both, names
-  the conflict, and reconciles without dropping the minority finding.
-- **Why still `unverified`:** reconciliation needs **two genuinely independent passes** as input. A
-  single in-context agent generating both sides is theatre. Dogfood D2 ran **one** live spawned pass —
-  enough to flip the single-reviewer charters (#1, #2), but a consensus mechanism by definition needs
-  **two divergent** verdicts. Flips only when a second live pass is orchestrated to disagree — held
-  until then, honestly.
+- **⚠ Correction (D3 honesty gate, 2026-06-28):** this claim previously described `/converge` as
+  reconciling *"two reviewer passes that disagree"* into a verdict that *"surfaces the dissent"*. That
+  was a **mischaracterization** — caught by the Phase-2 mandatory read of
+  [`skills/claude-warp-converge/SKILL.md`](skills/claude-warp-converge/SKILL.md) while setting up the
+  D3 dogfood. `/converge` **never takes reviewer verdicts as input.** Per SKILL.md it reconciles
+  **actual repo state against contract intent**. The claim is restated below to match the real
+  mechanism; the prior framing is recorded here rather than silently overwritten (the catch is itself
+  evidence the gate works).
+- **Behavioural claim:** given a contract whose intent the tree only **partially** satisfies,
+  `/converge` reconciles the **actual repo state against the contract's intent** and classifies every
+  gap (`missing` / `partial` / `contradicts` / `unrequested`) with a nameable `source_ref` — it
+  **surfaces a `must_not_touch` contradiction as a Type-B decision** and **refuses to declare
+  "converged"** while any gap remains. It does **not** silently drop a gap because other checks pass.
+- **Predicted catch:** feed it a partial-satisfaction fixture where the `stop.check` **passes** but a
+  `scope.must_not_touch` path is **violated** and a `scope.may_touch` intent item is **missing** →
+  `/converge` must report the `contradicts` (under `⚠ SURFACE`) **and** the `missing`/`partial` gap,
+  and conclude **NOT converged** — where a naive reconciler would see the green `stop.check` and
+  declare done.
+- **Live evidence (Dogfood D3, below):** a spawned **Sonnet** agent (different in-house model,
+  reasoning-blind) ran `/converge` on the hint-stripped partial-satisfaction fixture and **independently**
+  classified the `missing` doc gap and the `contradicts` `must_not_touch` breach, **surfaced** the latter
+  as Type-B, and concluded **NOT converged** — *"the stop.check is green, but it covers only one of two
+  action clauses and cannot see the guardrail breach."* The catch fired under genuine independence →
+  flipped `unverified` → `verified-live 2026-06-28`. (Caveat recorded: it rated the contradicts severity
+  lower than the skill's "top severity" guidance, but still surfaced it correctly — the load-bearing
+  behaviour held.)
 
 ### 4. Reproduction-required corroboration — v0.30.0 — STATUS: `unverified`
 
@@ -164,3 +180,40 @@ backlog is to make that gap visible, not to paper over it.
   #3 (`/converge`) and #4 (reproduction-required) stay `unverified`: they are **two-pass** mechanisms,
   and one live pass — which raised no non-reproducible finding to downgrade and produced only one
   verdict to reconcile — cannot test them. Honest outcome recorded, not stretched.
+
+### Dogfood D3 — 2026-06-28 (verified-live, `/converge`)
+
+- **Why this run exists:** setting it up surfaced a **correction** — the Phase-2 mandatory read of
+  [`skills/claude-warp-converge/SKILL.md`](skills/claude-warp-converge/SKILL.md) revealed claim #3's
+  prior "two reviewer verdicts" framing was wrong (`/converge` reconciles **repo state vs contract
+  intent**, never reviewer verdicts). The claim was corrected (see §3) and the dogfood re-aimed at the
+  *real* mechanism. The honesty gate doing its job is itself part of the evidence.
+- **Procedure:** [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md) step 5b (live spawned pass,
+  `verified-live` level), goal mode (read-only — `/converge` reports, never writes, for a goal).
+- **Reviewer:** a **spawned Sonnet subagent** — a *different in-house model* from the Opus drafter,
+  **reasoning-blind** (given the `/converge` procedure + the fixture tree, never the expected gaps).
+- **Fixture:** [`tests/dogfood/converge-fixture/`](tests/dogfood/converge-fixture/) — a self-contained
+  mini-repo, **hint-stripped** (nothing names the gaps). By construction the `stop.check`
+  (`test -f src/api/health.js`) **passes**, while a `must_not_touch` path is **violated** (`src/db/`
+  modified) and a `may_touch` intent item is **missing** (`docs/api.md` absent).
+- **Classification the live agent produced (independently, no hints):**
+  - `missing` · `source_ref: action` (documentation clause): *"the `action` reads 'document it in
+    docs/api.md.' The file does not exist anywhere in the tree … the `stop.check` passes but it only
+    gates the endpoint file — the documentation obligation is wholly unmet."*
+  - `contradicts` · `source_ref: scope.must_not_touch:src/db/`: *"`src/db/schema.sql` … 'Added a sessions
+    table while wiring the endpoint' … direct admission that `src/db/` was modified … a guardrail
+    violation,"* **raised under `⚠ SURFACE — human decision required`** (Type-B, not auto-resolved).
+  - **Report header:** `Intent items : 4   satisfied: 2 … Gaps: missing 1 · contradicts 1 … ⚠ Surfaced: 1`.
+- **Honesty behaviour:** **no fabricated gaps** — it classified exactly the two real gaps, no invented
+  `unrequested` padding (anti-fabrication held). It ran the `stop.check` mechanically (exit 0) rather
+  than assuming, and explicitly noted the green check covers "only one of two action clauses."
+- **Verdict:** **NOT converged** — *"Two gaps block convergence … The stop.check is green, but it
+  covers only one of two action clauses and cannot see the guardrail breach."* The predicted catch
+  **fired under genuine independence** → claim **#3 flips `unverified` → `verified-live 2026-06-28`**.
+- **Caveat (recorded, not glossed):** the agent rated the `contradicts` severity `R0` where the skill
+  calls a `must_not_touch` breach top-severity. It still **surfaced** it as Type-B — the load-bearing
+  behaviour (surface, don't swallow) held; only the numeric severity was under-rated. A minor honest
+  blemish, not a failure of the catch.
+- **Remaining:** claim #4 (reproduction-required) stays `unverified` — a genuinely two-pass mechanism
+  (a finding raised in pass 1, reproduced-or-downgraded in pass 2) that needs an honestly non-reproducible
+  finding, which D2 showed is hard to engineer to order. Deferred, recorded honestly.

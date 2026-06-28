@@ -172,8 +172,15 @@ The first `verified-live` run (v0.31.1, backlog Dogfood D2) flipped the red-team
 riders to the strong status: a spawned **Sonnet** reviewer (different model from the Opus drafter,
 reasoning-blind, given the hint-stripped twin `contract-under-review.yaml`) independently named the
 `stop.check: "true"` trivial pass and BLOCKed — the catch survived independence, not just self-review.
-`/converge` and reproduction-required stay `unverified`: they are **two-pass** mechanisms a single live
-pass cannot exercise.
+A later live run (v0.31.3, **Dogfood D3**) flipped `/converge` to `verified-live` — but setting it up
+first **corrected** the backlog: the Phase-2 read of `skills/claude-warp-converge/SKILL.md` showed claim
+#3 had mischaracterized `/converge` as a *reviewer-verdict* reconciler when it actually reconciles **repo
+state vs contract intent**. Re-aimed at the real mechanism, a spawned Sonnet agent ran `/converge` on a
+hint-stripped partial-satisfaction fixture and independently caught the `missing` doc gap **and** the
+`contradicts` `must_not_touch` breach, surfaced the latter as Type-B, and reported **NOT converged** —
+the honesty gate both corrected a latent doc error and produced the live evidence. Only
+reproduction-required (#4) now stays `unverified`: it is a genuinely **two-pass** mechanism (a finding
+raised, then reproduced-or-downgraded) a single live pass cannot exercise.
 
 ---
 

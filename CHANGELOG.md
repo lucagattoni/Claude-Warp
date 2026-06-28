@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.3] — 2026-06-28
+
+### Fixed
+- **Corrected the `/converge` behavioural claim (#3) in `BEHAVIOURAL-CLAIMS.md`.** Setting up the D3
+  dogfood surfaced — via the contract Phase-2 mandatory read of `skills/claude-warp-converge/SKILL.md` —
+  that claim #3 had **mischaracterized** `/converge` as reconciling "two reviewer passes that disagree".
+  It does not: `/converge` reconciles **actual repo state against contract intent** and classifies gaps
+  (missing/partial/contradicts/unrequested). The claim is restated to the real mechanism; the prior
+  framing is recorded, not silently overwritten (the honesty gate catching it is itself evidence).
+
+### Added
+- **Second `verified-live` dogfood (D3) — `/converge` flips `unverified` → `verified-live`.** A spawned
+  **Sonnet** agent (different in-house model, reasoning-blind) ran `/converge` on a new tracked
+  hint-stripped partial-satisfaction fixture (`tests/dogfood/converge-fixture/`, where the `stop.check`
+  **passes** but a `must_not_touch` path is **violated** and a `may_touch` intent item is **missing**)
+  and **independently** classified the `missing` doc gap **and** the `contradicts` `must_not_touch`
+  breach, **surfaced** the latter as Type-B, and concluded **NOT converged** — *"the stop.check is green,
+  but it covers only one of two action clauses and cannot see the guardrail breach."* No fabricated gaps.
+  RUNBOOK step 5b documents the converge-dogfood procedure. Caveat recorded honestly: the agent rated the
+  contradicts severity below the skill's "top severity" guidance but still surfaced it correctly. Only
+  reproduction-required (#4) now remains `unverified` (a genuinely two-pass mechanism, deferred).
+
 ## [0.31.2] — 2026-06-28
 
 ### Added
