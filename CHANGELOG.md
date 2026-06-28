@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.5] — 2026-06-28
+
+### Fixed
+- **Encoded the `md_has` pattern-authoring rule in `scripts/verifier-lib.sh` (retro-sourced).** Writing
+  a verifier pattern with a `.` placeholder where a backtick used to sit — e.g. `'STATUS: .verified'`
+  for the rendered `` `verified` `` — silently fails, because `md_normalize` has *already stripped* the
+  backtick before grep runs, so the `.` demands a character that no longer exists. This `.`-for-a-
+  stripped-backtick slip cost first-run verifier FAILs in several consecutive dogfood batches. The fix
+  documents the rule where authors read it (a `⚠ Writing md_has PATTERNS` note in the header, surfaced
+  by `--help`) and **guards it with two new `--self-test` cases** (the normalized literal matches; the
+  `.`-placeholder pattern must NOT). No change to `has`/`md_has`/`not_has`/`chk` semantics — comment +
+  test only.
+
 ## [0.31.4] — 2026-06-28
 
 ### Added

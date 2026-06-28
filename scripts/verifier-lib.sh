@@ -29,6 +29,17 @@
 #   what matters use has/md_has (which fail closed on a missing file). not_has answers "is it gone?",
 #   not "does the file exist and lack it?".
 #
+# ⚠ Writing md_has PATTERNS — match the NORMALIZED text, not the markdown source. md_normalize has
+#   ALREADY stripped backticks and * / _ emphasis before grep runs, so an inline `code` span is just
+#   the bare word and **bold** is just the word. Do NOT put a `.` (or any placeholder) where a
+#   backtick/asterisk used to sit: to assert the rendered `STATUS: `verified`` you write
+#       md_has 'STATUS: verified'      ✅   (the literal normalized text)
+#   NOT md_has 'STATUS: .verified'     ❌   (the `.` now demands a character the stripped backtick no
+#                                            longer occupies, so the match silently FAILS).
+#   Literal multibyte punctuation survives normalization (— em-dash, → arrow, ✅), so match those
+#   literally too. This `.`-for-a-stripped-backtick slip cost first-run verifier FAILs in several
+#   batches; the --self-test below now guards the rule (a placeholder pattern must NOT match).
+#
 # Underscore handling is BOUNDARY-AWARE: a `_` is dropped only as part of a complete
 # `_word_` emphasis pair flanked by non-word chars. snake_case (`must_not_touch`),
 # leading-underscore identifiers (`_phase`), and `__dunder__` / `mcp__tool__` runs are all
@@ -125,6 +136,14 @@ verifier_lib_self_test() {
   printf 'the _alpha_ omega phrase appears here\n' > "$tmp/italic.md"
   chk "raw still MISSES _italic_-split"           "$([ "$(has    'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
   chk "md_has NOW finds _italic_-split phrase"    "$(md_has 'alpha omega' "$tmp/italic.md")"
+
+  # 8: PATTERN-AUTHORING guard — match the NORMALIZED text, never a `.` placeholder for a stripped
+  # backtick. md_normalize removes the backticks around `verified`, so the literal pattern matches but
+  # the `.`-for-backtick slip does NOT (it demands a char the stripped backtick no longer occupies).
+  # This is the recurring first-run-FAIL trap encoded as a live assert.
+  printf 'STATUS: `verified` today\n' > "$tmp/pat.md"
+  chk "md_has matches the NORMALIZED literal"      "$(md_has 'STATUS: verified today' "$tmp/pat.md")"
+  chk "the \`.\`-for-backtick placeholder FAILS"   "$([ "$(md_has 'STATUS: .verified' "$tmp/pat.md")" -ne 0 ] && echo 0 || echo 1)"
 
   if [ "$VL_PASS" -eq 1 ]; then echo "verifier-lib self-test: PASS"; return 0
   else echo "verifier-lib self-test: FAIL"; return 1; fi
