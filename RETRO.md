@@ -70,3 +70,25 @@ share it.
    this root cause has now recurred twice and will keep surfacing piecemeal otherwise.
 
 ---
+
+## Retro: md-has-italic-gap (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 9/9 done conditions met
+**Milestones:** 2 execution-log entries | rework: none (one mid-build design refinement, caught before any code was applied — not a redo of shipped work)
+
+### What worked
+- **Phase-2 pre-draft source read paid off concretely.** Reading `scripts/verifier-lib.sh` in full before drafting surfaced the `_phase` corruption risk *before* writing the regex — the pre-compaction design was a single-sided underscore strip, which would have silently broken leading-underscore identifiers (`_phase`, used by contract drafts). Upgraded to a complete-`_word_`-pair match. The mandatory read is what made this a design refinement instead of a post-merge bug.
+- **Two genuinely independent harnesses.** The independent verifier (`working/md-has-italic-gap-verify.sh`, 15/15) used fixtures *distinct* from the in-lib `--self-test`, so the change is asserted by two non-overlapping sets of inputs rather than the same literals twice.
+- **The recurring tax is retired.** This batch closed the `md_has` `_italic_`/soft-wrap false-negative that the previous FOUR retros each logged as a top friction item. Verifier authors no longer need to hand-anchor assertions on single-line tokens to dodge it.
+- **Boundary-aware fix is provably non-destructive.** Pair-matching (both delimiters flanked by non-word chars) means snake_case, `_phase`, and `__dunder__`/`mcp__` runs are preserved by construction — confirmed by regression asserts in both harnesses. Raw `has()` untouched.
+
+### What failed / friction
+- **A one-shot verifier that hard-pins a VERSION line is a latent false-positive.** (structural) The merged honesty-riders verifier asserted `VERSION==0.28.0`; the very next PATCH bumped to 0.28.1, so that verifier "failed" — not a regression (its 22 prose/rider asserts all still passed), purely a stale version pin. It briefly looked like my change broke an existing verifier. Resolved by reading the failure (only the pin line flipped), pruning the merged scratch per convention, and correcting the contract stop.check + GOAL done-condition that had referenced it.
+- **Cross-PR coupling via stop.check.** (structural) The contract's stop.check chained a *prior* PR's one-shot verifier as a non-regression gate. That conflated "my prose change is non-regressive" (valid) with "a frozen version pin still holds" (guaranteed to break on the next release). Per-PR verifiers are one-shot gates, not cross-PR regression suites.
+
+### Top 3 improvements
+1. **verifier-lib doc / convention — version asserts in per-PR verifiers must target the version that PR ships, and are pruned at merge — why:** a verifier that pins a soon-to-change VERSION becomes a guaranteed false-positive on the next PATCH. State the rule next to the `pr7` reference template so future verifiers don't carry a stale pin forward.
+2. **contract Phase 2 (stop.check design) — do not chain a prior PR's one-shot verifier as a non-regression gate — why:** non-regression should be proven by the library's own `--self-test` (which travels with the code) plus `dev.sh verify`, not by re-running a frozen scratch verifier whose assertions (version pins especially) are scoped to a different release. Couples PRs and produces misleading failures.
+3. **contract Phase 9 (materialise) — when a goal's `may_touch` lists a gitignored `working/` verifier, note it is auto-pruned at merge — why:** the prune-at-merge lifecycle of scratch verifiers is convention-only; surfacing it in the contract would have pre-empted the mid-batch scramble to prune the stale honesty-riders verifier and fix its two back-references.
+
+---
