@@ -1,47 +1,38 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Live two-pass dogfood of reproduction-required corroboration (claim #4)
-slug: dogfood-repro-d4
+name: Encode the md_has pattern-authoring rule in verifier-lib.sh (retro #2)
+slug: mdhas-pattern-guard
 risk: R1
 
 scope:
   may_touch:
-    - BEHAVIOURAL-CLAIMS.md           # flip claim #4 + add Dogfood D4 (gated on the honest live result)
-    - tests/dogfood/                  # add repro-fixture (pass-1 findings artifact) + RUNBOOK step
-    - docs/loop-harness.md            # note the D4 run
+    - scripts/verifier-lib.sh         # header note near md_has + two new --self-test guard cases
     - CHANGELOG.md
     - VERSION
     - working/                        # gitignored one-shot verifier
   must_not_touch:
-    - skills/claude-warp-new-harness  # the reproduction-pass charter is correct; do not edit the skill
-    - skills/claude-warp-contract     # not the mechanism under test
-    - "scripts/verifier-lib.sh has/md_has/chk/not_has semantics"
+    - "has/md_has/not_has/chk runtime SEMANTICS"   # comment + test only; no behaviour change
+    - md_normalize                                  # the normalizer logic is correct and unchanged
+    - BEHAVIOURAL-CLAIMS.md            # the backlog is closed at 4/4; this batch does not touch it
 
 action: >
-  Run the gold-standard live test of claim #4 (v0.30.0 reproduction-required corroboration). The
-  mechanism under test is the PASS-2 reproduction agent: a pass-1 blocking finding reverts only if
-  pass-2 reproduces it; an unreproduced blocking finding is DOWNGRADED to a non-blocking minor. Build a
-  realistic pass-1 findings artifact (input, analog of a planted defect) with two equally-confident
-  blocking findings against tests/dogfood/repro-fixture/contract-under-review.yaml — one TRUE-by-fixture
-  (stop.check "true" admits a trivial pass) and one FALSE-by-fixture (budget.loop_max_usd "missing" — it
-  is present: loop_max_usd 5) — labelled nowhere. Spawn a live independent pass-2 on a different in-house
-  model (Sonnet vs the Opus drafter), reasoning-blind, given only the charter + the artifact + pass-1's
-  findings. Flip #4 to verified-live ONLY if pass-2 honestly REPRODUCES the true finding (keeps it
-  blocking) and FAILS to reproduce the false one (downgrades it to minor), with [pass-2/model] provenance.
-  Record the negative honestly and leave #4 unverified if it rubber-stamps the false finding.
+  Encode the recurring md_has pattern-authoring rule where verifier-authors read it: a `.` placeholder
+  for a backtick md_normalize already STRIPS silently fails the match. Add a ⚠ note to the verifier-lib
+  header (surfaced by --help) and TWO --self-test guard cases — the normalized literal matches; the
+  `.`-placeholder pattern must NOT — without changing has/md_has/not_has/chk semantics. This closes the
+  D4-retro #2 improvement (the trap cost first-run FAILs in several consecutive batches).
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/dogfood-repro-d4-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  check: "bash working/mdhas-pattern-guard-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
-  independent: false                  # R1; the LIVE pass-2 agent IS the independent reproduction pass being recorded
-  mechanism: "working/ verifier (asserts the recorded pass-2 catch: reproduced-true-kept + non-reproduced-false-downgraded + provenance) + verifier-lib --self-test + dev.sh verify 6/6 + check-ai-residuals --risk R1"
+  independent: false
+  mechanism: "working/ verifier (asserts the header note + both guard self-test cases + CHANGELOG/VERSION) + verifier-lib --self-test (proves the guard fires) + dev.sh verify 6/6 + residuals R1"
 
 decision_log:
-  - "Mechanism scope (P6 honesty): v0.30.0's reproduction-required logic lives in the PASS-2 reproduction agent — that is what claim #4 asserts. So the live test makes pass-2 the spawned independent agent; pass-1 is a constructed-but-realistic findings artifact (the INPUT), the reproduction-pass analog of a planted-defect fixture. This is recorded plainly: pass-1 was scripted input, pass-2 (the mechanism) was live. The flip earns verified-live for the reproduce/downgrade behaviour with that scope honestly stated — not for a fully-autonomous two-live-agent chain (Decision 3a panel still held)."
-  - "Why a constructed pass-1 (not a second live agent): the downgrade is only exercised if pass-1 raises a non-reproducible blocking finding; a free live pass-1 might raise only true findings (D2's live pass correctly marked budget CLEAN, leaving nothing to downgrade). A planted FALSE finding in pass-1 is the analog of a planted defect in a contract — controlled + reproducible. The honesty is preserved because pass-2 is told nothing about which finding is sound and must re-derive each from the artifact itself."
-  - "Two-directional test (rigor): pass-1 carries TWO blocking findings — A true-by-fixture (check: true), B false-by-fixture (loop_max_usd: 5 present). The catch fires only if pass-2 KEEPS A blocking (reproduced) AND DOWNGRADES B to minor (not reproduced). Downgrading everything, or rubber-stamping B, both fail — so the test cannot be passed by a lazy agent, only by one that actually reads the artifact."
-  - "Red-team (Phase 6): the verifier asserts the RECORDED behaviour (A reproduced/kept + B not-reproduced/downgraded + [pass-2/sonnet] provenance + reasoning-blind), not merely a D4 heading. If pass-2 fails, #4 stays unverified and the verifier asserts the status still reads unverified. not_has guards that the fixture's pass-1 artifact does not label which finding is true."
-  - "R1: adds a tracked fixture + flips a tracked evidence doc; touches NO merge-gating skill (the charter in claude-warp-new-harness is correct and unchanged). MINOR-or-PATCH: evidence only, no new capability — PATCH."
+  - "Source: D4 retro improvement #2 — the `.`-for-a-stripped-backtick slip cost first-run verifier FAILs in three consecutive batches (D3, twice in D4). The lesson lived only in RETRO.md; nothing put it where a verifier-author hits it BEFORE writing patterns. Fix = a header note (rendered by --help) + a live self-test guard, so the rule is enforced, not just documented."
+  - "Scope discipline: comment + test ONLY. md_normalize and the has/md_has/not_has/chk matchers are unchanged — the self-test still passes its existing 0–7 cases, and the two new case-8 asserts prove the literal matches while the placeholder fails. No behavioural drift to any existing verifier."
+  - "Red-team (Phase 6): a presence-only check ('the note exists') would pass even if the guard didn't fire. The working verifier instead asserts the self-test PASSES (so the guard's placeholder-FAILS assertion actually held) AND that the case-8 lines exist — behaviour, not mere presence."
+  - "R1 PATCH: a doc + test change to a non-merge-gating helper; the backlog stays closed at 4/4 (untouched). User chose this (option A) and to pause at the milestone after."
