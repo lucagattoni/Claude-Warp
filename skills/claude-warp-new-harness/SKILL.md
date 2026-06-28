@@ -343,6 +343,11 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 #!/usr/bin/env bash
 # Two-part harness runner for: <HARNESS_NAME>
 # Usage: bash scripts/run-<HARNESS_SLUG>.sh [--retry] [--with-qa] [--parallel-waves] [--converge]
+#                 [--approve-plan] [--plan-approved]
+# --approve-plan    Force the decomposition approval gate even below R2 (it is already REQUIRED at
+#                   R2+). The runner prints the proposed task breakdown and STOPS before executing.
+# --plan-approved   Grant approval for the surfaced decomposition; the runner proceeds to execute.
+#                   (Equivalent: CLAUDEWARP_PLAN_APPROVED=1.)
 # --retry           Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails. Auto-enabled and
@@ -510,6 +515,38 @@ if [ "$TASK_COUNT" -eq 0 ]; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: initializer failed — aborting." >> "$LOG"
     exit 1
   fi
+fi
+
+# ── Step 1b: Decomposition approval gate ──────────────────────────────────────
+# Before the factory spends budget, surface the proposed breakdown for the operator to review.
+# Risk-scaled by the SAME threshold that makes QA non-overridable: REQUIRED at R2+, opt-in below
+# via --approve-plan. Grant approval by re-running with --plan-approved (or CLAUDEWARP_PLAN_APPROVED=1).
+# Non-interactive by design: an unattended/scheduled harness STOPS here (exit 0, zero coding work)
+# until a human approves. features.json persists, so the approved re-run skips the initializer
+# (TASK_COUNT>0) and proceeds straight to execution.
+APPROVE_PLAN=0       # force the gate even below R2
+PLAN_APPROVED=0      # operator has reviewed and approved this decomposition
+for arg in "$@"; do
+  [[ "$arg" == "--approve-plan" ]] && APPROVE_PLAN=1
+  [[ "$arg" == "--plan-approved" ]] && PLAN_APPROVED=1
+done
+[ "${CLAUDEWARP_PLAN_APPROVED:-0}" = "1" ] && PLAN_APPROVED=1
+
+GATE_REQUIRED=0
+case "$RISK" in R2|R3|R4|R5) GATE_REQUIRED=1 ;; esac   # mirrors the QA R2+ rule above
+[ "$APPROVE_PLAN" -eq 1 ] && GATE_REQUIRED=1
+
+if [ "$GATE_REQUIRED" -eq 1 ] && [ "$PLAN_APPROVED" -eq 0 ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] Decomposition approval gate (risk $RISK) — review the proposed breakdown:" | tee -a "$LOG"
+  python3 -c "
+import json
+d=json.load(open('$FEATURES'))
+for t in sorted(d['tasks'], key=lambda t:(t.get('wave',1), t.get('id',0))):
+    dep=t.get('depends_on') or []
+    print('  wave %s | #%-3s %s%s' % (t.get('wave',1), t.get('id'), t.get('title',''), (' [depends_on: %s]' % dep) if dep else ''))
+" 2>/dev/null | tee -a "$LOG"
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] STOP: plan not approved — no work executed. Approve with: bash $0 --plan-approved (plus your original flags), or CLAUDEWARP_PLAN_APPROVED=1." | tee -a "$LOG"
+  exit 0
 fi
 
 # ── Step 2: Coding loop ───────────────────────────────────────────────────────

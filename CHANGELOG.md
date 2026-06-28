@@ -7,12 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-06-28
+
+### Added
+- **Decomposition approval gate** in the harness runner (`claude-warp-new-harness` Phase 6). Between
+  the initializer and the coding loop, the runner surfaces the proposed task breakdown
+  (wave / id / title / `depends_on`) and **stops for operator review before any budget is spent
+  executing it**. Risk-scaled by the same threshold that makes QA non-overridable: **required at
+  R2+**, opt-in below via `--approve-plan`. Approve by re-running with `--plan-approved` (or
+  `CLAUDEWARP_PLAN_APPROVED=1`); `features.json` persists so the re-run skips the initializer and
+  proceeds. Non-interactive by design — a scheduled/unattended harness never auto-executes an
+  unreviewed decomposition. Fires on the initial decomposition only, not on a `--retry` re-init.
+
 ### CI
 - **`.github/workflows/verify.yml`** — run `scripts/dev.sh verify` (the deterministic, non-`--live`
   path) on every pull request and on push to `main`, so the six checks gate merges automatically
-  instead of relying on the operator. README gains a `verify` status badge. CI config is chore/meta,
-  so it stays here in `[Unreleased]` until folded into the next functional release's notes — no
-  version bump of its own.
+  instead of relying on the operator. README gains a `verify` status badge.
 - **`actionlint` job** in the same workflow — lints every workflow file (first-party
   `docker://rhysd/actionlint`, pinned by tag) on each PR and push, catching malformed expressions,
   bad keys, and `run:`-script shellcheck issues that GitHub's runtime parser accepts silently.
