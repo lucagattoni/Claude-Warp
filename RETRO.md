@@ -200,3 +200,46 @@ share it.
 3. Phase (retro) — **A frictionless PATCH deserves a lean retro, not a skipped one** — why: the ledger trail matters more than the per-entry depth; recording "clean, no friction" honestly is the right outcome, and over-investing analysis in a trivial goal would be its own theater.
 
 ---
+
+## Retro: dogfood-converge-d3 (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 7/7 done conditions met
+**Milestones:** 1 execution-log entry | rework: none (the "two-verdict" claim correction was the *point* of the batch, not rework of this batch's own output)
+
+### What worked
+- **The honesty gate paid for itself a second time.** The contract's Phase-2 mandatory source read
+  (`skills/claude-warp-converge/SKILL.md`) caught that claim #3 had been factually wrong in the backlog
+  for four releases — describing `/converge` as a reviewer-verdict reconciler when it reconciles repo
+  state vs intent. Setting up a dogfood *corrected a latent doc defect* before producing any evidence.
+- **Live D3 fired cleanly under genuine independence.** A spawned Sonnet agent (different model,
+  reasoning-blind) classified both designed gaps (`missing` doc, `contradicts` must_not_touch), surfaced
+  the breach as Type-B, and reported NOT converged — with no fabricated gaps. The predicted catch held.
+- **The behaviour-not-presence verifier discipline carried over.** The working verifier asserts the
+  *recorded catch* (the agent named both gaps + NOT-converged) and the fixture's three designed
+  conditions, with `not_has` guarding the hint-strip — not a grep that a banner string merely exists.
+
+### What failed / friction
+- **My verifier regex over-anticipated backticks (3 FAILs on first run).** I wrote patterns with a `.`
+  placeholder for backticks that `md_has` strips, so `STATUS: .verified-live` never matched
+  `STATUS: verified-live`. Structural: easy to repeat whenever asserting against markdown that
+  `md_has` normalizes. The content was correct; only the patterns were wrong.
+- **The agent under-rated the contradicts severity (R0 vs the skill's "top severity").** It still
+  *surfaced* the breach (the load-bearing behaviour), but the numeric severity diverged. A real, if
+  minor, honesty blemish — recorded, not glossed.
+- **A housekeeping push to main was correctly blocked mid-flow.** The combined merge+prune+tag script
+  tried to push the prune commit direct-to-main; the classifier refused the whole script. No harm, but
+  it cost a round-trip — the prune should have been planned as a PR from the start.
+
+### Top 3 improvements
+1. Phase 2 (verifier authoring) — when asserting via `md_has`, write patterns against the *normalized*
+   text (backticks/emphasis already stripped); never add a `.` placeholder for a backtick `md_has`
+   removes — why: it caused all 3 first-run FAILs this batch and is a repeatable trap.
+2. Phase 9/10 (ship choreography) — never combine a PR-merge with a direct-to-main housekeeping push in
+   one script; plan the post-merge prune as its own PR up front — why: the classifier (correctly) refuses
+   the mixed script, wasting a round-trip every time.
+3. Phase 6 (red-team) — when a dogfood's evidence is a live agent's *severity rating*, assert only the
+   load-bearing behaviour (did it surface?) and record numeric-severity divergence as a caveat, not a
+   pass/fail — why: severity is a judgment call; gating on it would make the dogfood brittle and tempt
+   relabelling.
+
+---
