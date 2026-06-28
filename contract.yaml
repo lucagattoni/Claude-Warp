@@ -1,57 +1,64 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Close the md_has _italic_/soft-wrap gap in verifier-lib.sh (boundary-aware underscore stripping)
-slug: md-has-italic-gap
+name: Red-team / Skeptic charter + reasoning-blind discipline on the independent reviewers (Option 2)
+slug: red-team-checker
 risk: R2
 
 scope:
   may_touch:
-    - scripts/verifier-lib.sh                         # md_normalize: strip single-underscore emphasis, boundary-aware; flip the KNOWN-GAP self-test
-    - docs/loop-harness.md                            # update the verifier-lib doc (gap now closed)
+    - skills/claude-warp-contract/SKILL.md            # Phase 6: upgrade the R3+ checker spawn charter + add 2 red-team checklist rows
+    - skills/claude-warp-new-harness/SKILL.md          # QA evaluator persona: add the Skeptic/red-team charter; DOER/CHECKER spawn: same charter
+    - docs/loop-harness.md                             # document the red-team discipline + extend the prior-art table (agent-review-panel row)
     - CHANGELOG.md
     - VERSION
-    - working/md-has-italic-gap-verify.sh             # independent verifier (gitignored scratch)
+    - working/red-team-checker-verify.sh               # independent verifier (gitignored scratch)
   must_not_touch:
-    - "the has() raw-grep matcher (unchanged idiom) — only md_normalize/md_has behaviour changes"
-    - "snake_case + __dunder__ preservation — these MUST still survive normalization (regression guard)"
-    - "any per-PR verifier under working/ — they keep working unchanged (strictly more permissive)"
+    - "the honesty riders shipped in v0.28.0 — the red-team charter is ADDED alongside them, not a rewrite (anti-fabrication, anonymized-author, severity gating, confidence cap, Unverified set stay verbatim)"
+    - "any NEW parallel review runtime (no --review-panel, no fork/worktree plumbing — that is Option 3, held)"
+    - "the worth-it gate / Phase 1.5 (untouched — Option 2 is a reviewer discipline, not a planning-side change)"
 
 action: >
-  Make md_normalize strip SINGLE-underscore `_italic_` emphasis markers in a boundary-aware way — a `_`
-  is stripped only when it is NOT flanked by alphanumerics on both sides (so emphasis delimiters go but
-  snake_case `must_not_touch` and `__dunder__`/`mcp__tool__` runs are preserved). Update the two
-  KNOWN-GAP self-test asserts to expect md_has now FINDS an underscore-split phrase, and add a
-  regression assert that dunders survive. Raw has() is untouched.
+  Give ClaudeWarp's two independent reviewers a Skeptic / red-team charter and an explicit
+  reasoning-blind framing. (1) contract Phase 6 R3+ checker: upgrade its spawn charter from "raises
+  blocking findings" to "try to BREAK it — which acceptance criteria / stop.check admit a
+  trivially-passing implementation (empty stub, hardcoded value, a check that always exits 0)? which
+  load-bearing claim is unverified?", state it judges the artifact + repo NOT the drafting
+  conversation's reasoning, and add two red-team rows to the critical-pass checklist. (2) new-harness
+  QA evaluator + optional DOER/CHECKER: add the same Skeptic charter, incl. agent-review-panel's
+  control-validation ("a check that cannot fail proves nothing — confirm each passing cmd: would FAIL
+  on a deliberately broken implementation"). Riders from v0.28.0 are untouched; this is additive.
 
 budget:
   loop_max_usd: 0
-  step_max_budget_usd: 2
-  max_turns: 30
+  step_max_budget_usd: 3
+  max_turns: 40
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/md-has-italic-gap-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  check: "bash working/red-team-checker-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify && bash scripts/check-ai-residuals.sh --risk R2"
 
 verifier:
   independent: true
   mechanism: >
-    working/md-has-italic-gap-verify.sh — builds its OWN fixtures (a phrase split by _italic_ emphasis,
-    a snake_case token, a __dunder__/mcp__ token, a true-negative) and asserts md_has behaviour through
-    the public function, independent of the in-lib self-test. PLUS verifier-lib --self-test (behavioural
-    spec) green and dev.sh verify 6/6. Non-regression was confirmed against the (now-merged) honesty-riders
-    verifier: all 22 of its prose/rider assertions still passed under the new md_normalize; only its
-    hard-coded VERSION==0.28.0 pin flipped (correctly, since this PATCH bumps to 0.28.1). That one-shot
-    verifier was then pruned per the merged-PR scratch convention.
+    working/red-team-checker-verify.sh — sources scripts/verifier-lib.sh and asserts (md_has on prose)
+    that each charter element is PRESENT at BOTH reviewer seams: the Skeptic/try-to-break framing, the
+    trivially-passing-AC check, the unverified-load-bearing-claim check, the reasoning-blind framing,
+    and the control-validation rule; plus the four external-source credits (CCH, devils-advocate,
+    /council, agent-review-panel) at each place the mechanism lives, the docs prior-art row, the
+    CHANGELOG 0.29.0 entry, and VERSION. Cross-checked by verifier-lib --self-test, dev.sh verify 6/6,
+    and check-ai-residuals --risk R2 (blocking) clean.
 
 surface_conditions:
-  - "Direct-fix vs opt-in md_has_loose — RESOLVED (direct boundary-aware fix; opt-in perpetuates author-must-remember, the very tax the retro flagged). Not user-blocking; recorded here."
+  - "Seam scope (one checker vs both reviewers) — RESOLVED: BOTH. The analysis §6bis (lines 471–472) states Options 1/2/2.5 are disciplines that apply to BOTH seams; the 'one checker' phrasing meant 'no NEW parallel checker' (vs Option 3), not a limit on which existing reviewers get the discipline. User delegated the call ('help me decide'); recorded here."
 
 escalation:
   after_attempts: 3
 
 decision_log:
-  - "kind=goal not harness: one focused change to one library function + its self-test/docs."
-  - "R2 not R1: verifier-lib is the matcher every merge-gating verifier sources; a false-positive regression here could pass a merge that should fail. Independent verifier with its own fixtures required."
-  - "Direct fix to md_has, NOT a new opt-in md_has_loose (retro's suggestion): opt-in repeats the 'author must remember' fragility the retro itself criticised. Boundary-aware stripping is monotonically more permissive on emphasis only — it cannot break a currently-passing assertion, and snake_case/dunders are provably preserved by the both-sides-alnum rule."
-  - "PATCH (v0.28.1): repairs a documented limitation (the KNOWN GAP) — a bug fix to a component, not a new capability."
+  - "kind=goal not harness: one coherent discipline added across two existing reviewer spawn-charters + docs; single done-bar (every charter element present at both seams)."
+  - "R2 not R3: edits the contract skill (the negotiation spine every PR traverses) and the new-harness QA evaluator (mandatory at R2+). A regression that garbles a reviewer charter weakens merge-gating review, so an independent verifier asserting each element at both seams is required."
+  - "Both reviewer seams, not just the contract checker: analysis §6bis explicitly maps Options 1/2/2.5 to BOTH seams (disciplines). Option 1's honesty riders already span both; scoping Option 2 narrower would split the disciplines asymmetrically and leave the harness CODE reviewer — where 'trivially-passing AC' is most directly applicable — without red-team teeth."
+  - "MINOR (v0.29.0): adds a new reviewer capability/discipline (red-team charter + control-validation), not a bug fix. Stacked on v0.28.1."
+  - "Reasoning-blind is named, not newly built at R3+: the contract checker is ALREADY a fresh subagent that never sees the conversation — Option 2 makes that independence an explicit, deliberate charter line (devils-advocate) rather than an implicit side effect, and extends the spirit to the QA evaluator (set aside the worker's self-justification)."
+  - "Adapt critically: the red-team charter must still route Type-B judgment calls to Surface (a 'trivially-passing AC' that is actually a deliberate human-gated decision is surfaced, not auto-failed); same-model reasoning-blind neutralizes author-bias, NOT a shared model-family blind spot (that is Option 2.5, held)."
