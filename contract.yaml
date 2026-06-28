@@ -1,37 +1,43 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Add a not_has absence-assert helper to verifier-lib.sh
-slug: verifier-lib-not-has
+name: Correct the /converge claim (#3) + live D3 dogfood of its real behaviour
+slug: dogfood-converge-d3
 risk: R1
 
 scope:
   may_touch:
-    - scripts/verifier-lib.sh        # add not_has() + a self-test case
-    - docs/loop-harness.md           # add not_has to the helper enumeration
+    - BEHAVIOURAL-CLAIMS.md           # rewrite claim #3 to the state-reconciler framing + add Dogfood D3
+    - tests/dogfood/                  # add the converge partial-satisfaction fixture + RUNBOOK step
+    - docs/loop-harness.md            # note the D3 run + the claim-#3 correction
     - CHANGELOG.md
     - VERSION
-    - working/                       # gitignored one-shot verifier
+    - working/                        # gitignored one-shot verifier
   must_not_touch:
-    - skills/                        # no merge-gating skill logic
-    - "has()/md_has()/chk() semantics"   # additive only — do not alter existing matchers
+    - skills/claude-warp-converge     # the SKILL is correct; the BACKLOG was wrong — do not edit the skill
+    - "claim #4 (reproduction-required)"   # genuinely two-pass; deferred, not in scope
+    - "scripts/verifier-lib.sh has/md_has/chk/not_has semantics"
 
 action: >
-  Add not_has <pat> <file> to scripts/verifier-lib.sh — the inverse of has, echoing rc 0 when the
-  pattern is ABSENT and rc 1 when present, so it composes with chk exactly like has/md_has. Add a
-  --self-test case proving 0-on-absent / 1-on-present and chk composition; add a not_has bullet to
-  the docs helper list; CHANGELOG + VERSION (PATCH).
+  Correct claim #3 in BEHAVIOURAL-CLAIMS.md — /converge reconciles ACTUAL REPO STATE vs CONTRACT
+  INTENT and classifies gaps (missing/partial/contradicts/unrequested), it does NOT reconcile two
+  reviewer verdicts (the prior framing was wrong per skills/claude-warp-converge/SKILL.md:3) — then
+  run a live D3 dogfood: spawn an independent reasoning-blind agent to /converge a partial-satisfaction
+  fixture (stop.check passes, a must_not_touch path violated, a may_touch intent item missing) and flip
+  #3 to verified-live ONLY if it honestly classifies contradicts + missing and refuses to declare
+  converged. Record the negative honestly if it does not.
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash scripts/verifier-lib.sh --self-test && bash working/verifier-lib-not-has-verify.sh && bash scripts/dev.sh verify"
+  check: "bash working/dogfood-converge-d3-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
-  independent: false                 # R1 dev-tooling; self-test + working verifier are the gate
-  mechanism: "verifier-lib --self-test (now incl. not_has cases) + working/ behavioural verifier + dev.sh verify 6/6 + check-ai-residuals --risk R1"
+  independent: false                  # R1; the LIVE D3 agent IS the independent pass being recorded
+  mechanism: "working/ verifier (asserts the correction landed + the D3 catches are recorded) + verifier-lib --self-test + dev.sh verify 6/6 + check-ai-residuals --risk R1"
 
 decision_log:
-  - "not_has formalizes the inline `[ \"$(has …)\" -ne 0 ] && echo 0 || echo 1` idiom repeated ~6x in the self-test and rolled by hand in the v0.31.1 D2 verifier — a shared absence-assert, not new capability."
-  - "Red-team (Phase 6): a presence-only verifier (grep -q 'not_has' lib) would TRIVIALLY PASS even if not_has were broken. The working verifier and the --self-test case therefore assert BEHAVIOUR — not_has echoes 0 on an absent pattern, 1 on a present one, and a chk built on it flips VL_PASS correctly — a check an empty stub cannot pass."
-  - "Implemented as the literal inverse of has (grep -qiE; invert rc) so over a missing file — where grep finds nothing — not_has reports ABSENT=0. Documented as the one wrinkle: not_has over a missing file passes (the pattern is trivially absent); use has/md_has fail-closed when presence is what matters."
-  - "R1 not R2: additive change to dev-only, non-merge-gating tooling; existing has/md_has/chk semantics untouched (regression-guarded by the unchanged self-test cases). PATCH per the SemVer rule (a dev-tooling component addition)."
+  - "DISCOVERY via the Phase-2 honesty-gate read: claim #3 described /converge as reconciling 'two reviewer passes that disagree' — factually wrong. SKILL.md:3 says it reconciles repo-state vs contract-intent and classifies gaps. The whole 'spawn 2 divergent reviewers' plan was invalid; correcting the claim is the honest deliverable, and dogfooding the REAL mechanism is the valid live test."
+  - "Honesty (don't silently overwrite): the backlog records that the prior framing was a mischaracterization caught by the D3 gate, rather than quietly swapping the text — the correction itself is evidence the gate works. Historical D1/D2 log entries are left intact (record of what was believed then); only the forward-looking claim-#3 section is corrected, with a Correction note."
+  - "Fixture design (genuine judgment split, not the broken fixture): a self-contained mini-repo under tests/dogfood/converge-fixture/ where (a) stop.check passes (src/api/health.js exists), (b) a must_not_touch path is violated (src/db/ modified), (c) a may_touch intent item is missing (docs/api.md absent). A naive reconciler says 'stop.check green -> converged'; the correct one surfaces contradicts + missing. Hint-stripped per the D2 contamination guard."
+  - "Red-team (Phase 6): the verifier must assert the LIVE catch fired (agent named contradicts + missing AND did not declare converged), not merely that a D3 heading exists — a presence-only check would pass even if the agent had rubber-stamped. not_has guards that no answer-leak tags remain in the fixture. If the agent does NOT fire, #3 stays unverified and the verifier asserts the status still reads unverified — the flip is gated on the honest result."
+  - "R1: edits a tracked evidence doc + adds tracked fixtures; /converge is read-only of source; no merge-gating skill touched. PATCH (evidence + a doc-correctness fix)."
