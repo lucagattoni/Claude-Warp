@@ -7,6 +7,41 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-06-28
+
+### Added
+- **Red-team / Skeptic charter on the independent reviewers (Option 2 of the multi-lens-review design).**
+  The two places ClaudeWarp spawns an independent reviewer now carry a "try to **break** it, not confirm
+  it" charter, additive to the v0.28.0 honesty riders:
+  - **`skills/claude-warp-contract/SKILL.md` Phase 6** — the R3+ checker spawn charter is upgraded from
+    "raises blocking findings" to a red-team brief (which acceptance criteria / `stop.check` admit a
+    trivially-passing implementation — empty stub, hardcoded value, a check that always exits 0? which
+    load-bearing claim was assumed, not verified?), made explicitly **reasoning-blind** (judges
+    `contract.yaml` + repo, not the drafting conversation's reasoning) and a **single fresh-context
+    pass** (no debate loop). Two red-team rows are added to the critical-pass checklist.
+  - **`skills/claude-warp-new-harness/SKILL.md`** — the QA evaluator persona gains the same Skeptic
+    charter including **control-validation** (a passing `cmd:` must be confirmed to FAIL on a broken
+    implementation — *a check that can't fail proves nothing*), and the optional DOER/CHECKER spawn
+    prompt gains the red-team brief.
+
+  A clean red-team result is valid (anti-fabrication still binds — no manufactured breaks); a
+  "trivially-passing AC" that is actually a deliberate human-gated decision **Surfaces** as a Type-B
+  call, never auto-fails. Same-model reasoning-blind neutralizes author-bias, not a shared model-family
+  blind spot (that is Option 2.5, held). Strengthens the reviewers already spawned — it does **not** add
+  a parallel review panel (Option 3, held).
+
+### Credits
+- Adapts external prior art, credited where each mechanism lives (the skills, `docs/loop-harness.md`):
+  **CCH TeamAgent Debate** (Chachamaru127) — the Skeptic / try-to-break charter + trivially-passing-AC
+  check; **brandonsimpson/devils-advocate** (MIT) — reasoning-blind grading; **agent-review-panel**
+  (wan-huiyan) — control-validation; **Karpathy LLM Council** → **/council** — the single fresh-context
+  pass.
+
+### Docs
+- `docs/loop-harness.md` documents the red-team charter (element × seam × source table) and extends the
+  prior-art acknowledgements table with the **agent-review-panel** (wan-huiyan) row plus the v0.29.0
+  influence on the CCH, devils-advocate, and llm-council rows.
+
 ## [0.28.1] — 2026-06-28
 
 ### Fixed

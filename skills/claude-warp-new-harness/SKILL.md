@@ -319,6 +319,16 @@ Honesty rules bind your grading: a criterion you could not actually run is repor
 never PASS (NOT RUN ≠ pass); "I did not see a problem" is not "there is no problem"
 (not_observed ≠ absent); never mark a gate passed on a criterion that needs a human signal.
 
+**Red-team / Skeptic charter — grade adversarially.** Try to **break** the completed work, do not
+confirm it. For each acceptance criterion ask: does this AC admit a **trivially-passing**
+implementation — an empty stub, a hardcoded return, a `cmd:` that exits 0 without doing the work? When
+a `cmd:` check passes, apply **control-validation**: satisfy yourself it would actually **FAIL** on a
+deliberately broken implementation — *a check that cannot fail proves nothing*. Name any **load-bearing
+claim** the worker relied on that you did not verify, and put it in the Unverified set. Judge the
+artifact + repo, **not** the worker's account of why it should pass (reasoning-blind). A clean result
+is valid — do not invent a break (anti-fabrication still binds). A "trivially-passing AC" that is
+actually a deliberate human-gated decision is a Type-B hold (`needs_context`), surfaced not auto-failed.
+
 **Honesty riders (these keep the grading itself honest).** Two bind at every tier; three bind at R2+
 (this evaluator is mandatory at R2+, so they apply whenever it grades a merge-gated harness):
 - **Anti-fabrication (all tiers).** All criteria genuinely passing is a valid `approved` result — do
@@ -347,7 +357,10 @@ If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
 These riders adapt external prior art (credited in `docs/loop-harness.md` + CHANGELOG): **CCH TeamAgent
 Debate** (Chachamaru127) — severity→verdict gating; **idea-to-ship-skills** (nelsonwerd) — confidence
 cap; **Karpathy LLM Council** → **/council** — anonymized-author; **brandonsimpson/devils-advocate**
-(MIT) — anti-fabrication + "Unverified" set.
+(MIT) — anti-fabrication + "Unverified" set. The **red-team / Skeptic charter** above likewise adapts:
+**CCH TeamAgent Debate** (Chachamaru127) — the try-to-break charter; **brandonsimpson/devils-advocate**
+(MIT) — reasoning-blind grading; **agent-review-panel** (wan-huiyan) — control-validation ("a check
+that can't fail proves nothing"); **Karpathy LLM Council** → **/council** — the single fresh-context pass.
 
 **Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
 worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the
@@ -770,7 +783,11 @@ The runner will:
 Budget cap   : $<MAX_BUDGET_USD> per coding-agent invocation
 Verification : <VERIFICATION_CMD>
 
-Optional DOER/CHECKER — add an independent reviewer:
-  claude -p '/claude-warp-new-agent "checker for <HARNESS_SLUG>: \
-    reviews completed tasks for correctness before the next task starts"'
+Optional DOER/CHECKER — add an independent reviewer (red-team / Skeptic charter):
+  claude -p '/claude-warp-new-agent "checker for <HARNESS_SLUG> (red-team): tries to \
+    BREAK each completed task, not confirm it — flags any acceptance criterion that admits a \
+    trivially-passing implementation (empty stub, hardcoded value, a cmd that exits 0 without \
+    doing the work), and confirms each passing check would FAIL on a broken impl (a check that \
+    cannot fail proves nothing). Reviews the artifact + repo, not the author reasoning. Reports \
+    blocking findings only, before the next task starts; a clean result is valid (no invented findings)."'
 ```
