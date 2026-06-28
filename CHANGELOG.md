@@ -5,6 +5,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.23.1] — 2026-06-28
+
+**Contract-hardening — draft from the code, not from memory of it** (PR9; from PR8's retro). Fixes a
+negotiation defect that just cost real work: `/claude-warp-contract` Phase 2 drafted "a complete
+contract from the goal alone", with no step to read the current source of files the contract would
+*modify* — which is how PR8 came to spec an already-done residuals retrofit, caught only mid-build.
+
+### Changed
+- **`skills/claude-warp-contract/SKILL.md` Phase 2** — added a **mandatory pre-draft read step**: for
+  every `may_touch` file that already exists (a *modify*, not a new file), read its current source
+  before drafting `action`/`scope`, at **any** risk level. New files are exempt. The cost is trivial
+  (you read the file to edit it anyway) and it is the cheapest guard against drafting from a stale
+  assumption. Risk-independent on purpose — the blind-draft defect is not risk-correlated.
+
+### Added
+- **`scripts/verifier-lib.sh` — `_italic_` known-gap self-test.** Two new asserts prove the documented
+  limit: because `_`/`__` are deliberately left intact (snake_case safety), a phrase split by
+  underscore emphasis is missed by **both** `has` and `md_has`. The boundary is now tested, not just
+  commented — if a future change starts stripping `_`, the asserts flip. Self-test: 9 → 11 checks.
+
+### Docs
+- **`docs/loop-harness.md`** — documented the forward convention (new per-PR verifiers
+  `source scripts/verifier-lib.sh`; `working/pr7-verify.sh` is the reference template) and the
+  `_italic_` known gap. Explicitly did **not** migrate the dead `pr1`–`pr6` verifiers (gitignored
+  scratch for merged PRs — churn for no value).
+
 ## [0.23.0] — 2026-06-28
 
 **Shared markdown-aware verifier matcher** (tooling-debt PR7). Retires a false-negative that bit four

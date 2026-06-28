@@ -90,9 +90,17 @@ Write the result into the draft's `worth_it` block (schema below). Non-fuzzy pla
 
 ## Phase 2 — Draft-first
 
-Draft a **complete** contract from the goal alone, filling every field with your best
-guess (mark guesses with `# GUESS`). Draft-first is deliberate: the user reacts to a
-concrete artifact rather than answering into a void.
+**First, read what you're about to change.** Before drafting, identify the files the change will
+touch and **read the current source of every one that already exists** — a *modify*, not a new
+file. This is **mandatory for every modify at any risk level**: the cost is trivial (you will read
+the file to edit it anyway) and it is the cheapest guard against the most expensive negotiation
+defect — drafting `action`/`scope` from an *assumption* about what the code does, then discovering
+mid-build that the change is already present, differently shaped, or impossible. A *new* file is
+exempt (there is nothing to read). Draft from the code, not from your memory of it.
+
+Then draft a **complete** contract, filling every field with your best guess (mark guesses with
+`# GUESS`). Draft-first is deliberate: the user reacts to a concrete artifact rather than answering
+into a void.
 
 Write it to `contract.draft.yaml` (schema below) with `_phase: 2`.
 
