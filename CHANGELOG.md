@@ -5,6 +5,15 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [Unreleased]
+
+### CI
+- **`.github/workflows/verify.yml`** — run `scripts/dev.sh verify` (the deterministic, non-`--live`
+  path) on every pull request and on push to `main`, so the six checks gate merges automatically
+  instead of relying on the operator. README gains a `verify` status badge. CI config is chore/meta,
+  so it stays here in `[Unreleased]` until folded into the next functional release's notes — no
+  version bump of its own.
+
 ## [0.24.2] — 2026-06-28
 
 **Retro-hardening batch** (PR12) — four accumulated retro improvements (PR9 + PR10) that sharpen the

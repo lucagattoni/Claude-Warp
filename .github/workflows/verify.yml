@@ -1,0 +1,29 @@
+name: verify
+
+# Enforce the deterministic source + install-contract checks on every PR and on push to main,
+# so `scripts/dev.sh verify` is a merge gate, not just an operator habit. Runs the default
+# deterministic path only — the live path invokes the real `claude` CLI (auth + tokens), which
+# is unsuitable for CI.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python (the only non-coreutils dependency dev.sh verify needs)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run scripts/dev.sh verify
+        run: bash scripts/dev.sh verify

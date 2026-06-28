@@ -459,6 +459,8 @@ consumer projects):
 | `scripts/dev.sh verify` | Six deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, docs coherence, and the shared-executable self-tests (`verifier-lib.sh` + `ledger.sh` each run their own `--self-test`). Exits non-zero on failure — suitable for CI. |
 | `scripts/dev.sh verify --live` | Additionally runs the real `/claude-warp-setup` (`claude -p`) into a throwaway repo for full fidelity. Costs tokens; opt-in. |
 
+The non-`--live` `verify` runs in CI on every PR and on push to `main` (`.github/workflows/verify.yml`), so the six deterministic checks gate merges automatically.
+
 **Self-host safety.** Every skill is safe to run in this self-hosted repo (which has no
 `harness-manifest.json`): the scaffolders (`new-loop`/`new-goal`/`new-harness`/`new-agent`)
 skip manifest registration when it is absent (the artifact still works; `inventory` finds it by
