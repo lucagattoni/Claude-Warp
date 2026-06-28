@@ -5,6 +5,46 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.24.0] — 2026-06-28
+
+**Persistent cross-session ledger — `/claude-warp-ledger`** (PR10; gap #3's unbuilt half). Closure
+events used to die with the context window: once a session ended, "what shipped / what was surfaced /
+what a converge pass reconciled" was gone. This adds a queryable, append-only ledger that survives
+across sessions — the "what happened, in order" complement to the memory system (which holds semantic
+facts, not dated events) and to native cross-run loop state (a loop's own run cursor).
+
+Negotiated as a `kind: goal` (R2): the naive "wire writes into every closure skill" design was partly
+unconstitutional — `/claude-warp-release` and `/claude-warp-converge` are read-only (P2) and cannot
+acquire side write-paths — so the write is centralized in one skill and the read-only skills only
+*print* a record command.
+
+### Added
+- **`scripts/ledger.sh`** — the executable core (`record` / `query` / `--self-test`). Append-only
+  `.claudewarp/ledger.jsonl`, one JSON object per line. `query` filters by `--kind/--slug/--event/--since`
+  and renders a table or (`--raw`) jsonl for `jq`. **Logic lives in the script, not in prose**, so it is
+  deterministic and self-testable — a 12-assert `--self-test` exercises the record→query round-trip,
+  append-only preservation, self-init, empty-query-no-error, fail-closed required args, and quote/newline
+  injection safety. **Self-host safe (P4):** `record` self-creates `.claudewarp/`; `query` over a
+  missing/empty ledger prints `(ledger empty)` and exits 0 — no manifest required.
+- **`skills/claude-warp-ledger/SKILL.md`** — thin wrapper documenting the verbs and delegating to the
+  script; states the boundary against the memory system and native cross-run state.
+
+### Changed
+- **`skills/claude-warp-retro/SKILL.md`** — after writing `RETRO.md`, retro now records a `converged`
+  closure event to the ledger (retro already writes files, so this stays within its remit). New Phase 6;
+  the old summary print is now Phase 7.
+- **`skills/claude-warp-release/SKILL.md`** — the PASS "Next" block now prints a ready-to-run
+  `ledger record … --event shipped` command. **Printed, never run** — releasing stays a Surface and the
+  gate stays read-only (P2).
+- **`skills/claude-warp-converge/SKILL.md`** — the report now prints a ready-to-run
+  `ledger record … --event converged` command. **Printed, never run** — converge only writes the feature
+  list; appending to the ledger is a separate write it does not take (P2).
+
+### Docs
+- **`docs/loop-harness.md`** — new `### /claude-warp-ledger` section (storage, verbs, the
+  memory/cross-run-state boundary, who records); retro's step list gains the ledger-record step.
+- **`README.md`** — Skills-table row for `/claude-warp-ledger`.
+
 ## [0.23.1] — 2026-06-28
 
 **Contract-hardening — draft from the code, not from memory of it** (PR9; from PR8's retro). Fixes a

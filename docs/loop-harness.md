@@ -314,9 +314,43 @@ does not modify any loop/goal files (RETRO.md is the only output).
 3. Scans last 10 dated sections for verdict distribution and recurring failures
 4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts
 5. Appends a dated entry to `RETRO.md` with top 3 concrete improvements
-6. Prints improvements inline
+6. Records the retrospective as a `converged` event in the cross-session ledger (see
+   `/claude-warp-ledger`) so it is queryable across sessions
+7. Prints improvements inline
 
 Install path: `skills/claude-warp-retro/SKILL.md`
+
+---
+
+### `/claude-warp-ledger`
+
+Persistent, cross-session **closure ledger** — the queryable "what happened, in order" half of
+closure (COMPETITIVE-FINDINGS gap #3) that a single context window can't hold. A thin wrapper over
+the executable `scripts/ledger.sh` (so the behaviour is deterministic and self-testable via
+`bash scripts/ledger.sh --self-test`, not re-interpreted from prose).
+
+- **`record`** appends one structured closure event — `bash scripts/ledger.sh record --kind
+  <goal|loop|harness> --slug <slug> --event <shipped|surfaced|converged|parked|blocked>
+  [--version X.Y.Z] [--verdict …] [--surfaced …] [--note …]`. `--kind/--slug/--event` are required
+  (fails closed without them).
+- **`query`** reads them back filtered by `--kind/--slug/--event/--since`, rendering a table or
+  (with `--raw`) verbatim jsonl for `jq`.
+
+Storage is `.claudewarp/ledger.jsonl` — one JSON object per line, **append-only** (mirrors
+converge's ethos, git-merge-friendly). JSON-lines, not a markdown summary, so `query` filters on
+structured fields and never greps markdown — the false-negative class `scripts/verifier-lib.sh`
+exists to avoid.
+
+It is **not** the memory system (semantic facts/preferences) and **not** native cross-run loop
+state (a loop's run cursor): the ledger logs dated *closure events* across all kinds. **Self-host
+safe (P4):** `record` self-creates `.claudewarp/`; `query` over a missing/empty ledger prints
+`(ledger empty)` and exits 0 — no manifest required.
+
+**Who records:** `/claude-warp-retro` records automatically after writing `RETRO.md`;
+`/claude-warp-release` and `/claude-warp-converge` stay strictly read-only (P2) and only **print** a
+ready-to-run `record` command — they never write the ledger themselves.
+
+Install path: `skills/claude-warp-ledger/SKILL.md`
 
 ---
 

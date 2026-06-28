@@ -85,6 +85,7 @@ claude -p "/claude-warp-update"
 | `/claude-warp-new-hook "description"` | Scaffold a hook (8 patterns): verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer |
 | `/claude-warp-inventory` | Self-inspect installed skills, agents, hooks, loops — report versions and health issues |
 | `/claude-warp-retro "slug"` | Retrospective on a loop — what worked, what failed, top 3 improvements; writes RETRO.md |
+| `/claude-warp-ledger` | Persistent cross-session closure ledger — `record`/`query` closure events (shipped/surfaced/converged) in append-only `.claudewarp/ledger.jsonl`; the queryable "what happened, in order" that survives across sessions (over executable `scripts/ledger.sh`) |
 | `/claude-warp-sync` | Prune harness components superseded by Claude Code |
 | `/claude-warp-update` | Pull the latest ClaudeWarp skills from GitHub |
 | `/claude-warp-sync-research` | Scan Claude-Loops and GitHub for new patterns; implement findings automatically |

@@ -122,10 +122,13 @@ Next (run only when the verdict is PASS and any WARN is resolved):
   git tag -a v<NEW_VERSION> -m "<NEW_VERSION> — <headline>"
   git push origin v<NEW_VERSION>
   gh release create v<NEW_VERSION> --title "…" --notes "…"
+  bash scripts/ledger.sh record --kind goal --slug <slug> --event shipped \
+       --version <NEW_VERSION> --note "<headline>"   # log the release to the cross-session ledger
 ```
 
 On BLOCK, name every failing boundary and the concrete fix; do **not** print the release commands as
 runnable (the gate has not passed). On a not-applicable repo, the single not-applicable line + exit 0.
+The ledger line is **printed, never run** — releasing stays a Surface and the gate stays read-only (P2).
 
 ## Notes
 
