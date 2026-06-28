@@ -159,3 +159,24 @@ share it.
 3. Phase (worth-it / fork) — **The cheap-evidence track is now also exhausting — next is genuinely a fork** — why: the disciplines (Options 1/2/2.5) AND their first fixture-level evidence are shipped. What remains is (a) the live-run validation above, (b) held Options 3 (review panel — `--review-panel`/fork/worktree plumbing) / 4 (deep-dive plan mode), both heavier "hold"-flagged builds. No clearly-correct autonomous next build remains; surface the choice with live-run-first as the recommendation.
 
 ---
+
+## Retro: behavioural-claim-backlog — verified-live iteration (D2) — 2026-06-28
+
+**Outcome:** v0.31.1 shipped — 2 claims flipped `verified-on-fixture` → `verified-live` via one live spawned pass; 2 remain `unverified` (two-pass mechanisms).
+**Milestones:** 1 execution-log entry (Dogfood D2) | rework: none
+
+### What worked
+- **The charter fired under genuine independence.** A spawned Sonnet reviewer (different model, reasoning-blind, no hints) independently named the `stop.check: "true"` trivial pass + the assumed `validateToken()` claim + the self-grading tautology, BLOCK @ 9/10 — converting the strongest honesty claim (verified-live) from empty to real. The whole present→fires arc now has its capstone evidence, not just a fixture proxy.
+- **Anti-fabrication held under independence**, the hardest rider to prove: the live reviewer marked budget CLEAN rather than inventing a sixth finding when it had every incentive to look thorough.
+- **The verifier caught my own contamination.** The `no-PLANT-tags` honesty assert on the hint-stripped twin failed because my own header comment leaked the literal `PLANT[` — the dogfood-the-dogfood check worked, and the guard is now both tracked (the twin) and mandated (RUNBOOK step 3).
+
+### What failed / friction
+- **The honest verdict capped the win at 2 of 4.** /converge and reproduction-required are two-pass mechanisms; one live pass produced one verdict and no non-reproducible finding, so neither could be tested. The vocabulary forced this to be recorded as `unverified` rather than rounded up — correct, but it means the live-evidence story is half-done.
+- **Engineering a non-reproducible finding on demand is hard** (structural): testing reproduction-required's *downgrade* needs pass-1 to raise a finding pass-2 won't reproduce — but a competent reviewer won't raise a false finding to order. The scripted "budget missing" plant was correctly ignored by the live reviewer. A genuine two-pass test needs a subtler ambiguity, not a planted falsehood.
+
+### Top 3 improvements
+1. Phase (dogfood / fork) — **Decide whether the two-pass dogfoods are worth their cost before building them** — why: flipping #3/#4 to verified-live needs ≥2 spawned passes each, more budget, and (for #4) a hard-to-engineer genuinely-ambiguous finding. This is no longer a cheap obvious continuation; it is a real worth-it call for the user, not an autonomous build.
+2. verifier-lib — **Add a `not_has` / absence-assert helper to `scripts/verifier-lib.sh`** — why: D2 needed an "assert pattern ABSENT" check (the hint-stripped honesty guard) and had to define `not_has` inline; it is generally useful (asserting a residual was removed, a placeholder filled) and belongs in the shared lib next to `has`/`md_has`. Now the third verifier-DX item flagged across retros.
+3. Phase (worth-it) — **The validation track has reached real diminishing returns** — why: two of four claims are verified-live, the cheap fixture + the one cheap live run are done, and what remains (heavier two-pass dogfoods, or the held Options 3/4 builds) all carry genuine cost. Surface the fork with a clear recommendation rather than auto-continuing.
+
+---
