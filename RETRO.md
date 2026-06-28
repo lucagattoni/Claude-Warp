@@ -92,3 +92,25 @@ share it.
 3. **contract Phase 9 (materialise) — when a goal's `may_touch` lists a gitignored `working/` verifier, note it is auto-pruned at merge — why:** the prune-at-merge lifecycle of scratch verifiers is convention-only; surfacing it in the contract would have pre-empted the mid-batch scramble to prune the stale honesty-riders verifier and fix its two back-references.
 
 ---
+
+## Retro: red-team-checker (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 9/9 done conditions met
+**Milestones:** 2 execution-log entries | rework: none (one scoping fork resolved before drafting)
+
+### What worked
+- **The prior batch's fix paid off one batch later — dogfooded in anger.** v0.28.1 closed the `md_has` `_italic_`/soft-wrap gap; *this* verifier (`red-team-checker-verify.sh`, 31/31) asserted soft-wrapped prose (`a check that cannot fail proves nothing`, wrapped across physical lines) and asterisk-italic emphasis **directly**, with zero hand-anchoring on single-line tokens. The exact friction the last *four* retros logged is now gone — confirmed by use, not just by self-test. This is the clearest evidence yet that closing a tooling tax compounds: the next builder (here, the same loop one step later) simply doesn't pay it.
+- **A delegated decision was resolved by re-reading the source, not by guessing.** The user answered the scoping question with "help me decide." Rather than default, I re-read analysis §6bis (lines 471–472) and found it *explicitly* states Options 1/2/2.5 apply to both seams — so "both reviewers" was the analysis-faithful reading all along, and the table's "one checker" was about *not adding a parallel checker* (Option 3), not a scope limit. The delegation became a research task with a definite answer.
+- **Phase-2 pre-draft source read of both seams → zero mid-build surprises** (now a four-batch streak). Reading the contract Phase 6 checker + the new-harness QA evaluator/DOER-CHECKER before drafting placed each charter element correctly the first time and confirmed the v0.28.0 riders' exact location so they could be preserved verbatim.
+- **Additive-not-rewrite was made a verifier assertion.** The verifier explicitly checks the v0.28.0 honesty riders still exist at both seams, so "I added the red-team charter without clobbering the riders" is proven, not asserted.
+
+### What failed / friction
+- **The accepted static-verifier ceiling held again.** (structural) The three edited files are LLM-instruction files, so the verifier proves each charter element is *present*, not that the red-team behaviour *fires*. The analysis's success_metric for Option 2 — "the R3+ checker produces ≥1 trivially-passing-AC or unverified-load-bearing-claim catch on a real contract" — is only confirmable in live dogfooding. This is the same ceiling logged for Option 1 and converge PR3; it is not a defect, but it means three consecutive instruction-only features now carry an unmeasured behavioural claim.
+- **No second source-read for the "help me decide" answer was budgeted up front.** (minor) The scoping question was sent to the user before I had fully exploited the analysis; the answer ("both, per §6bis") was already determinable from the document. The question was still worth asking (blast-radius fork), but a tighter pass would have cited §6bis *in* the question rather than discovering it after.
+
+### Top 3 improvements
+1. **A live dogf/verification ledger entry per instruction-only feature — why:** three features (honesty riders, red-team charter, +converge) now assert behaviour that only live use can confirm. A standing "behavioural-claim backlog" (one ledger line: feature → the catch it predicts → unverified-until-dogfooded) would stop the unmeasured claims from silently accumulating, and give the next real R3+ contract a checklist of behaviours to watch the checker actually produce.
+2. **contract Phase 4 (interview) — when a scoping question's answer is determinable from a cited source, cite it *in* the question — why:** the "one checker vs both" fork was answerable from analysis §6bis; surfacing that line inside the AskUserQuestion would have let the user ratify the analysis-faithful reading in one step instead of delegating. Ask with the evidence attached, not just the options.
+3. **Option 2.5 (reproduction-required) is now the highest-value next build — why:** Options 1+2 have loaded the reviewers with disciplines but every one is same-model; the analysis flags the shared model-family blind spot as the remaining gap, and 2.5 (a finding must be reproduced before it blocks; a PASS must be corroborated) is the cheapest independence proxy that doesn't need cross-vendor wiring. The disciplines are in place — independence is the missing axis.
+
+---
