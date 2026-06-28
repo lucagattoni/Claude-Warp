@@ -2,6 +2,8 @@
 
 > The loop harness for Claude Code. Scaffold, guard, and schedule autonomous loops in any project.
 
+[![verify](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg)](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml)
+
 ---
 
 ## What it is
