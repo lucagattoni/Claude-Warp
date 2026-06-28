@@ -466,15 +466,27 @@ chk "documents the no-target case" "$(md_has 'no existing target code'    skills
 - **`chk <label> <rc>`** — the assertion printer; both matchers echo their exit code so they drop
   straight into `chk "label" "$(...)"`.
 
+**Convention for new verifiers:** every new per-PR verifier should begin with
+`source scripts/verifier-lib.sh` and use `md_has` for prose asserts / `has` for structural ones,
+rather than redefining a raw-grep `has()`. **`working/pr7-verify.sh` is the reference template.**
+(The older `working/pr1`–`pr6` verifiers predate the library and are left as-is — they are dead
+scratch for already-merged PRs; migrating them buys nothing.)
+
+**Known gap — `_italic_`:** because `_`/`__` are left intact, a phrase split by *underscore*
+emphasis (`the _alpha_ omega`) is missed by `md_has` too. The `--self-test` asserts this boundary
+on purpose, so the limit is tested, not just documented. For an underscore-split phrase, anchor on
+a single undecorated token with `has`.
+
 Both matchers **fail closed**: a match over a missing file yields a non-zero (no-match) result, so
 a verifier can never read a NOT-RUN as a pass. The library proves all of this on itself:
 
 ```bash
-bash scripts/verifier-lib.sh --self-test   # fires on the bold / soft-wrap / inline-code defect cases
+bash scripts/verifier-lib.sh --self-test   # bold / soft-wrap / inline-code defects + the _italic_ known gap
 ```
 
 The self-test plants each historical defect as a fixture and asserts `md_has` finds the phrase
-**while raw `grep` misses it** — so it demonstrates both the fix and the defect it retires.
+**while raw `grep` misses it** — so it demonstrates both the fix and the defect it retires — plus a
+known-gap pair asserting both matchers miss an `_italic_`-split phrase.
 
 > The shared epistemic-honesty gate `scripts/check-ai-residuals.sh` is already markdown-aware in
 > the other direction (it skips code-construct HIGH patterns for `.md`/`.markdown`/`.txt`, so quoted

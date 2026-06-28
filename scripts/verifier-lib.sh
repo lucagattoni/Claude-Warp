@@ -23,6 +23,8 @@
 # Deliberately NOT stripped: `_` (would corrupt snake_case identifiers like
 # success_metric / must_not_touch that pervade these docs) and `__` (Python dunders).
 # md_has covers backtick + asterisk emphasis and soft-wrap — the cases that actually bit.
+# KNOWN GAP: a phrase split by `_italic_` underscore emphasis is therefore missed by md_has too;
+# the --self-test asserts this boundary on purpose (anchor on a single token for underscore cases).
 #
 # Usage:
 #   source scripts/verifier-lib.sh        # then use has / md_has / chk in a verifier
@@ -75,6 +77,15 @@ verifier_lib_self_test() {
 
   # 6: fail-closed — match over a missing file is non-zero (NOT RUN != pass).
   chk "md_has fails closed on missing file"     "$([ "$(md_has 'anything' "$tmp/does-not-exist.md")" -ne 0 ] && echo 0 || echo 1)"
+
+  # 7: KNOWN GAP (documented limit) — `_italic_` / underscore decoration is deliberately NOT
+  # normalized (md_normalize leaves `_` intact for snake_case safety). So a phrase split by
+  # underscore-emphasis markers is missed by BOTH raw `has` AND `md_has`. This asserts the
+  # boundary on purpose: if a future change starts stripping `_`, these two asserts flip and tell
+  # you the contract changed. For an underscore-split phrase, anchor on a single undecorated token.
+  printf 'the _alpha_ omega phrase appears here\n' > "$tmp/italic.md"
+  chk "KNOWN GAP: raw MISSES _italic_-split"     "$([ "$(has    'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
+  chk "KNOWN GAP: md_has ALSO misses _italic_"   "$([ "$(md_has 'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
 
   if [ "$VL_PASS" -eq 1 ]; then echo "verifier-lib self-test: PASS"; return 0
   else echo "verifier-lib self-test: FAIL"; return 1; fi
