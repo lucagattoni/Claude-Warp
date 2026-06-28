@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-06-28
+
+### Added
+- **Honesty riders on ClaudeWarp's verdict outputs** (Option 1 of the multi-lens-review design space):
+  five riders that keep a review from becoming verifier theater, added to the three existing
+  verdict-emitting surfaces — the contract critical pass (`claude-warp-contract` Phase 6), the contract
+  worth-it verdict (Phase 1.5), and the harness QA evaluator (`claude-warp-new-harness` Phase 5b). They
+  **extend** the seams ClaudeWarp already owns — no review panel, no parallel subsystem, no new runtime.
+  Two riders bind at **every risk tier**; three bind at **R2+** (advisory below, so small R0/R1 goals
+  are not taxed with ceremony):
+  - **Anti-fabrication** (all tiers) — "no blockers" is a valid result; never manufacture findings to
+    look thorough. Adapted from [devils-advocate](https://github.com/brandonsimpson/devils-advocate)
+    (brandonsimpson, MIT).
+  - **Anonymized-author** (all tiers) — judge the artifact on its merits with author identity/reasoning
+    set aside first, to remove self-preference bias; works even same-model. Adapted from
+    [llm-council](https://github.com/karpathy/llm-council) (Andrej Karpathy) → `/council`.
+  - **Severity→verdict gating** (R2+) — findings carry `critical | major | minor | recommendation`; only
+    critical/major block, minor/recommendation are recorded and never stall the loop (the QA evaluator
+    gains an `approved_with_notes` status). Adapted from
+    [claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) (Chachamaru127, *CCH
+    TeamAgent Debate*).
+  - **Confidence-capped-by-verified-ratio** (R2+) — verdicts end with a `confidence: N/10` line + a
+    "M of K load-bearing claims actually verified; confidence capped by that ratio" tally. Adapted from
+    [idea-to-ship-skills](https://github.com/nelsonwerd/idea-to-ship-skills) (nelsonwerd).
+  - **"Unverified" set** (R2+) — every verdict lists what it did **not** check, making P6 (NOT RUN ≠
+    pass) visible in the output rather than implicit. Adapted from devils-advocate (linked above).
+
+  Adapted **critically**: severity gating still routes a Type-B judgment call to Surface (it never
+  auto-resolves a `minor` that is actually a hidden decision — constitution P3); the anonymized-author
+  rider is same-model, so it neutralizes author-bias, not a shared-model-family blind spot.
+
+### Docs
+- **`docs/loop-harness.md`** — new "Honesty riders (verdict outputs)" subsection under the contract
+  skill, with the rider × tier × source table; prior-art table extended to credit
+  [devils-advocate](https://github.com/brandonsimpson/devils-advocate) (brandonsimpson) and
+  [llm-council](https://github.com/karpathy/llm-council) (Andrej Karpathy), and the new riders mapped
+  onto the existing CCH and idea-to-ship-skills rows.
+
 ## [0.27.0] — 2026-06-28
 
 ### Added

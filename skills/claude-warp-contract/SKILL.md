@@ -84,6 +84,18 @@ flip-evidence and stop the automated flow — but if the user, having read it, e
 it anyway*, honor that (the gate informs worth; the user keeps the last word). Record the override in
 `decision_log` and proceed to Phase 2 with `verdict: go`.
 
+**Honesty riders on the worth-it verdict.** A `go | iterate | park` call is a high-leverage judgment,
+so close it honestly (this only fires for fuzzy plans — a concrete small goal skips Phase 1.5 entirely
+and is never taxed):
+
+- **Confidence-capped-by-verified-ratio.** End the verdict with a `confidence: N/10` line and a one-line
+  "M of K load-bearing assumptions actually checked against evidence; confidence capped by that ratio."
+  A verdict that probed the idea outscores one asserted from a hunch — credit to **idea-to-ship-skills**
+  (nelsonwerd).
+- **"Unverified" set.** List what the honest-advisor pass did **not** check (market size unconfirmed,
+  perf claim untested, dependency assumed available). A `go` reached without naming its blind spots is
+  not a confident `go` — credit to **brandonsimpson/devils-advocate** (MIT).
+
 Write the result into the draft's `worth_it` block (schema below). Non-fuzzy plans never populate it.
 
 ---
@@ -267,6 +279,37 @@ model than the drafting agent"'
 | Conflicts a constitution MUST? | Governance violation | "Principle `<Pn>` forbids this. Adjust the **contract**, not the principle — amending the constitution is a separate explicit act." |
 | Verifier distinguishes not-run from pass? | Verifier theater | "An unrun check is `not run`, never green. Make `stop.check` fail closed when the verifier can't execute." |
 | Verifier asserts only tracked paths in git-diff checks? | Vacuous assertion | "A `git diff` against a gitignored/untracked path is always empty — it passes even if the file was rewritten. Assert on tracked paths, or check the file's content directly." |
+
+**Honesty riders on this pass's own findings.** The checks above are what the critical pass *looks
+for*; these riders govern how it *reports*, so the pass can't itself become verifier theater. Two
+apply at **all tiers** (free instruction text, no ceremony); three apply at **R2+** (advisory below,
+to not tax small R0/R1 goals):
+
+- **Anti-fabrication (all tiers).** "No blockers" is a valid result. Do **not** manufacture findings
+  to look thorough — a contract that genuinely passes every check is reported clean, not padded with
+  invented concerns. (Mirror of anti-sycophancy: don't rubber-stamp, but don't invent either.)
+- **Anonymized-author (all tiers).** When this pass critiques a contract drafted in the same
+  conversation — or, at R3+, when the independent checker ranks the drafting agent's output — judge
+  the artifact on its merits with the author's identity/reasoning set aside first, to remove
+  self-preference bias. Works even same-model: you blind *who wrote it* before deciding if it holds.
+- **Severity→verdict gating (R2+).** Tag each finding `critical | major | minor | recommendation`.
+  Only **critical/major** block approval (return to Phase 4); **minor/recommendation** are recorded
+  in `decision_log` and never stall the contract. Prevents a cosmetic nit from gating a sound change.
+- **Confidence-capped-by-verified-ratio (R2+).** End the pass with a `confidence: N/10` line plus a
+  one-line tally — "M of K load-bearing checks actually verified against the source; confidence capped
+  by that ratio." A pass that read the code scores higher than one reasoning from memory; an unread
+  assumption cannot push confidence up.
+- **"Unverified" set (R2+).** List every check the pass could **not** actually run (e.g. a `stop.check`
+  command not executed here, a path not read). This makes P6 (NOT RUN ≠ pass) visible in the output
+  rather than implicit — the reader sees the pass's blind spots, not just its findings.
+
+These riders adapt external prior art, credited where each lives (and in `docs/loop-harness.md` +
+CHANGELOG): **CCH TeamAgent Debate** (Chachamaru127) — severity→verdict gating; **idea-to-ship-skills**
+(nelsonwerd) — confidence-capped-by-verified-ratio; **Karpathy LLM Council** → **/council** —
+anonymized-author; **brandonsimpson/devils-advocate** (MIT) — anti-fabrication + the "Unverified" set.
+Adapt critically: severity gating must still route Type-B judgment calls to Surface (never auto-resolve
+a `minor` that is actually a hidden judgment call); anonymized-author is same-model here, so it
+neutralizes author-bias, not a shared-family blind spot.
 
 **Constitution alignment.** If `.claudewarp/constitution.md` exists **and is filled** (any
 principle row is no longer the `# UNFILLED` skeleton), validate the contract against every

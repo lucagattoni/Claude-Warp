@@ -24,15 +24,15 @@ anti-fabrication + anonymized-author apply at all tiers.
 
 ## Done conditions
 
-- [ ] Rider 1 (severity→verdict gating) present in contract Phase 6 table + new-harness QA evaluator
-- [ ] Rider 2 (confidence-cap + verified-ratio) present in Phase 6, QA evaluator, and Phase 1.5 worth-it
-- [ ] Rider 3 (anonymized-author) present in Phase 6 critical pass + QA evaluator (all-tiers wording)
-- [ ] Rider 4 (anti-fabrication) present in Phase 6 + QA evaluator (all-tiers wording)
-- [ ] Rider 5 ("Unverified" set) present in Phase 6, QA evaluator, and Phase 1.5 worth-it
-- [ ] `docs/loop-harness.md` documents the riders + credits all four external sources (name + author + link)
-- [ ] CHANGELOG entry + VERSION bumped to 0.28.0 (MINOR)
-- [ ] `working/honesty-riders-verify.sh` PASS (asserts every rider at its seam, tracked paths only)
-- [ ] `scripts/verifier-lib.sh --self-test` green; `check-ai-residuals.sh --risk R2` clean
+- [x] Rider 1 (severity→verdict gating) present in contract Phase 6 table + new-harness QA evaluator
+- [x] Rider 2 (confidence-cap + verified-ratio) present in Phase 6, QA evaluator, and Phase 1.5 worth-it
+- [x] Rider 3 (anonymized-author) present in Phase 6 critical pass + QA evaluator (all-tiers wording)
+- [x] Rider 4 (anti-fabrication) present in Phase 6 + QA evaluator (all-tiers wording)
+- [x] Rider 5 ("Unverified" set) present in Phase 6, QA evaluator, and Phase 1.5 worth-it
+- [x] `docs/loop-harness.md` documents the riders + credits all four external sources (name + author + link)
+- [x] CHANGELOG entry + VERSION bumped to 0.28.0 (MINOR)
+- [x] `working/honesty-riders-verify.sh` PASS (24/24; asserts every rider at its seam, tracked paths only)
+- [x] `scripts/verifier-lib.sh --self-test` green; `check-ai-residuals.sh --risk R2` clean (HIGH=0)
 
 ## Guardrails (must not touch)
 
@@ -52,3 +52,6 @@ change — verifier confirms presence, not end-to-end behaviour.
 - 2026-06-28 — Contract negotiated (goal, R2, readiness G3). Phase 1.5 skipped (concrete change). Tier
   decision surfaced and resolved by user (recommended split). Branch `feat/honesty-riders` cut from main
   (v0.27.0). Contract + GOAL materialised.
+- 2026-06-28 — Implemented all five riders at the three seams (contract Phase 6 + Phase 1.5, new-harness
+  QA evaluator). Docs + prior-art table + CHANGELOG (0.28.0) + VERSION. Verifier PASS 24/24; verifier-lib
+  self-test green; residuals R2 clean (HIGH=0); `dev.sh verify` 6/6. **COMPLETE** — ready for PR + release.

@@ -83,6 +83,26 @@ Sources: Claude-Loops doc-04, doc-14, doc-17, doc-24, doc-26, doc-27, doc-30.
 
 Install path: `skills/claude-warp-contract/SKILL.md`
 
+**Honesty riders (verdict outputs, v0.28.0).** ClaudeWarp's verdict-emitting surfaces — the contract
+critical pass (Phase 6), the contract worth-it verdict (Phase 1.5), and the harness QA evaluator
+(`new-harness` Phase 5b) — carry five riders that keep a review from becoming verifier theater. Two
+bind at **every risk tier** (free instruction text, no ceremony); three bind at **R2+** (advisory
+below, so small R0/R1 goals are not taxed):
+
+| Rider | Tier | What it forces | Source |
+|---|---|---|---|
+| **Anti-fabrication** | all | "No blockers" is a valid result — never manufacture findings to look thorough | [devils-advocate](https://github.com/brandonsimpson/devils-advocate) |
+| **Anonymized-author** | all | Judge the artifact on its merits, author identity/reasoning set aside first | [Karpathy LLM Council](https://github.com/karpathy/llm-council) → `/council` |
+| **Severity→verdict gating** | R2+ | `critical/major` block; `minor/recommendation` are recorded, never stall the loop | [CCH TeamAgent Debate](https://github.com/Chachamaru127/claude-code-harness) |
+| **Confidence-capped-by-verified-ratio** | R2+ | `confidence: N/10` + "M of K load-bearing claims verified; capped by that ratio" | [idea-to-ship-skills](https://github.com/nelsonwerd/idea-to-ship-skills) |
+| **"Unverified" set** | R2+ | Every verdict lists what it did **not** check — P6 (NOT RUN ≠ pass) made visible | [devils-advocate](https://github.com/brandonsimpson/devils-advocate) |
+
+Adapted **critically**: severity gating still routes a Type-B judgment call to Surface (it never
+auto-resolves a `minor` that is actually a hidden decision); anonymized-author is same-model here, so
+it neutralizes author-bias, not a shared-model-family blind spot (pair with reproduction-required if
+that bites). This is Option 1 of the multi-lens-review design space — disciplines on the seams
+ClaudeWarp already owns, **not** a parallel review panel.
+
 ---
 
 ### `/claude-warp-new-goal "goal"`
@@ -552,8 +572,10 @@ layer), and credit them here:
 | Project | Author | Influenced |
 |---|---|---|
 | [**PAUL** — *Plan · Apply · Unify Loop*](https://github.com/ChristopherKahler/paul) | Christopher Kahler | Diagnostic failure routing on `--retry` (v0.26.0); per-task acceptance criteria (v0.18.0); the richer `done_with_concerns` / `needs_context` / `blocked` task-status enum |
-| [**claude-code-harness**](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`) |
-| [**idea-to-ship-skills**](https://github.com/nelsonwerd/idea-to-ship-skills) | nelsonwerd | The worth-it gate — `success_metric` + `kill_criterion` (contract Phase 1.5, v0.20.0); the epistemic-honesty rule-set ("NOT RUN ≠ pass", v0.17.0) |
+| [**claude-code-harness** — *CCH TeamAgent Debate*](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`); the severity→verdict gating honesty rider (v0.28.0) |
+| [**idea-to-ship-skills**](https://github.com/nelsonwerd/idea-to-ship-skills) | nelsonwerd | The worth-it gate — `success_metric` + `kill_criterion` (contract Phase 1.5, v0.20.0); the epistemic-honesty rule-set ("NOT RUN ≠ pass", v0.17.0); the confidence-capped-by-verified-ratio honesty rider (v0.28.0) |
+| [**devils-advocate**](https://github.com/brandonsimpson/devils-advocate) | brandonsimpson | The anti-fabrication rule ("'no blockers' is a valid result") and the "Unverified" set in verdict outputs — honesty riders (v0.28.0) |
+| [**llm-council**](https://github.com/karpathy/llm-council) | Andrej Karpathy (→ `/council`) | The anonymized-author rider — blind author identity before ranking another agent's output to remove self-preference bias (v0.28.0) |
 | [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
 
 Where a specific mechanism is borrowed, the relevant skill or doc names its source inline (for

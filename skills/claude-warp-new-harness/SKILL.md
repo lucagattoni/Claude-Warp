@@ -319,10 +319,35 @@ Honesty rules bind your grading: a criterion you could not actually run is repor
 never PASS (NOT RUN ≠ pass); "I did not see a problem" is not "there is no problem"
 (not_observed ≠ absent); never mark a gate passed on a criterion that needs a human signal.
 
+**Honesty riders (these keep the grading itself honest).** Two bind at every tier; three bind at R2+
+(this evaluator is mandatory at R2+, so they apply whenever it grades a merge-gated harness):
+- **Anti-fabrication (all tiers).** All criteria genuinely passing is a valid `approved` result — do
+  **not** invent a FAIL to look rigorous. Grade what is there, not what would make you look thorough.
+- **Anonymized-author (all tiers).** Grade the artifact and its acceptance evidence on their merits;
+  set aside any self-justification the worker wrote about *why* it should pass. Judge the work, not the
+  author's account of it.
+- **Severity→verdict gating (R2+).** Tag each FAIL `critical | major | minor | recommendation`. Only
+  **critical/major** revert the task to `pending`; **minor/recommendation** are written into
+  `qa_feedback` and the task may proceed (`"qa_status": "approved_with_notes"`) — a cosmetic nit must
+  not stall the wave. A `minor` that is actually a hidden judgment call still routes to a human
+  (`blocked`/`needs_context`), never auto-downgraded.
+- **Confidence-capped-by-verified-ratio (R2+).** End your grading with a `confidence: N/10` line and a
+  one-line "M of K criteria actually executed (the rest reasoned-only); confidence capped by that
+  ratio." Criteria you ran with a real `cmd:` count; criteria you eyeballed do not lift confidence.
+- **"Unverified" set (R2+).** List every criterion reported `not run` as an explicit **Unverified**
+  set in `qa_feedback`, so the harness sees the grading's blind spots, not only its PASS/FAIL calls.
+
 For each criterion: PASS, FAIL, or NOT RUN with one sentence of evidence.
-If any criterion FAILs: write a `qa_feedback` field on the task in features.json
-and set status back to `pending`. The coding agent will re-read the feedback.
+If any criterion FAILs at **critical/major** severity: write a `qa_feedback` field on the task in
+features.json and set status back to `pending`. The coding agent will re-read the feedback.
+If the only FAILs are **minor/recommendation**: record them in `qa_feedback`, set
+`"qa_status": "approved_with_notes"`, and let the task proceed.
 If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
+
+These riders adapt external prior art (credited in `docs/loop-harness.md` + CHANGELOG): **CCH TeamAgent
+Debate** (Chachamaru127) — severity→verdict gating; **idea-to-ship-skills** (nelsonwerd) — confidence
+cap; **Karpathy LLM Council** → **/council** — anonymized-author; **brandonsimpson/devils-advocate**
+(MIT) — anti-fabrication + "Unverified" set.
 
 **Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
 worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the
