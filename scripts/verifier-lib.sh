@@ -15,16 +15,19 @@
 #   has    <pat> <file>  — RAW grep (unchanged idiom). Use for structural / line-anchored
 #                          patterns: ^name:, ^0\.22\.0$, JSON keys, exact tokens.
 #   md_has <pat> <file>  — MARKDOWN-AWARE. Normalizes the file (strip `inline code`,
-#                          **bold** and *italic* markers, then join soft-wrapped lines)
-#                          before matching. Use for PROSE phrases that markdown may
-#                          decorate or wrap.
+#                          **bold**/*italic* asterisk markers AND _italic_ underscore
+#                          emphasis, then join soft-wrapped lines) before matching. Use
+#                          for PROSE phrases that markdown may decorate or wrap.
 # Both echo their grep exit code (0 = match) so they drop into `chk "label" "$(...)"`.
 #
-# Deliberately NOT stripped: `_` (would corrupt snake_case identifiers like
-# success_metric / must_not_touch that pervade these docs) and `__` (Python dunders).
-# md_has covers backtick + asterisk emphasis and soft-wrap — the cases that actually bit.
-# KNOWN GAP: a phrase split by `_italic_` underscore emphasis is therefore missed by md_has too;
-# the --self-test asserts this boundary on purpose (anchor on a single token for underscore cases).
+# Underscore handling is BOUNDARY-AWARE: a `_` is dropped only as part of a complete
+# `_word_` emphasis pair flanked by non-word chars. snake_case (`must_not_touch`),
+# leading-underscore identifiers (`_phase`), and `__dunder__` / `mcp__tool__` runs are all
+# preserved — only true single-underscore italic emphasis is stripped. (v0.28.1 closed the
+# former KNOWN GAP where `_italic_`-split phrases were missed by md_has; the --self-test now
+# asserts the gap is CLOSED and that snake_case / leading-underscore / dunders still survive.)
+# Residual edge: two ADJACENT emphasis spans (`_a_ _b_`) may strip only the first — rare in
+# prose; anchor on a single undecorated token if you ever hit it.
 #
 # Usage:
 #   source scripts/verifier-lib.sh        # then use has / md_has / chk in a verifier
@@ -36,9 +39,16 @@
 # emphasis decoration removed. Missing file => empty output (fail-closed for md_has).
 md_normalize() {
   [ -f "$1" ] || return 0
-  # strip inline-code backticks, then bold/italic asterisk markers; join all lines;
-  # squeeze runs of whitespace to single spaces so soft-wrapped phrases reunite.
-  sed -e 's/`//g' -e 's/\*\*//g' -e 's/\*//g' "$1" | tr '\n' ' ' | tr -s '[:space:]' ' '
+  # strip inline-code backticks and **bold**/*italic* asterisk markers; strip _italic_
+  # underscore emphasis BOUNDARY-AWARE — only a complete `_word_` pair whose outer sides are
+  # non-word chars, so snake_case (`a_b`), leading-underscore (`_phase`) and `__dunder__` runs
+  # survive; then join lines and squeeze whitespace so soft-wrapped phrases reunite.
+  sed -E \
+    -e 's/`//g' \
+    -e 's/\*\*//g' \
+    -e 's/\*//g' \
+    -e 's/(^|[^[:alnum:]_])_([[:alnum:]]([^_]*[[:alnum:]])?)_([^[:alnum:]_]|$)/\1\2\4/g' \
+    "$1" | tr '\n' ' ' | tr -s '[:space:]' ' '
 }
 
 # has <pattern> <file> — raw grep idiom (drop-in; echoes exit code).
@@ -72,20 +82,25 @@ verifier_lib_self_test() {
   # 4: snake_case / underscores survive normalization (no over-stripping).
   chk "md_has preserves snake_case tokens"      "$(md_has 'must_not_touch' "$tmp/snake.md")"
 
+  # 4b: boundary-aware underscore stripping must NOT corrupt leading-underscore identifiers
+  # (e.g. `_phase`, which contract drafts use) or `__dunder__` / `mcp__tool__` runs.
+  printf 'the _phase field and mcp__claude__navigate and __init__ stay intact\n' > "$tmp/under.md"
+  chk "md_has preserves leading-underscore id"  "$(md_has '_phase field' "$tmp/under.md")"
+  chk "md_has preserves dunder/mcp runs"         "$(md_has 'mcp__claude__navigate' "$tmp/under.md")"
+
   # 5: true-negative — md_has does NOT match an absent phrase.
   chk "md_has true-negative (absent phrase)"    "$([ "$(md_has 'this phrase is absent xyz' "$tmp/bold.md")" -ne 0 ] && echo 0 || echo 1)"
 
   # 6: fail-closed — match over a missing file is non-zero (NOT RUN != pass).
   chk "md_has fails closed on missing file"     "$([ "$(md_has 'anything' "$tmp/does-not-exist.md")" -ne 0 ] && echo 0 || echo 1)"
 
-  # 7: KNOWN GAP (documented limit) — `_italic_` / underscore decoration is deliberately NOT
-  # normalized (md_normalize leaves `_` intact for snake_case safety). So a phrase split by
-  # underscore-emphasis markers is missed by BOTH raw `has` AND `md_has`. This asserts the
-  # boundary on purpose: if a future change starts stripping `_`, these two asserts flip and tell
-  # you the contract changed. For an underscore-split phrase, anchor on a single undecorated token.
+  # 7: GAP CLOSED (v0.28.1) — `_italic_` underscore emphasis is now stripped boundary-aware, so a
+  # phrase split by underscore-emphasis markers is FOUND by md_has (raw `has` still misses it, since
+  # raw grep is unchanged by design). The two asserts below are the inverse of the former KNOWN-GAP
+  # pair: md_has must now find it, raw must still miss it.
   printf 'the _alpha_ omega phrase appears here\n' > "$tmp/italic.md"
-  chk "KNOWN GAP: raw MISSES _italic_-split"     "$([ "$(has    'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
-  chk "KNOWN GAP: md_has ALSO misses _italic_"   "$([ "$(md_has 'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
+  chk "raw still MISSES _italic_-split"           "$([ "$(has    'alpha omega' "$tmp/italic.md")" -ne 0 ] && echo 0 || echo 1)"
+  chk "md_has NOW finds _italic_-split phrase"    "$(md_has 'alpha omega' "$tmp/italic.md")"
 
   if [ "$VL_PASS" -eq 1 ]; then echo "verifier-lib self-test: PASS"; return 0
   else echo "verifier-lib self-test: FAIL"; return 1; fi

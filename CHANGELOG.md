@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.28.1] — 2026-06-28
+
+### Fixed
+- **`scripts/verifier-lib.sh` — closed the `_italic_` / underscore-emphasis gap in `md_has`.** The
+  markdown-aware matcher now strips single-underscore `_italic_` emphasis **boundary-aware** (only a
+  complete `_word_` pair flanked by non-word chars), so a prose phrase split by underscore emphasis is
+  reunited and found — the gap that had taxed verifier authors on four consecutive PRs (each
+  hand-anchoring assertions on single-line tokens to dodge it). `snake_case` (`must_not_touch`),
+  leading-underscore identifiers (`_phase`, used by contract drafts), and `__dunder__` / `mcp__tool__`
+  runs are all provably preserved. Raw `has()` is unchanged. The `--self-test` flips its two former
+  KNOWN-GAP asserts to expect the gap **closed** and adds regression asserts for the preserved-identifier
+  cases. Surfaced by the honesty-riders retro (improvement #1). Chosen as a direct fix to `md_has`
+  rather than an opt-in `md_has_loose` — an opt-in would perpetuate the "author must remember to use
+  it" fragility the retro flagged.
+
 ## [0.28.0] — 2026-06-28
 
 ### Added

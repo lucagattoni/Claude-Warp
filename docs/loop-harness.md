@@ -527,9 +527,11 @@ chk "documents the no-target case" "$(md_has 'no existing target code'    skills
 - **`has <pat> <file>`** — the original raw `grep -qiE` idiom. Use it for structural or
   line-anchored patterns: `^name:`, a SemVer like `^0\.23\.0$`, JSON keys, exact tokens.
 - **`md_has <pat> <file>`** — normalizes the file first (strips `` `inline code` ``, `**bold**`
-  and `*italic*` markers, then joins soft-wrapped lines into one whitespace-collapsed stream)
-  before matching. Use it for **prose phrases** that markdown may decorate or wrap. Underscores
-  (`_`) and `__` are deliberately left intact so `snake_case` identifiers survive.
+  and `*italic*` asterisk markers **and `_italic_` underscore emphasis**, then joins soft-wrapped
+  lines into one whitespace-collapsed stream) before matching. Use it for **prose phrases** that
+  markdown may decorate or wrap. Underscore stripping is **boundary-aware** — only a complete
+  `_word_` emphasis pair flanked by non-word chars is removed, so `snake_case` identifiers,
+  leading-underscore names (`_phase`), and `__dunder__` / `mcp__tool__` runs all survive.
 - **`chk <label> <rc>`** — the assertion printer; both matchers echo their exit code so they drop
   straight into `chk "label" "$(...)"`.
 
@@ -539,10 +541,13 @@ rather than redefining a raw-grep `has()`. **`working/pr7-verify.sh` is the refe
 (Per-PR verifiers are one-shot gates kept in gitignored `working/`; once a PR merges its scratch
 is pruned, with `pr7` retained as the canonical example.)
 
-**Known gap — `_italic_`:** because `_`/`__` are left intact, a phrase split by *underscore*
-emphasis (`the _alpha_ omega`) is missed by `md_has` too. The `--self-test` asserts this boundary
-on purpose, so the limit is tested, not just documented. For an underscore-split phrase, anchor on
-a single undecorated token with `has`.
+**`_italic_` gap — closed (v0.28.1):** a phrase split by *underscore* emphasis (`the _alpha_ omega`)
+is now reunited by `md_has` via boundary-aware stripping, after the gap had taxed verifier authors on
+four consecutive PRs (each hand-anchoring tokens to dodge it). The `--self-test` now asserts the gap
+is **closed** (md_has finds the split phrase; raw `has` still misses it) **and** that `snake_case`,
+`_phase`, and `__dunder__` runs still survive — so the fix is regression-guarded, not just documented.
+Residual edge: two *adjacent* emphasis spans (`_a_ _b_`) may strip only the first — rare in prose;
+anchor on a single undecorated token with `has` if you ever hit it.
 
 Both matchers **fail closed**: a match over a missing file yields a non-zero (no-match) result, so
 a verifier can never read a NOT-RUN as a pass. The library proves all of this on itself:
