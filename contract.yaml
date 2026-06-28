@@ -1,69 +1,37 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Behavioural-claim backlog + repeatable fixture-dogfood validation
-slug: behavioural-claim-backlog
+name: Add a not_has absence-assert helper to verifier-lib.sh
+slug: verifier-lib-not-has
 risk: R1
 
 scope:
   may_touch:
-    - BEHAVIOURAL-CLAIMS.md          # NEW — tracked standing registry (created by this goal)
-    - tests/dogfood/                 # NEW — tracked fixtures + runbook (reproducible by others)
-    - docs/loop-harness.md           # MODIFY — document the backlog + dogfood procedure
+    - scripts/verifier-lib.sh        # add not_has() + a self-test case
+    - docs/loop-harness.md           # add not_has to the helper enumeration
     - CHANGELOG.md
     - VERSION
-    - working/behavioural-claim-backlog-verify.sh   # gitignored one-shot verifier
+    - working/                       # gitignored one-shot verifier
   must_not_touch:
-    - skills/claude-warp-contract/SKILL.md          # merge-gating reviewer logic — DONE, not edited
-    - skills/claude-warp-new-harness/SKILL.md        # QA evaluator / runner — DONE, not edited
-    - scripts/verifier-lib.sh                        # shared matcher — unchanged (only sourced)
-    - scripts/dev.sh
+    - skills/                        # no merge-gating skill logic
+    - "has()/md_has()/chk() semantics"   # additive only — do not alter existing matchers
 
 action: >
-  Create a tracked behavioural-claim backlog (BEHAVIOURAL-CLAIMS.md) registering every
-  instruction-only reviewer feature with the behavioural claim it makes, the catch it predicts on a
-  planted defect, and a status from a controlled vocabulary that keeps verified-on-fixture distinct
-  from verified-live; add a tracked, reproducible fixture-dogfood procedure under tests/dogfood/
-  (a deliberately-broken contract fixture + runbook); execute ONE in-context fixture-dogfood now,
-  record the catch with auditable evidence, and flip at least one claim to verified-on-fixture.
-
-budget:
-  loop_max_usd: 0
-  step_max_budget_usd: 0
-  max_turns: 0
+  Add not_has <pat> <file> to scripts/verifier-lib.sh — the inverse of has, echoing rc 0 when the
+  pattern is ABSENT and rc 1 when present, so it composes with chk exactly like has/md_has. Add a
+  --self-test case proving 0-on-absent / 1-on-present and chk composition; add a not_has bullet to
+  the docs helper list; CHANGELOG + VERSION (PATCH).
 
 stop:
   verdict: PASS
   evidence: required
-  # Discriminating done-bar (Phase 6 red-team): "verified-on-fixture" is NOT satisfied by the status
-  # string alone — the backlog entry must carry the planted-defect description + the specific catch
-  # the in-context reviewer produced + which charter row fired + a pointer to the TRACKED fixture, so
-  # the dogfood is auditable/reproducible, not asserted. The verifier checks that evidence exists.
-  check: "bash working/behavioural-claim-backlog-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  check: "bash scripts/verifier-lib.sh --self-test && bash working/verifier-lib-not-has-verify.sh && bash scripts/dev.sh verify"
 
 verifier:
-  independent: true   # working/ check is a separate artifact from the registry it grades
-  mechanism: >
-    working/behavioural-claim-backlog-verify.sh (sources scripts/verifier-lib.sh; md_has on prose,
-    raw has on literal tokens) asserts: the four seeded features each present with claim +
-    predicted-catch + a status from the controlled vocabulary; the controlled vocabulary documented;
-    tests/dogfood/ fixture + runbook exist and are tracked; the executed dogfood recorded a
-    verified-on-fixture flip whose evidence block names the planted defect, the catch, the firing
-    charter row, and the fixture path; docs row + CHANGELOG 0.31.0 + VERSION. Plus verifier-lib
-    --self-test and dev.sh verify 6/6. check-ai-residuals --risk R1 advisory.
-
-surface_conditions:
-  - "If the in-context dogfood does NOT produce the predicted catch, record the claim as `unverified` with the negative result — never flip to verified-on-fixture to make the bar pass (P6: a dogfood that didn't fire is not a pass)."
+  independent: false                 # R1 dev-tooling; self-test + working verifier are the gate
+  mechanism: "verifier-lib --self-test (now incl. not_has cases) + working/ behavioural verifier + dev.sh verify 6/6 + check-ai-residuals --risk R1"
 
 decision_log:
-  - "Shape = goal: one focused deliverable set (registry + fixture + one recorded dogfood), single context, single stop.check. Not a harness (no interdependent subplans) and not a loop (one-shot)."
-  - "Phase 1.5 SKIPPED: concrete settled scope, explicitly chosen by the user from a menu (Option A) — worth already decided; a concrete change is never taxed by the worth-it gate."
-  - "Risk = R1: reversible writes; new tracked doc + fixtures + a docs edit; touches NO merge-gating reviewer logic (those disciplines are done); the dogfood is read-only judgment recorded as text. Independent working/ verifier included anyway (cheap, consistent with prior batches)."
-  - "Open Q1 (location) RESOLVED -> root BEHAVIOURAL-CLAIMS.md: it is an operational registry updated by future retros/dogfoods, matching the root RETRO.md/CHANGELOG.md convention — not narrative documentation (which lives in docs/)."
-  - "Open Q2 (fixtures tracked vs gitignored) RESOLVED -> TRACKED under tests/dogfood/: reproducibility by others/future-me is the entire point of a dogfood procedure; gitignored scratch would defeat it. (Contrast: the working/ verifier stays gitignored one-shot scratch as usual.)"
-  - "Lifecycle (new-persisted-file rule): BEHAVIOURAL-CLAIMS.md is tracked-in-git, created by this goal, and updated by future retros/dogfoods (a standing registry, not a per-run cache). tests/dogfood/ fixtures tracked + permanent. Both settled here, not at commit time."
-  - "Phase 6 red-team (AC admits trivially-passing impl): the verified-on-fixture flip would pass on the bare status string, proving nothing. Hardened the done-bar to require an auditable evidence block (planted defect + catch text + firing charter row + tracked-fixture pointer) that the verifier asserts — a check that can't fail proves nothing."
-  - "Phase 6 red-team (load-bearing claim verified not assumed): the four behavioural claims are NOT asserted as true here — the whole goal is that they are PRESENT-but-unverified. The backlog records them as unverified by default; only the one actually dogfooded flips, and only to verified-on-FIXTURE (the weaker, honest status), never verified-live."
-  - "HONESTY CRUX (P6 on our own claims): a fixture pass shows the INSTRUCTIONS CAUSE THE CATCH (an in-context reviewer applying the charter flags the planted defect) — NOT that a live spawned independent agent catches it in prod. Status vocab keeps verified-on-fixture and verified-live distinct; a real claude -p spawned run is an OPTIONAL runbook step, never conflated with the fixture pass."
-  - "Out of scope (held): editing any merge-gating reviewer skill (validation/evidence work, not a new discipline); spawning expensive live agents as a hard requirement (optional runbook step only); Options 3/4."
-  - "Credit: the registry is ClaudeWarp's own synthesis answering its retro; the dogfood-the-claim / NOT-RUN-not-pass framing echoes idea-to-ship-skills (nelsonwerd) and reproduction-required (/ultrareview, Anthropic) — credited in docs + CHANGELOG, adapted critically (a fixture pass is explicitly weaker than a live run)."
-  - "Version = MINOR (0.31.0): adds a new standing capability (the behavioural-claims registry) + a reusable dogfood procedure — additive, no breaking change to install/CLI/API."
+  - "not_has formalizes the inline `[ \"$(has …)\" -ne 0 ] && echo 0 || echo 1` idiom repeated ~6x in the self-test and rolled by hand in the v0.31.1 D2 verifier — a shared absence-assert, not new capability."
+  - "Red-team (Phase 6): a presence-only verifier (grep -q 'not_has' lib) would TRIVIALLY PASS even if not_has were broken. The working verifier and the --self-test case therefore assert BEHAVIOUR — not_has echoes 0 on an absent pattern, 1 on a present one, and a chk built on it flips VL_PASS correctly — a check an empty stub cannot pass."
+  - "Implemented as the literal inverse of has (grep -qiE; invert rc) so over a missing file — where grep finds nothing — not_has reports ABSENT=0. Documented as the one wrinkle: not_has over a missing file passes (the pattern is trivially absent); use has/md_has fail-closed when presence is what matters."
+  - "R1 not R2: additive change to dev-only, non-merge-gating tooling; existing has/md_has/chk semantics untouched (regression-guarded by the unchanged self-test cases). PATCH per the SemVer rule (a dev-tooling component addition)."
