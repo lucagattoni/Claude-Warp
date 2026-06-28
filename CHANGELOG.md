@@ -5,6 +5,23 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.24.1] — 2026-06-28
+
+**Ledger is gitignored by default** (PR11; from the v0.24.0 retro). The cross-session closure ledger
+is local runtime data — per-checkout persistence, like a log — so it stays out of version control by
+default. This settles the storage *lifecycle* the v0.24.0 contract left open (it decided the format,
+not whether the file is tracked), which only surfaced post-ship when a seed commit was blocked.
+
+### Changed
+- **`.gitignore`** — ignores `.claudewarp/ledger.jsonl` in this repo.
+- **`skills/claude-warp-setup/SKILL.md`** — setup now seeds the same ignore line in consuming repos,
+  alongside `logs/`, so the default propagates on install.
+
+### Docs
+- **`skills/claude-warp-ledger/SKILL.md`** and **`docs/loop-harness.md`** — document that the ledger
+  is gitignored by default (append-only entries would otherwise collide on the file tail across
+  branches), and how to opt into committing the history.
+
 ## [0.24.0] — 2026-06-28
 
 **Persistent cross-session ledger — `/claude-warp-ledger`** (PR10; gap #3's unbuilt half). Closure

@@ -6,3 +6,5 @@ CLAUDE_WARP_UPDATE_LOG.md
 .claude/skills/
 # Process scratch: research docs, per-PR contract/GOAL records, verifiers (keep repo clean)
 working/
+# Cross-session closure ledger: local runtime data (per-checkout persistence), like a log
+.claudewarp/ledger.jsonl

@@ -34,8 +34,11 @@ mkdir -p .claude/skills scripts plans docs logs
 (Per-skill directories are created dynamically in Phase 3 from whatever skills the
 ClaudeWarp source actually contains — never hardcode the skill list.)
 
-Ensure `logs/` is gitignored:
+Ensure `logs/` and the runtime ledger are gitignored:
 - Read `.gitignore`; if `logs/` is not present, append it.
+- If `.claudewarp/ledger.jsonl` is not present, append it — the cross-session closure ledger
+  (`/claude-warp-ledger`) is local runtime data (per-checkout persistence), like a log, so it
+  stays out of version control by default.
 
 ## Phase 3 — Locate ClaudeWarp source and install skills
 

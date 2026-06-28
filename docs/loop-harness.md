@@ -339,7 +339,8 @@ the executable `scripts/ledger.sh` (so the behaviour is deterministic and self-t
 Storage is `.claudewarp/ledger.jsonl` — one JSON object per line, **append-only** (mirrors
 converge's ethos, git-merge-friendly). JSON-lines, not a markdown summary, so `query` filters on
 structured fields and never greps markdown — the false-negative class `scripts/verifier-lib.sh`
-exists to avoid.
+exists to avoid. It is **gitignored by default** (local runtime data, like a log — `/claude-warp-setup`
+seeds the ignore line); remove that line to commit the closure history into the repo.
 
 It is **not** the memory system (semantic facts/preferences) and **not** native cross-run loop
 state (a loop's run cursor): the ledger logs dated *closure events* across all kinds. **Self-host
