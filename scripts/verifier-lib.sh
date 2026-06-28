@@ -12,13 +12,22 @@
 # PRs 5–6 only dodged it by hand-anchoring asserts on short single-line tokens.
 #
 # This library gives verifiers TWO matchers so the author picks per assertion:
-#   has    <pat> <file>  — RAW grep (unchanged idiom). Use for structural / line-anchored
-#                          patterns: ^name:, ^0\.22\.0$, JSON keys, exact tokens.
-#   md_has <pat> <file>  — MARKDOWN-AWARE. Normalizes the file (strip `inline code`,
-#                          **bold**/*italic* asterisk markers AND _italic_ underscore
-#                          emphasis, then join soft-wrapped lines) before matching. Use
-#                          for PROSE phrases that markdown may decorate or wrap.
-# Both echo their grep exit code (0 = match) so they drop into `chk "label" "$(...)"`.
+#   has     <pat> <file>  — RAW grep (unchanged idiom). Use for structural / line-anchored
+#                           patterns: ^name:, ^0\.22\.0$, JSON keys, exact tokens.
+#   md_has  <pat> <file>  — MARKDOWN-AWARE. Normalizes the file (strip `inline code`,
+#                           **bold**/*italic* asterisk markers AND _italic_ underscore
+#                           emphasis, then join soft-wrapped lines) before matching. Use
+#                           for PROSE phrases that markdown may decorate or wrap.
+#   not_has <pat> <file>  — ABSENCE assert: the inverse of has. Echoes 0 when the pattern is
+#                           ABSENT, 1 when present. Use to prove a residual was removed, a
+#                           placeholder filled, or a hint-stripped fixture carries no leak tags.
+# All three echo a grep-style exit code (0 = the assertion holds) so they drop into
+# `chk "label" "$(...)"`.
+#
+# ⚠ not_has wrinkle — it is NOT fail-closed: over a MISSING file grep finds nothing, so not_has
+#   reports ABSENT=0 (passes). That is correct for "this pattern is gone", but when *presence* is
+#   what matters use has/md_has (which fail closed on a missing file). not_has answers "is it gone?",
+#   not "does the file exist and lack it?".
 #
 # Underscore handling is BOUNDARY-AWARE: a `_` is dropped only as part of a complete
 # `_word_` emphasis pair flanked by non-word chars. snake_case (`must_not_touch`),
@@ -57,6 +66,11 @@ has() { grep -qiE "$1" "$2"; echo $?; }
 # md_has <pattern> <file> — markdown-aware match (echoes exit code).
 md_has() { md_normalize "$2" | grep -qiE "$1" >/dev/null 2>&1; echo $?; }
 
+# not_has <pattern> <file> — ABSENCE assert (inverse of has): echo 0 when ABSENT, 1 when present.
+# Formalizes the `[ "$(has …)" -ne 0 ] && echo 0 || echo 1` idiom. NOTE: not fail-closed on a
+# missing file (grep finds nothing => ABSENT=0); see the header wrinkle.
+not_has() { if grep -qiE "$1" "$2" 2>/dev/null; then echo 1; else echo 0; fi; }
+
 # chk <label> <rc> — assertion printer; flips VL_PASS=0 on failure.
 chk() { if [ "$2" -eq 0 ]; then echo "ok   $1"; else echo "FAIL $1"; VL_PASS=0; fi; }
 
@@ -90,6 +104,16 @@ verifier_lib_self_test() {
 
   # 5: true-negative — md_has does NOT match an absent phrase.
   chk "md_has true-negative (absent phrase)"    "$([ "$(md_has 'this phrase is absent xyz' "$tmp/bold.md")" -ne 0 ] && echo 0 || echo 1)"
+
+  # 5b: not_has — the absence assert. 0 when the pattern is ABSENT, 1 when present, and it must
+  # compose with chk (a chk built on not_has flips VL_PASS exactly when the assertion fails).
+  chk "not_has = 0 on an ABSENT pattern"        "$(not_has 'this phrase is absent xyz' "$tmp/bold.md")"
+  chk "not_has = 1 on a PRESENT pattern"        "$([ "$(not_has 'alpha' "$tmp/bold.md")" -eq 1 ] && echo 0 || echo 1)"
+  # not_has composes with chk: build a throwaway pass where a present token SHOULD fail an absence
+  # assert, and confirm chk would have flipped VL_PASS — without disturbing the real VL_PASS.
+  local _saved=$VL_PASS; VL_PASS=1; chk "(probe: not_has present -> chk fails)" "$(not_has 'beta' "$tmp/bold.md")" >/dev/null
+  local _probe=$VL_PASS; VL_PASS=$_saved
+  chk "not_has composes with chk (fails on present)" "$([ "$_probe" -eq 0 ] && echo 0 || echo 1)"
 
   # 6: fail-closed — match over a missing file is non-zero (NOT RUN != pass).
   chk "md_has fails closed on missing file"     "$([ "$(md_has 'anything' "$tmp/does-not-exist.md")" -ne 0 ] && echo 0 || echo 1)"
