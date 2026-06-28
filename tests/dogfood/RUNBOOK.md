@@ -84,6 +84,18 @@ This **costs budget and may be unreliable** in some environments — it is optio
 requirement of the backlog. Only a real spawned run earns `verified-live <date>`; do not infer it from
 the in-context pass.
 
+> **Read-only-reviewer guard (v0.32.0).** A `verified-live` pass *asserts* the spawned reviewer only
+> reads — wrap the dispatch to *prove* it. Snapshot before, verify after; any mutation fails loud:
+> ```bash
+> eval "$(scripts/reviewer-guard.sh snapshot)"   # → REVIEWER_GUARD_DIGEST
+> # …spawn the reasoning-blind reviewer pass (a or b above)…
+> scripts/reviewer-guard.sh verify "$REVIEWER_GUARD_DIGEST"   # exit 0 read-only · 3 MUTATED (integrity violation)
+> ```
+> The guard digests `git status --porcelain` + tracked content (ignoring the `working/` scratch area), so a
+> reviewer that edits a tracked file, creates a file, or deletes one is caught. A `FAIL` invalidates the
+> evidence — re-run the pass with a reviewer that genuinely only reads. Adapted from
+> [dementev-dev/adversarial-review](https://github.com/dementev-dev/adversarial-review).
+
 ### 4. Corroboration / reproduction scenario (for the v0.30.0 claim)
 
 The fixture's `PLANT[non-reproducible-finding]` scripts a first pass that raises *"budget.loop_max_usd
