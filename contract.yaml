@@ -1,51 +1,41 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Corroboration rigor + honest independence (command-verification, same-family label, read-only guard)
-slug: corroboration-rigor
-risk: R2
+name: dev.sh hardening — reviewer-guard in CI + claim-count coherence (v0.32.0 retro)
+slug: devsh-hardening
+risk: R1
 
 scope:
   may_touch:
-    - skills/claude-warp-new-harness/SKILL.md   # #1 command-verification + static-inference-consensus in the reproduction charter; inline credits
-    - BEHAVIOURAL-CLAIMS.md                      # #2 same-family vocab rider + register claim #5 (unverified); 4/5 count
-    - docs/loop-harness.md                       # reproduction-discipline rows + prior-art table + v0.32.0 narrative
-    - tests/dogfood/RUNBOOK.md                   # step-3 read-only-reviewer guard wrap
-    - scripts/reviewer-guard.sh                  # #3 NEW deterministic read-only integrity guard (+ --self-test)
+    - scripts/dev.sh                 # fold reviewer-guard into step 6; add step 7 (claim-count coherence)
+    - docs/loop-harness.md           # "six → seven deterministic checks" description
     - CHANGELOG.md
     - VERSION
-    - working/                                   # gitignored one-shot verifier
+    - working/                       # gitignored one-shot verifier
   must_not_touch:
-    - "has/md_has/not_has/chk/md_normalize runtime SEMANTICS"   # verifier-lib matchers unchanged this batch
-    - "claims #1–#4 verified-live status"        # do NOT relabel existing live claims; only ADD the same-family caveat + claim #5
-    - skills/claude-warp-converge/SKILL.md        # /converge is correct and untouched
+    - "scripts/reviewer-guard.sh internals"   # ship it as-is; only ADD it to the CI net
+    - "BEHAVIOURAL-CLAIMS.md claim content"    # step 7 READS it; the count stays 4/5, untouched
+    - "skills/**"                              # no charter change — tooling only
 
 action: >
-  Deepen the reproduction/independence axis with three adapt-not-invent additions, none needing a second
-  vendor: (#1) in the pass-2 reproduction charter, a blocker whose predicate is a CHECKABLE FACT must be
-  reproduced by a read-only command (grep/cat/head/tail/wc) and tagged [CMD_CONFIRMED]/[CMD_CONTRADICTED]
-  (a contradicted blocker is demoted one level; advisory, never auto-deletes); (#2) label verified-live as
-  SAME-FAMILY corroboration (shared blind spots possible), never cross-vendor independence, and define
-  [STATIC-INFERENCE-CONSENSUS] (same-lines agreement does not compound) — register the command-verification
-  behaviour as claim #5 (unverified); (#3) ship scripts/reviewer-guard.sh, a deterministic before/after
-  tree-snapshot guard that proves a spawned reviewer was read-only and fails LOUD on any mutation. Credits
-  land with the influence: agent-review-panel (wan-huiyan), dementev-dev/adversarial-review, llm-council
-  (karpathy), NABAOS/tool-receipts (arXiv 2603.10060), the find/verify framing.
+  Close the two v0.32.0-retro gaps. (1) Fold scripts/reviewer-guard.sh into dev.sh step 6's
+  "shared executables fail closed" net so its --self-test is CI-gated like verifier-lib + ledger.
+  (2) Add step 7 — behavioural-claim count coherence: compute the M/N verified-live count FROM the
+  registry (BEHAVIOURAL-CLAIMS.md claim headings) and assert the literal appears identically in the
+  backlog AND docs/loop-harness.md, so a count update can't half-land. Renumber checks /6 -> /7;
+  update the docs "six -> seven deterministic checks" description. Tooling hardening only — no charter
+  or behavioural change.
 
 stop:
   verdict: PASS
   evidence: required
-  # R2 (Option 2.5): this edits merge-gating reviewer charter text. The working/ verifier corroborates by
-  # asserting BEHAVIOUR (reviewer-guard --self-test actually fires; the charter rules are present + coherent),
-  # not mere presence; claim #5 ships honestly `unverified` rather than asserted verified.
-  check: "bash working/corroboration-rigor-verify.sh && bash scripts/reviewer-guard.sh --self-test && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  check: "bash working/devsh-hardening-verify.sh && bash scripts/dev.sh verify"
 
 verifier:
   independent: false
-  mechanism: "working/ verifier (charter rules + tags present & coherent; claim #5 registered unverified; 4/5 count; credits mapped) + reviewer-guard --self-test (proves the guard fires: read-only passes, mutation fails) + verifier-lib --self-test + dev.sh verify 6/6 + residuals R2"
+  mechanism: "working/ verifier (step 7 fn + reviewer-guard wired into step 6 + /7 renumber + docs 'seven' + the count check FIRES: computes 4/5 from the registry and passes) + dev.sh verify 7/7 + residuals R1"
 
 decision_log:
-  - "Source: the 10-project doc gap-scan shortlist. #1/#2 adapt agent-review-panel (wan-huiyan) — read-only command-verification of checkable predicates + the same-lines-consensus caution; #2 also adapts llm-council (karpathy) — unanimous != independent; #3 adapts dementev-dev/adversarial-review — porcelain+sha256 before/after integrity snapshot. Research grounding NABAOS/tool-receipts (arXiv 2603.10060) + the find/verify recall-vs-precision framing."
-  - "Adapt-not-invent: #1 grounds the v0.30.0 reproduce-before-block rule (claim #4) in command OUTPUT for checkable predicates, keeping the SAME one-level downgrade — advisory, never auto-deletes (a tag informs the verdict). #2 makes the long-standing Decision-3a residual (same-vendor != cross-vendor) explicit in the vocabulary instead of buried in a held-decision note. #3 turns the read-only ASSERTION the dogfoods already make into an enforced, self-tested check."
-  - "Honesty crux (P6): #1 is a NEW behavioural claim, so it ships `unverified` (claim #5) — the charter text is present and the verifier proves it present+coherent, but no live pass has been shown to run-the-command-and-demote yet. The backlog goes 4/4 -> 4/5 verified-live, recorded honestly; a future Dogfood D5 would flip it. #3 is deterministic (self-tested), so it carries NO behavioural claim."
-  - "Red-team (Phase 6): a presence-only verifier would pass even if reviewer-guard didn't actually fire. The stop.check therefore runs `reviewer-guard --self-test` (read-only PASSES, mutation FAILS LOUD) as behaviour, and the working/ verifier asserts the same-family caveat + [CMD_*]/[STATIC-INFERENCE-CONSENSUS] tags are present AND that claim #5 is registered `unverified` (not silently asserted) AND the 4/5 count is stated honestly."
-  - "R2: edits a merge-gating reviewer charter (the reproduction pass). Scope held tight — no matcher-semantics change, no relabel of claims #1–#4, /converge untouched. Credits added to docs prior-art ONLY now that the influence lands in shipped code (credit follows influence)."
+  - "Source: corroboration-rigor retro improvements #1 (single-source the N/M backlog count) and #2 (wire reviewer-guard.sh into dev.sh step 6). Both were explicitly held out of v0.32.0 as out-of-scope; this PATCH closes them."
+  - "Design: step 7 COMPUTES the count from the registry (grep claim headings) rather than hard-coding it, so the check is a true single-source — it fails if BEHAVIOURAL-CLAIMS.md prose, docs prose, OR the registry itself drift apart. This is stronger than asserting a fixed '4/5' literal."
+  - "Red-team (Phase 6): a check that only asserted '4/5' appears would pass forever even after the real count changed. Computing expected from the registry means the check can FAIL when it should — proving it is not a check-that-can't-fail (the agent-review-panel control-validation discipline applied to our own tooling)."
+  - "R1 PATCH: edits dev.sh (the CI gate) but only ADDITIVELY (stricter, never looser); no charter, no matcher semantics, no claim relabel. The count stays 4/5 (claim #5 still unverified)."
