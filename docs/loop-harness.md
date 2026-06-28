@@ -168,6 +168,13 @@ discipline of **idea-to-ship-skills** (nelsonwerd) and the reproduce-before-trus
 **/ultrareview** (Anthropic) **critically** — here the subject under test is ClaudeWarp's *own*
 reviewers, and an in-context pass is explicitly logged as weaker evidence than a live run.
 
+The first `verified-live` run (v0.31.1, backlog Dogfood D2) flipped the red-team charter and honesty
+riders to the strong status: a spawned **Sonnet** reviewer (different model from the Opus drafter,
+reasoning-blind, given the hint-stripped twin `contract-under-review.yaml`) independently named the
+`stop.check: "true"` trivial pass and BLOCKed — the catch survived independence, not just self-review.
+`/converge` and reproduction-required stay `unverified`: they are **two-pass** mechanisms a single live
+pass cannot exercise.
+
 ---
 
 ### `/claude-warp-new-goal "goal"`

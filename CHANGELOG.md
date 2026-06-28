@@ -7,6 +7,27 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.1] — 2026-06-28
+
+### Added
+- **First `verified-live` dogfood (D2)** — ran the RUNBOOK step-3 live procedure: a **spawned Sonnet
+  reviewer** (a different in-house model from the Opus drafter, reasoning-blind, fresh context)
+  red-teamed the contract and **independently named the `stop.check: "true"` trivial pass** ("an empty
+  `src/auth/` satisfies this check"), the assumed-not-verified `validateToken()` claim, and the
+  `independent: false` self-grading tautology — BLOCK, `confidence: 9/10`, and correctly marked budget
+  CLEAN rather than fabricating a finding. The catch **survived independence**, so the v0.29.0 red-team
+  charter and v0.28.0 honesty riders flip `verified-on-fixture` → `verified-live 2026-06-28` in
+  `BEHAVIOURAL-CLAIMS.md`. `/converge` + reproduction-required stay `unverified` — they are two-pass
+  mechanisms a single live pass cannot exercise (recorded honestly).
+- **`tests/dogfood/contract-under-review.yaml`** (tracked) — the hint-stripped twin of the fixture
+  (the `# PLANT[<row>]` tags removed so a live reviewer must find the defects by judgment, not read
+  them). RUNBOOK step 3 now mandates reviewing the twin, not the tagged fixture — the contamination
+  guard D2 surfaced.
+
+### Docs
+- `docs/loop-harness.md` + `tests/dogfood/RUNBOOK.md` — document the live-run method (CLI or spawned
+  subagent on a different model), the contamination guard, and the first `verified-live` result.
+
 ## [0.31.0] — 2026-06-28
 
 ### Added

@@ -54,14 +54,31 @@ and record the negative result** — never flip a claim to make a bar pass.
 
 ### 3. (Optional, strong) Run a live spawned pass (→ `verified-live`)
 
-For the gold-standard level, spawn a genuinely independent reviewer on a different in-house model:
+For the gold-standard level, spawn a genuinely independent reviewer on a **different in-house model**
+(cross-model same-vendor independence — e.g. Sonnet when the drafter was Opus).
+
+> **Contamination guard (load-bearing).** Review the **hint-stripped twin**
+> [`contract-under-review.yaml`](./contract-under-review.yaml), **never** the
+> [`trivially-passing-contract.yaml`](./trivially-passing-contract.yaml) fixture — the latter's
+> `# PLANT[<row>]` tags name every defect inline and would leak the answer, turning a `verified-live`
+> test into a reading exercise. The reviewer must find the defects by its own judgment. Keep the two
+> files in sync (same defects, the twin just has the hints removed).
+
+Two equivalent ways to spawn a real, fresh-context, reasoning-blind reviewer:
 
 ```bash
-CLAUDEWARP_QA_MODEL=sonnet claude -p '/claude-warp-new-agent "contract-checker (red-team / Skeptic):
-review tests/dogfood/trivially-passing-contract.yaml against the Phase 6 failure-pattern checklist.
-Which acceptance criteria / stop.check admit a trivially-passing implementation? Reasoning-blind:
-judge the artifact alone. Raise blocking findings only; severity-tag them."'
+# (a) the claude -p CLI, on a different model
+CLAUDEWARP_QA_MODEL=sonnet claude -p --model sonnet 'Red-team / Skeptic review of
+tests/dogfood/contract-under-review.yaml against the claude-warp-contract Phase 6 failure-pattern
+checklist. Which acceptance criteria / stop.check admit a trivially-passing implementation? Which
+load-bearing claim was assumed, not verified? Reasoning-blind: judge the artifact alone, you are not
+told the expected findings. Raise blocking findings only; severity-tag them; end with a VERDICT, a
+confidence: N/10 line, and an Unverified: set.'
 ```
+
+…or **(b)** a spawned subagent on `model: sonnet` (what Dogfood D2 used — fresh context, different
+model, given only the contract + the checklist). Both satisfy the `verified-live` bar: a real spawned
+independent agent, a different in-house model, reasoning-blind, fresh context.
 
 This **costs budget and may be unreliable** in some environments — it is optional, never a hard
 requirement of the backlog. Only a real spawned run earns `verified-live <date>`; do not infer it from

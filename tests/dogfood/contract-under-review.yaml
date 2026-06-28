@@ -1,0 +1,34 @@
+# Hint-stripped twin of trivially-passing-contract.yaml — the artifact actually handed to the
+# LIVE reviewer in Dogfood D2. The defect-labelling annotations are REMOVED so a spawned reviewer finds
+# the defects by its own judgment (those tags would leak the answer and contaminate a verified-live
+# test). Same defects, zero hints. Used by RUNBOOK step 3.
+kind: goal
+name: Add token validation to the auth module
+slug: auth-token-validation
+risk: R2
+
+scope:
+  may_touch:
+    - src/auth/
+  must_not_touch:
+    - src/payments/
+
+action: >
+  Extend the existing validateToken() export in src/auth/ to reject expired tokens.
+
+budget:
+  loop_max_usd: 5
+  step_max_budget_usd: 1
+  max_turns: 20
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "true"
+
+verifier:
+  independent: false
+  mechanism: "the loop re-runs its own stop.check"
+
+decision_log:
+  - "Drafted quickly from memory to ship the auth fix."
