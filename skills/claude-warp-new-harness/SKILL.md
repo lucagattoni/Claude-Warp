@@ -509,7 +509,9 @@ for t in d['tasks']:
   return 0
 }
 
-# ── diagnose_stall: classify a --retry stall's root cause (after PAUL diagnostic routing) ──
+# ── diagnose_stall: classify a --retry stall's root cause ──
+# Adapted from the diagnostic-failure-routing design in the PAUL project (Plan·Apply·Unify Loop,
+# Christopher Kahler — https://github.com/ChristopherKahler/paul, src/workflows/apply-phase.md).
 # Echoes exactly one of: intent | spec | code, using PAUL's three-layer definitions.
 # CRITICAL CAVEAT (why the fallback, not the classifier, is load-bearing): the model introspecting
 # WHY it just stalled is an unreliable heuristic — it is the same context that failed, and our stall
