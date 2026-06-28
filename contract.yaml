@@ -1,41 +1,41 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: dev.sh hardening — reviewer-guard in CI + claim-count coherence (v0.32.0 retro)
-slug: devsh-hardening
+name: Dogfood D5 — flip command-verification (claim #5) to verified-live
+slug: dogfood-d5
 risk: R1
 
 scope:
   may_touch:
-    - scripts/dev.sh                 # fold reviewer-guard into step 6; add step 7 (claim-count coherence)
-    - docs/loop-harness.md           # "six → seven deterministic checks" description
+    - BEHAVIOURAL-CLAIMS.md          # flip claim #5; add Dogfood D5 log; intro 5/5
+    - docs/loop-harness.md           # D5 narrative; backlog 4/5 -> 5/5
     - CHANGELOG.md
     - VERSION
     - working/                       # gitignored one-shot verifier
   must_not_touch:
-    - "scripts/reviewer-guard.sh internals"   # ship it as-is; only ADD it to the CI net
-    - "BEHAVIOURAL-CLAIMS.md claim content"    # step 7 READS it; the count stays 4/5, untouched
-    - "skills/**"                              # no charter change — tooling only
+    - "skills/**"                    # no charter change — the rule shipped in v0.32.0; this is evidence
+    - "scripts/**"                   # reviewer-guard + dev.sh are correct; D5 only USES them
+    - "tests/dogfood/repro-fixture/**"  # reused as-is (Finding B is already command-falsifiable)
+    - "claims #1-#4 status"          # unchanged; only #5 flips
 
 action: >
-  Close the two v0.32.0-retro gaps. (1) Fold scripts/reviewer-guard.sh into dev.sh step 6's
-  "shared executables fail closed" net so its --self-test is CI-gated like verifier-lib + ledger.
-  (2) Add step 7 — behavioural-claim count coherence: compute the M/N verified-live count FROM the
-  registry (BEHAVIOURAL-CLAIMS.md claim headings) and assert the literal appears identically in the
-  backlog AND docs/loop-harness.md, so a count update can't half-land. Renumber checks /6 -> /7;
-  update the docs "six -> seven deterministic checks" description. Tooling hardening only — no charter
-  or behavioural change.
+  Record the live Dogfood D5 result and flip claim #5 (command-verification) from unverified to
+  verified-live ONLY because it honestly fired: a spawned reasoning-blind Sonnet pass-2, wrapped by
+  reviewer-guard.sh, ran read-only grep on both repro-fixture findings — confirmed Finding A
+  ([CMD_CONFIRMED], kept critical) and contradicted Finding B ([CMD_CONTRADICTED], demoted critical->major),
+  [pass-2 / sonnet]; reviewer-guard verify returned tree-unchanged (read-only, integrity-clean). Update the
+  backlog count 4/5 -> 5/5 in BOTH BEHAVIOURAL-CLAIMS.md and docs (the v0.32.1 step-7 check enforces parity).
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/devsh-hardening-verify.sh && bash scripts/dev.sh verify"
+  check: "bash working/dogfood-d5-verify.sh && bash scripts/dev.sh verify"
 
 verifier:
   independent: false
-  mechanism: "working/ verifier (step 7 fn + reviewer-guard wired into step 6 + /7 renumber + docs 'seven' + the count check FIRES: computes 4/5 from the registry and passes) + dev.sh verify 7/7 + residuals R1"
+  mechanism: "working/ verifier (claim #5 = verified-live 2026-06-29; D5 log records the actual [CMD_CONFIRMED]/[CMD_CONTRADICTED]/demotion/[pass-2 / sonnet] + reviewer-guard tree-unchanged; 5/5 in both files) + dev.sh verify 7/7 (step-7 count check independently computes 5/5 from the registry) + residuals R1"
 
 decision_log:
-  - "Source: corroboration-rigor retro improvements #1 (single-source the N/M backlog count) and #2 (wire reviewer-guard.sh into dev.sh step 6). Both were explicitly held out of v0.32.0 as out-of-scope; this PATCH closes them."
-  - "Design: step 7 COMPUTES the count from the registry (grep claim headings) rather than hard-coding it, so the check is a true single-source — it fails if BEHAVIOURAL-CLAIMS.md prose, docs prose, OR the registry itself drift apart. This is stronger than asserting a fixed '4/5' literal."
-  - "Red-team (Phase 6): a check that only asserted '4/5' appears would pass forever even after the real count changed. Computing expected from the registry means the check can FAIL when it should — proving it is not a check-that-can't-fail (the agent-review-panel control-validation discipline applied to our own tooling)."
-  - "R1 PATCH: edits dev.sh (the CI gate) but only ADDITIVELY (stricter, never looser); no charter, no matcher semantics, no claim relabel. The count stays 4/5 (claim #5 still unverified)."
+  - "Live D5 fired exactly as claim #5 predicted: the spawned Sonnet pass ran `grep -n 'check'` (-> `27: check: \"true\"`, [CMD_CONFIRMED], kept critical) and `grep -n 'loop_max_usd'` (-> `20: loop_max_usd: 5`, [CMD_CONTRADICTED], demoted critical->major). Reasoning-blind: it was told nothing about which finding was true. This is the verified-live bar — a real spawned independent agent on a different in-house model."
+  - "Dogfooded #3 simultaneously: reviewer-guard.sh snapshot before / verify after the spawn returned 'tree unchanged (reviewer was read-only)', exit 0 — the v0.32.0 integrity guard's first LIVE exercise, and proof the D5 evidence is integrity-clean."
+  - "Count parity: flipping #5 makes the registry count 5/5; v0.32.1 dev.sh step-7 recomputes verified/total from the claim headings and requires '5/5' in BOTH BEHAVIOURAL-CLAIMS.md and docs — so this batch must (and does) update both, and the prior batch's hardening now actively guards this release."
+  - "R1 PATCH (evidence-only): no charter, matcher, or tooling change; the fixture is reused unchanged; claims #1-#4 untouched. P6 honesty held: pass-1 was a constructed input, only pass-2 (the mechanism) was the live agent; cross-vendor remains a future, weaker-until-proven claim."
