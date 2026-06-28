@@ -125,10 +125,16 @@ Converge (<harness|goal> <slug>) — risk <R>
   Gaps         : missing <m> · partial <p> · contradicts <c> · unrequested <x>
   Action       : <appended <k> tasks as wave <W> | byte-for-byte unchanged — converged | report only>
   ⚠ Surfaced   : <severe contradictions held for human decision, or "none">
+
+Log this reconciliation to the cross-session ledger (printed, not run — converge stays read-only of source):
+  bash scripts/ledger.sh record --kind <harness|goal> --slug <slug> --event converged \
+       --note "<m> missing, <p> partial, <c> contradicts — appended <k> tasks"
 ```
 
 Print the appended task ids (or the goal-mode follow-up commands) so the operator can act without
-re-reading the file.
+re-reading the file. The ledger line is **printed for the operator, never run by converge** — appending
+to the ledger is a *write*, and converge only writes the feature list (P2 keeps the reconciler from
+acquiring side write-paths). See `/claude-warp-ledger`.
 
 ## Notes
 

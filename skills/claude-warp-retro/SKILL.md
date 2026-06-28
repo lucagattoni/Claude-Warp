@@ -111,8 +111,22 @@ Then, for either kind:
 ---
 ```
 
-## Phase 6 — Print summary
+## Phase 6 — Record to the cross-session ledger
+
+After RETRO.md is written, append one closure event to the persistent ledger so the
+retrospective is queryable across future sessions (retro already writes files, so this stays
+within its remit — see `/claude-warp-ledger`):
+
+```bash
+bash scripts/ledger.sh record --kind <goal|loop|harness> --slug <SLUG> --event converged \
+     --verdict "<COMPLETE|INCOMPLETE|N pass/M fail>" --note "retro: <one-line top improvement>"
+```
+
+If `scripts/ledger.sh` is absent (older checkout / partial self-host), skip this step silently —
+the retro is still complete without it.
+
+## Phase 7 — Print summary
 
 Print the top 3 improvements directly to the conversation so the user can
 act on them without reading RETRO.md. Do NOT modify any loop SKILL.md files
-or state files — this skill is read-only except for RETRO.md.
+or state files — this skill is read-only except for RETRO.md and the ledger append in Phase 6.
