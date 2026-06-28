@@ -456,7 +456,7 @@ consumer projects):
 |---|---|
 | `scripts/dev.sh selfhost` | Symlinks every skill into `.claude/skills/` so they run as live `/claude-warp-*` commands **in this repo** (next session). Single source of truth — editing `skills/X` updates the live command; symlinks are gitignored so the repo stays a pure distribution source. |
 | `scripts/dev.sh unhost` | Removes those symlinks. |
-| `scripts/dev.sh verify` | Five deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, and docs coherence. Exits non-zero on failure — suitable for CI. |
+| `scripts/dev.sh verify` | Six deterministic checks (no LLM, no tokens): source integrity, the setup-is-dynamic regression guard, the install copy contract, setup-template placeholder fill, docs coherence, and the shared-executable self-tests (`verifier-lib.sh` + `ledger.sh` each run their own `--self-test`). Exits non-zero on failure — suitable for CI. |
 | `scripts/dev.sh verify --live` | Additionally runs the real `/claude-warp-setup` (`claude -p`) into a throwaway repo for full fidelity. Costs tokens; opt-in. |
 
 **Self-host safety.** Every skill is safe to run in this self-hosted repo (which has no

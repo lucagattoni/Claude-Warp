@@ -5,6 +5,35 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.24.2] — 2026-06-28
+
+**Retro-hardening batch** (PR12) — four accumulated retro improvements (PR9 + PR10) that sharpen the
+planning spine, the release gate, and the dev-gate. No new skill/verb/capability — this *refines* how
+existing jobs are done, so per the very rule it codifies (below) it is a **PATCH**, not a MINOR.
+
+### Changed
+- **`skills/claude-warp-contract/SKILL.md`** — two hardenings:
+  - **Phase 6 critical-pass** gains a "Verifier asserts only tracked paths in git-diff checks?" row.
+    A `git diff` against a gitignored/untracked path is always empty — it passes even if the file was
+    rewritten (the vacuous-assertion trap caught mid-build in PR9).
+  - **Phase 4 interview** now requires that a plan introducing a new persisted file settle its
+    **lifecycle** (tracked vs gitignored), not just its format — the gap that surfaced post-ship as
+    the v0.24.0 ledger git near-miss.
+- **`skills/claude-warp-release/SKILL.md` Phase 3** — sharpened the recurring MINOR/PATCH crux:
+  *modifying* an existing skill's behaviour without adding a new skill/verb/capability is **PATCH**;
+  *adding* one is **MINOR**; a new internal dev/CI check is not user-facing, so it is a PATCH.
+- **`scripts/dev.sh verify`** — new check `[6/6]`: the shared executables (`verifier-lib.sh`,
+  `ledger.sh`) each run their own `--self-test`, so a regression in either is caught by the repo's own
+  gate, not only when a per-PR verifier happens to source one. (Existing checks renumbered `/5`→`/6`.)
+
+### Docs
+- **`docs/loop-harness.md`** — `dev.sh verify` now documents six checks incl. the executable self-tests.
+
+### Process (not code — recorded as memory)
+- The two operator-discipline retro items (seeds ride in a PR never direct-to-main; run
+  `git status`/`reflog` before any corrective `reset`) were captured as `feedback` memories rather
+  than contrived skill edits — they govern how the operator works, not any skill's behaviour.
+
 ## [0.24.1] — 2026-06-28
 
 **Ledger is gitignored by default** (PR11; from the v0.24.0 retro). The cross-session closure ledger

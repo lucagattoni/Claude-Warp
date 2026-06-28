@@ -82,6 +82,13 @@ commit range and the CHANGELOG top section, then compare to the actual bump size
 - **MINOR** — a new skill, command, capability, or feature.
 - **PATCH** — a fix, doc update, or dependency/component change.
 
+**Skill-behaviour boundary (the MINOR/PATCH crux that recurs here):** *modifying* an existing
+skill's behaviour or instructions **without** adding a new skill, verb, or user-facing capability is
+a **PATCH** (it refines what's already there). *Adding* a new skill, a new verb/command, or a new
+user-facing capability is **MINOR**. A new internal check in a dev/CI script is not a user-facing
+capability — it is a PATCH. Hardening the contract spine, sharpening a gate's rule, or tightening a
+verifier are PATCHes; they change how an existing job is done, not what jobs exist.
+
 When multiple types land together, the **highest** wins (MINOR beats PATCH; MAJOR beats MINOR).
 Compute `EXPECTED_BUMP` from the classification and compare to the observed bump (`LAST_TAG` →
 `NEW_VERSION`).

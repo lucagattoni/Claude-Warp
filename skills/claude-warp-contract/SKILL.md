@@ -196,6 +196,13 @@ two gate everything else and are worth surfacing together. After that opening, p
 fixed questionnaire beyond that opening. Prioritise the most underspecified or highest-risk
 property first.
 
+**New persisted file ⇒ settle its lifecycle, not just its format.** When the plan introduces a
+file that persists between runs (a ledger, a cache, a state log), the storage crux must resolve
+**two** things: the *format* (schema/encoding) **and** the *lifecycle* — is it tracked in git or
+gitignored, and who creates it? Deciding format alone leaves the tracked-vs-ignored question to be
+discovered at commit time (the v0.24.0 ledger shipped before this was settled, then a blocked
+direct-to-main seed surfaced it). Ask both in the same breath.
+
 Rigor scales with the Phase 3 risk class:
 
 | Risk | Interview posture |
@@ -258,6 +265,7 @@ model than the drafting agent"'
 | Intent documented? | Intent debt | "Why this approach over the alternative? Record it in `decision_log`." |
 | Conflicts a constitution MUST? | Governance violation | "Principle `<Pn>` forbids this. Adjust the **contract**, not the principle — amending the constitution is a separate explicit act." |
 | Verifier distinguishes not-run from pass? | Verifier theater | "An unrun check is `not run`, never green. Make `stop.check` fail closed when the verifier can't execute." |
+| Verifier asserts only tracked paths in git-diff checks? | Vacuous assertion | "A `git diff` against a gitignored/untracked path is always empty — it passes even if the file was rewritten. Assert on tracked paths, or check the file's content directly." |
 
 **Constitution alignment.** If `.claudewarp/constitution.md` exists **and is filled** (any
 principle row is no longer the `# UNFILLED` skeleton), validate the contract against every
