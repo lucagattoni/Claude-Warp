@@ -137,3 +137,25 @@ share it.
 3. **The cheap-disciplines track is now exhausted — the next step is a genuine fork for the user, not an obvious continuation — why:** Options 1/2/2.5 (all S–M, ride existing seams) are shipped. What remains is either (a) *validate* via live dogfooding (improvement #1) or (b) the held Options 3 (review panel — needs `--review-panel`/fork/worktree plumbing) and 4 (deep-dive plan mode), both heavier and both flagged "hold" in the analysis. There is no longer a clearly-correct autonomous next build; surface the choice with the dogfooding-first recommendation.
 
 ---
+
+## Retro: behavioural-claim-backlog (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 9/9 done conditions met
+**Milestones:** 2 execution-log entries (contract → implement) | rework: none
+
+### What worked
+- **The dogfood actually fired.** The in-context red-team pass on the planted-defect fixture produced the predicted catch (the `stop.check: "true"` trivial pass), plus the load-bearing-claim and R2 independent-verifier rows — converting the v0.29.0 charter + v0.28.0 honesty-rider claims from *present* to `verified-on-fixture`. The previous retro's #1 improvement (recommended twice) is now discharged, not just re-recommended.
+- **The discriminating done-bar held.** Phase 6 caught that "flip a claim to verified-on-fixture" admits a trivially-passing impl (write the status string). Hardening the bar to require an auditable evidence block (planted defect + catch text + firing row + tracked-fixture pointer), asserted by the verifier, meant the dogfood couldn't be faked — the goal practised on itself the exact red-team check it documents.
+- **The honesty crux survived contact.** Two claims (/converge, reproduction-required) genuinely could not be honestly dogfooded in one context (they need two independent passes). They were left `unverified` with the reason recorded — the vocabulary's whole purpose (verified-on-fixture ≠ verified-live ≠ unverified) earned its keep on first use rather than collapsing into "all green."
+- **Verifier 47/47 first run, zero double-space-trap failures.** Last batch lost 8 asserts to the `.`-next-to-space regex trap; this batch dodged it entirely by writing contiguous single-spaced phrases — last retro's lesson applied, even though improvement #2 (the lib-level fix) is still open.
+
+### What failed / friction
+- **The `git ls-files` tracked-check forced an ordering quirk** (structural): the verifier asserts the fixture/runbook are *tracked*, but `git ls-files` only sees staged/committed paths — so the files had to be `git add`-ed before the verifier could pass. Benign here (stage-then-verify is the natural flow) but a fresh author could read a spurious FAIL as a real one. (1 occurrence.)
+- **Self-referential validation has a ceiling** (structural): an in-context pass proving ClaudeWarp's own reviewer fires is real evidence the *instructions cause the catch*, but it is the author's model grading the author's fixture. `verified-on-fixture` names this honestly, yet the strong claim still rests on a `verified-live` run that has never been done. The debt is now *labelled* and *smaller*, not gone.
+
+### Top 3 improvements
+1. Phase (dogfood) — **Do ONE real `verified-live` run** — convert at least one claim from `verified-on-fixture` to `verified-live` via the RUNBOOK step-3 `CLAUDEWARP_QA_MODEL` spawned pass — why: the backlog now makes the fixture-vs-live gap explicit and two claims sit one rung below the strong status; a single live spawned pass on the existing fixture is the cheapest way to retire the self-referential-ceiling debt this retro names, and it also unblocks /converge + reproduction-required (which need two independent passes by construction).
+2. verifier-lib — **Add the `phrase` matcher / tracked-path note to `scripts/verifier-lib.sh`** — why: now flagged by TWO retros. The double-space trap was dodged by hand this batch (didn't bite), but the `git ls-files` tracked-check ordering quirk is new friction in the same file; a small `phrase`/`tracked` helper + a header note would retire both taxes the way `md_has` retired the soft-wrap tax — and unlike a live run it costs no budget.
+3. Phase (worth-it / fork) — **The cheap-evidence track is now also exhausting — next is genuinely a fork** — why: the disciplines (Options 1/2/2.5) AND their first fixture-level evidence are shipped. What remains is (a) the live-run validation above, (b) held Options 3 (review panel — `--review-panel`/fork/worktree plumbing) / 4 (deep-dive plan mode), both heavier "hold"-flagged builds. No clearly-correct autonomous next build remains; surface the choice with live-run-first as the recommendation.
+
+---
