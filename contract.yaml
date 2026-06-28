@@ -1,43 +1,47 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Correct the /converge claim (#3) + live D3 dogfood of its real behaviour
-slug: dogfood-converge-d3
+name: Live two-pass dogfood of reproduction-required corroboration (claim #4)
+slug: dogfood-repro-d4
 risk: R1
 
 scope:
   may_touch:
-    - BEHAVIOURAL-CLAIMS.md           # rewrite claim #3 to the state-reconciler framing + add Dogfood D3
-    - tests/dogfood/                  # add the converge partial-satisfaction fixture + RUNBOOK step
-    - docs/loop-harness.md            # note the D3 run + the claim-#3 correction
+    - BEHAVIOURAL-CLAIMS.md           # flip claim #4 + add Dogfood D4 (gated on the honest live result)
+    - tests/dogfood/                  # add repro-fixture (pass-1 findings artifact) + RUNBOOK step
+    - docs/loop-harness.md            # note the D4 run
     - CHANGELOG.md
     - VERSION
     - working/                        # gitignored one-shot verifier
   must_not_touch:
-    - skills/claude-warp-converge     # the SKILL is correct; the BACKLOG was wrong — do not edit the skill
-    - "claim #4 (reproduction-required)"   # genuinely two-pass; deferred, not in scope
+    - skills/claude-warp-new-harness  # the reproduction-pass charter is correct; do not edit the skill
+    - skills/claude-warp-contract     # not the mechanism under test
     - "scripts/verifier-lib.sh has/md_has/chk/not_has semantics"
 
 action: >
-  Correct claim #3 in BEHAVIOURAL-CLAIMS.md — /converge reconciles ACTUAL REPO STATE vs CONTRACT
-  INTENT and classifies gaps (missing/partial/contradicts/unrequested), it does NOT reconcile two
-  reviewer verdicts (the prior framing was wrong per skills/claude-warp-converge/SKILL.md:3) — then
-  run a live D3 dogfood: spawn an independent reasoning-blind agent to /converge a partial-satisfaction
-  fixture (stop.check passes, a must_not_touch path violated, a may_touch intent item missing) and flip
-  #3 to verified-live ONLY if it honestly classifies contradicts + missing and refuses to declare
-  converged. Record the negative honestly if it does not.
+  Run the gold-standard live test of claim #4 (v0.30.0 reproduction-required corroboration). The
+  mechanism under test is the PASS-2 reproduction agent: a pass-1 blocking finding reverts only if
+  pass-2 reproduces it; an unreproduced blocking finding is DOWNGRADED to a non-blocking minor. Build a
+  realistic pass-1 findings artifact (input, analog of a planted defect) with two equally-confident
+  blocking findings against tests/dogfood/repro-fixture/contract-under-review.yaml — one TRUE-by-fixture
+  (stop.check "true" admits a trivial pass) and one FALSE-by-fixture (budget.loop_max_usd "missing" — it
+  is present: loop_max_usd 5) — labelled nowhere. Spawn a live independent pass-2 on a different in-house
+  model (Sonnet vs the Opus drafter), reasoning-blind, given only the charter + the artifact + pass-1's
+  findings. Flip #4 to verified-live ONLY if pass-2 honestly REPRODUCES the true finding (keeps it
+  blocking) and FAILS to reproduce the false one (downgrades it to minor), with [pass-2/model] provenance.
+  Record the negative honestly and leave #4 unverified if it rubber-stamps the false finding.
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/dogfood-converge-d3-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  check: "bash working/dogfood-repro-d4-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
-  independent: false                  # R1; the LIVE D3 agent IS the independent pass being recorded
-  mechanism: "working/ verifier (asserts the correction landed + the D3 catches are recorded) + verifier-lib --self-test + dev.sh verify 6/6 + check-ai-residuals --risk R1"
+  independent: false                  # R1; the LIVE pass-2 agent IS the independent reproduction pass being recorded
+  mechanism: "working/ verifier (asserts the recorded pass-2 catch: reproduced-true-kept + non-reproduced-false-downgraded + provenance) + verifier-lib --self-test + dev.sh verify 6/6 + check-ai-residuals --risk R1"
 
 decision_log:
-  - "DISCOVERY via the Phase-2 honesty-gate read: claim #3 described /converge as reconciling 'two reviewer passes that disagree' — factually wrong. SKILL.md:3 says it reconciles repo-state vs contract-intent and classifies gaps. The whole 'spawn 2 divergent reviewers' plan was invalid; correcting the claim is the honest deliverable, and dogfooding the REAL mechanism is the valid live test."
-  - "Honesty (don't silently overwrite): the backlog records that the prior framing was a mischaracterization caught by the D3 gate, rather than quietly swapping the text — the correction itself is evidence the gate works. Historical D1/D2 log entries are left intact (record of what was believed then); only the forward-looking claim-#3 section is corrected, with a Correction note."
-  - "Fixture design (genuine judgment split, not the broken fixture): a self-contained mini-repo under tests/dogfood/converge-fixture/ where (a) stop.check passes (src/api/health.js exists), (b) a must_not_touch path is violated (src/db/ modified), (c) a may_touch intent item is missing (docs/api.md absent). A naive reconciler says 'stop.check green -> converged'; the correct one surfaces contradicts + missing. Hint-stripped per the D2 contamination guard."
-  - "Red-team (Phase 6): the verifier must assert the LIVE catch fired (agent named contradicts + missing AND did not declare converged), not merely that a D3 heading exists — a presence-only check would pass even if the agent had rubber-stamped. not_has guards that no answer-leak tags remain in the fixture. If the agent does NOT fire, #3 stays unverified and the verifier asserts the status still reads unverified — the flip is gated on the honest result."
-  - "R1: edits a tracked evidence doc + adds tracked fixtures; /converge is read-only of source; no merge-gating skill touched. PATCH (evidence + a doc-correctness fix)."
+  - "Mechanism scope (P6 honesty): v0.30.0's reproduction-required logic lives in the PASS-2 reproduction agent — that is what claim #4 asserts. So the live test makes pass-2 the spawned independent agent; pass-1 is a constructed-but-realistic findings artifact (the INPUT), the reproduction-pass analog of a planted-defect fixture. This is recorded plainly: pass-1 was scripted input, pass-2 (the mechanism) was live. The flip earns verified-live for the reproduce/downgrade behaviour with that scope honestly stated — not for a fully-autonomous two-live-agent chain (Decision 3a panel still held)."
+  - "Why a constructed pass-1 (not a second live agent): the downgrade is only exercised if pass-1 raises a non-reproducible blocking finding; a free live pass-1 might raise only true findings (D2's live pass correctly marked budget CLEAN, leaving nothing to downgrade). A planted FALSE finding in pass-1 is the analog of a planted defect in a contract — controlled + reproducible. The honesty is preserved because pass-2 is told nothing about which finding is sound and must re-derive each from the artifact itself."
+  - "Two-directional test (rigor): pass-1 carries TWO blocking findings — A true-by-fixture (check: true), B false-by-fixture (loop_max_usd: 5 present). The catch fires only if pass-2 KEEPS A blocking (reproduced) AND DOWNGRADES B to minor (not reproduced). Downgrading everything, or rubber-stamping B, both fail — so the test cannot be passed by a lazy agent, only by one that actually reads the artifact."
+  - "Red-team (Phase 6): the verifier asserts the RECORDED behaviour (A reproduced/kept + B not-reproduced/downgraded + [pass-2/sonnet] provenance + reasoning-blind), not merely a D4 heading. If pass-2 fails, #4 stays unverified and the verifier asserts the status still reads unverified. not_has guards that the fixture's pass-1 artifact does not label which finding is true."
+  - "R1: adds a tracked fixture + flips a tracked evidence doc; touches NO merge-gating skill (the charter in claude-warp-new-harness is correct and unchanged). MINOR-or-PATCH: evidence only, no new capability — PATCH."
