@@ -309,3 +309,25 @@ share it.
 3. Milestone hygiene — **nothing to fix; record the clean run as the baseline.** This batch is the template for a low-risk PATCH: explicit staging, two structured commits, behaviour-asserting verifier, semantics-untouched guard. Future batches that regress from this (stray `git add -A`, presence-only asserts) should be measured against it.
 
 ---
+
+## Retro: corroboration-rigor (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 6/6 done conditions met
+**Milestones:** 2 execution-log entries (contract @ 86dc53c, feat @ 9aa000d) | rework: one verifier FAIL on first run (the `4/5` literal lived only in docs, not yet in `BEHAVIOURAL-CLAIMS.md`) — fixed in a single edit, no logic change.
+
+### What worked
+- **Adapt-not-invent paid off.** All three mechanics (`[CMD_*]` tags, the same-family label, the porcelain+digest guard) were lifted from prior art whose exact specs were already in hand from the earlier deep repo-search, so the build was transcription + scoping, not design. Zero mid-build surprises.
+- **The behaviour-leaning verifier earned its keep at R2.** It didn't just grep for the new tags — it *ran* `reviewer-guard --self-test` (proving the guard fires: read-only passes, mutation fails) and asserted claim #5 is registered `unverified` (not silently asserted) and that claims #1–#4 were **not** relabeled (`grep -cE '^### [1-4]\..*verified-live' == 4`). That last guard is the one that would have caught an accidental over-claim.
+- **Honest ledger discipline held.** A new instruction-only feature (command-verification) shipped `unverified` and moved the backlog 4/4 → **4/5**, rather than asserting a `verified-live` it hadn't earned. The deterministic guard (#3) correctly carries *no* behavioural claim (it's self-tested).
+- **Credits landed exactly with the influence** — agent-review-panel / dementev-dev / llm-council / NABAOS were added to the prior-art table in the same PR that shipped their mechanics, mapped to specific rows.
+
+### What failed / friction
+- **Doc/ledger count drift (1×):** the `4/5` honest-count literal was written into `docs/loop-harness.md` but not into `BEHAVIOURAL-CLAIMS.md`, so the first verifier run FAILed. Structural: a count that must appear in two files is a single fact with two homes — the verifier caught the omission (working as designed), but authoring missed it once.
+- **`reviewer-guard.sh` is not wired into `scripts/dev.sh` step 6** ("shared executables fail closed" currently tests only `verifier-lib` + `ledger`). The new shared executable is self-tested via the working verifier + `stop.check`, but it falls outside the standing CI self-test net — a deliberate scope hold, not a gap closed.
+
+### Top 3 improvements
+1. Phase 2 (draft) — **single-source the backlog count.** When a fact like "N/M verified-live" must appear in ≥2 files, state it once and have the others reference it, or add a verifier cross-check that the count matches across files — so a count update can't half-land. The verifier caught it this time; make it impossible to author wrong.
+2. Phase (next batch) — **wire `reviewer-guard.sh` into `dev.sh verify` step 6.** It's now a shipped shared executable with a `--self-test`; fold it into the "shared executables fail closed" CI check (a 1-line addition, out of *this* batch's scope) so it's covered by CI on every change, not only when a working/ verifier happens to run it.
+3. Phase (follow-up) — **schedule Dogfood D5 to flip claim #5.** Command-verification ships `unverified`; the honest next step is a live spawned pass fed a command-falsifiable false blocker, recording whether it actually runs the command and demotes. Until then the backlog correctly reads 4/5 — don't let the `unverified` sit indefinitely (the same anti-pattern the backlog exists to prevent).
+
+---
