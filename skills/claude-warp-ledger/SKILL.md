@@ -33,6 +33,11 @@ filters on structured fields and never has to grep markdown (the false-negative 
 
 Each entry: `ts` (UTC ISO-8601), `kind`, `slug`, `event`, `version`, `verdict`, `surfaced`, `note`.
 
+**Gitignored by default.** The ledger is local runtime data (per-checkout persistence), like a log —
+`/claude-warp-setup` adds `.claudewarp/ledger.jsonl` to `.gitignore`. This keeps append-only entries
+from colliding across branches; a project that wants the closure history to travel with the repo can
+remove that ignore line and commit it (accepting tail-merge conflicts as the trade-off).
+
 ## Commands
 
 ### `record`
