@@ -331,3 +331,25 @@ share it.
 3. Phase (follow-up) — **schedule Dogfood D5 to flip claim #5.** Command-verification ships `unverified`; the honest next step is a live spawned pass fed a command-falsifiable false blocker, recording whether it actually runs the command and demotes. Until then the backlog correctly reads 4/5 — don't let the `unverified` sit indefinitely (the same anti-pattern the backlog exists to prevent).
 
 ---
+
+## Retro: devsh-hardening (goal) — 2026-06-29
+
+**Outcome:** COMPLETE — 5/5 done conditions met
+**Milestones:** 2 execution-log entries (contract @ 075d45c, feat @ c3a8604) | rework: none — first-run verifier PASS (15/15), `dev.sh verify` 7/7 on the first run.
+
+### What worked
+- **Closing a retro item the very next batch worked as intended.** The corroboration-rigor retro flagged exactly these two gaps and explicitly held them out of scope; this PATCH picked them up directly — the retro → next-contract handoff did its job (no item left to rot).
+- **Computing the count from the registry, not hard-coding it, is the right shape.** Step 7 derives `expected="$verified/$total"` from the claim headings, so the check FAILS when the real count drifts — it can't become a check-that-can't-fail (the agent-review-panel control-validation discipline applied to our own tooling). The first run proved it computes `4/5` and finds it in both files.
+- **The behaviour-leaning verifier ran the real thing.** `working/devsh-hardening-verify.sh` didn't just grep for the new function — it executed `dev.sh verify` and asserted `[7/7]`, `count coherent: 4/5`, and the reviewer-guard line all appeared. That's the strongest form of the working/ verifier pattern.
+- **`replace_all` on `/6] → /7]`** renumbered all six labels safely in one edit (the string was unique to the check labels).
+
+### What failed / friction
+- **None functional.** The only friction was a transient harness "file not read" guard on `CHANGELOG.md` (edited earlier this session) — a re-Read cleared it; no content issue.
+- **Scope-shape note (not a failure):** this goal was a chore/hardening change with no charter impact, yet still ran the full contract→verifier→PR→release→retro rhythm. Correct for traceability, but it's the lightest-weight batch the rhythm is applied to — worth noting that the ceremony cost is fixed regardless of change size.
+
+### Top 3 improvements
+1. Phase (meta) — **a "trivial-PATCH express lane" is now twice-flagged** (mdhas-pattern-guard retro #2, and again here). Two consecutive sub-30-line, no-charter PATCHes ran the full rhythm. Consider a documented lighter path (still: branch + verifier + CI + release, but a one-line contract) for changes that touch only `scripts/dev.sh`/docs/tooling with `must_not_touch: skills/**`. Don't drop rigor — drop ceremony proportional to blast radius.
+2. Phase 2 (draft) — **the count-coherence check could extend to other single-sourced facts.** The same compute-and-cross-check pattern would catch drift in the skill count ("15 skills" appears in several docs) or the VERSION across manifest/docs. A small follow-up could generalise step 7 into a "derived-facts coherence" check.
+3. Phase (retro hygiene) — **record the first-run-clean baseline again.** Two of the last three goals (mdhas-pattern-guard, devsh-hardening) were first-run clean; corroboration-rigor had one caught-and-fixed FAIL. The trend is healthy — the behaviour-leaning verifier + Phase-2 reads are holding. Keep measuring regressions against this.
+
+---
