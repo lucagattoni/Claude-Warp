@@ -1,38 +1,51 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Encode the md_has pattern-authoring rule in verifier-lib.sh (retro #2)
-slug: mdhas-pattern-guard
-risk: R1
+name: Corroboration rigor + honest independence (command-verification, same-family label, read-only guard)
+slug: corroboration-rigor
+risk: R2
 
 scope:
   may_touch:
-    - scripts/verifier-lib.sh         # header note near md_has + two new --self-test guard cases
+    - skills/claude-warp-new-harness/SKILL.md   # #1 command-verification + static-inference-consensus in the reproduction charter; inline credits
+    - BEHAVIOURAL-CLAIMS.md                      # #2 same-family vocab rider + register claim #5 (unverified); 4/5 count
+    - docs/loop-harness.md                       # reproduction-discipline rows + prior-art table + v0.32.0 narrative
+    - tests/dogfood/RUNBOOK.md                   # step-3 read-only-reviewer guard wrap
+    - scripts/reviewer-guard.sh                  # #3 NEW deterministic read-only integrity guard (+ --self-test)
     - CHANGELOG.md
     - VERSION
-    - working/                        # gitignored one-shot verifier
+    - working/                                   # gitignored one-shot verifier
   must_not_touch:
-    - "has/md_has/not_has/chk runtime SEMANTICS"   # comment + test only; no behaviour change
-    - md_normalize                                  # the normalizer logic is correct and unchanged
-    - BEHAVIOURAL-CLAIMS.md            # the backlog is closed at 4/4; this batch does not touch it
+    - "has/md_has/not_has/chk/md_normalize runtime SEMANTICS"   # verifier-lib matchers unchanged this batch
+    - "claims #1–#4 verified-live status"        # do NOT relabel existing live claims; only ADD the same-family caveat + claim #5
+    - skills/claude-warp-converge/SKILL.md        # /converge is correct and untouched
 
 action: >
-  Encode the recurring md_has pattern-authoring rule where verifier-authors read it: a `.` placeholder
-  for a backtick md_normalize already STRIPS silently fails the match. Add a ⚠ note to the verifier-lib
-  header (surfaced by --help) and TWO --self-test guard cases — the normalized literal matches; the
-  `.`-placeholder pattern must NOT — without changing has/md_has/not_has/chk semantics. This closes the
-  D4-retro #2 improvement (the trap cost first-run FAILs in several consecutive batches).
+  Deepen the reproduction/independence axis with three adapt-not-invent additions, none needing a second
+  vendor: (#1) in the pass-2 reproduction charter, a blocker whose predicate is a CHECKABLE FACT must be
+  reproduced by a read-only command (grep/cat/head/tail/wc) and tagged [CMD_CONFIRMED]/[CMD_CONTRADICTED]
+  (a contradicted blocker is demoted one level; advisory, never auto-deletes); (#2) label verified-live as
+  SAME-FAMILY corroboration (shared blind spots possible), never cross-vendor independence, and define
+  [STATIC-INFERENCE-CONSENSUS] (same-lines agreement does not compound) — register the command-verification
+  behaviour as claim #5 (unverified); (#3) ship scripts/reviewer-guard.sh, a deterministic before/after
+  tree-snapshot guard that proves a spawned reviewer was read-only and fails LOUD on any mutation. Credits
+  land with the influence: agent-review-panel (wan-huiyan), dementev-dev/adversarial-review, llm-council
+  (karpathy), NABAOS/tool-receipts (arXiv 2603.10060), the find/verify framing.
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/mdhas-pattern-guard-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
+  # R2 (Option 2.5): this edits merge-gating reviewer charter text. The working/ verifier corroborates by
+  # asserting BEHAVIOUR (reviewer-guard --self-test actually fires; the charter rules are present + coherent),
+  # not mere presence; claim #5 ships honestly `unverified` rather than asserted verified.
+  check: "bash working/corroboration-rigor-verify.sh && bash scripts/reviewer-guard.sh --self-test && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
   independent: false
-  mechanism: "working/ verifier (asserts the header note + both guard self-test cases + CHANGELOG/VERSION) + verifier-lib --self-test (proves the guard fires) + dev.sh verify 6/6 + residuals R1"
+  mechanism: "working/ verifier (charter rules + tags present & coherent; claim #5 registered unverified; 4/5 count; credits mapped) + reviewer-guard --self-test (proves the guard fires: read-only passes, mutation fails) + verifier-lib --self-test + dev.sh verify 6/6 + residuals R2"
 
 decision_log:
-  - "Source: D4 retro improvement #2 — the `.`-for-a-stripped-backtick slip cost first-run verifier FAILs in three consecutive batches (D3, twice in D4). The lesson lived only in RETRO.md; nothing put it where a verifier-author hits it BEFORE writing patterns. Fix = a header note (rendered by --help) + a live self-test guard, so the rule is enforced, not just documented."
-  - "Scope discipline: comment + test ONLY. md_normalize and the has/md_has/not_has/chk matchers are unchanged — the self-test still passes its existing 0–7 cases, and the two new case-8 asserts prove the literal matches while the placeholder fails. No behavioural drift to any existing verifier."
-  - "Red-team (Phase 6): a presence-only check ('the note exists') would pass even if the guard didn't fire. The working verifier instead asserts the self-test PASSES (so the guard's placeholder-FAILS assertion actually held) AND that the case-8 lines exist — behaviour, not mere presence."
-  - "R1 PATCH: a doc + test change to a non-merge-gating helper; the backlog stays closed at 4/4 (untouched). User chose this (option A) and to pause at the milestone after."
+  - "Source: the 10-project doc gap-scan shortlist. #1/#2 adapt agent-review-panel (wan-huiyan) — read-only command-verification of checkable predicates + the same-lines-consensus caution; #2 also adapts llm-council (karpathy) — unanimous != independent; #3 adapts dementev-dev/adversarial-review — porcelain+sha256 before/after integrity snapshot. Research grounding NABAOS/tool-receipts (arXiv 2603.10060) + the find/verify recall-vs-precision framing."
+  - "Adapt-not-invent: #1 grounds the v0.30.0 reproduce-before-block rule (claim #4) in command OUTPUT for checkable predicates, keeping the SAME one-level downgrade — advisory, never auto-deletes (a tag informs the verdict). #2 makes the long-standing Decision-3a residual (same-vendor != cross-vendor) explicit in the vocabulary instead of buried in a held-decision note. #3 turns the read-only ASSERTION the dogfoods already make into an enforced, self-tested check."
+  - "Honesty crux (P6): #1 is a NEW behavioural claim, so it ships `unverified` (claim #5) — the charter text is present and the verifier proves it present+coherent, but no live pass has been shown to run-the-command-and-demote yet. The backlog goes 4/4 -> 4/5 verified-live, recorded honestly; a future Dogfood D5 would flip it. #3 is deterministic (self-tested), so it carries NO behavioural claim."
+  - "Red-team (Phase 6): a presence-only verifier would pass even if reviewer-guard didn't actually fire. The stop.check therefore runs `reviewer-guard --self-test` (read-only PASSES, mutation FAILS LOUD) as behaviour, and the working/ verifier asserts the same-family caveat + [CMD_*]/[STATIC-INFERENCE-CONSENSUS] tags are present AND that claim #5 is registered `unverified` (not silently asserted) AND the 4/5 count is stated honestly."
+  - "R2: edits a merge-gating reviewer charter (the reproduction pass). Scope held tight — no matcher-semantics change, no relabel of claims #1–#4, /converge untouched. Credits added to docs prior-art ONLY now that the influence lands in shipped code (credit follows influence)."
