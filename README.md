@@ -129,4 +129,6 @@ scripts/dev.sh selfhost   # symlink skills into .claude/skills/ (single source o
 scripts/dev.sh verify     # deterministic checks: integrity, install copy contract, docs coherence
 ```
 
+Per-PR verifiers (in `working/`) source `scripts/verifier-lib.sh` — a shared, markdown-aware matcher (`md_has` strips `**bold**`/`` `code` `` decoration and joins soft-wrapped lines before grepping) with its own `--self-test`. It retires a false-negative that bit four consecutive PRs' raw-grep asserts.
+
 See the [Developing ClaudeWarp](docs/loop-harness.md#developing-claudewarp) section for the full command reference and what `verify` does (and doesn't) cover.
