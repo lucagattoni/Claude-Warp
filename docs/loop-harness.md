@@ -181,7 +181,13 @@ default, no `--no-qa`) — the structural one-level-down enforcement of constitu
 work needs an independent verifier). When a task's output isn't independently gradable, QA re-runs its
 `acceptance` `cmd:` checks as the grade (a check it can't run is `not run`, never PASS).
 
-**Converge — reconcile-and-re-ticket closure (`/claude-warp-converge`, optional `--converge`).**
+Install path: `skills/claude-warp-new-harness/SKILL.md`
+
+---
+
+### `/claude-warp-converge`
+
+**Reconcile-and-re-ticket closure** (optional `--converge` runner tail).
 After a harness runs, converge answers one question honestly: *does the actual tree satisfy the
 intent, and if not, what is left?* It is **read-only of source** and judges the **present state of
 the tree** against the contract + task intent (it is a reconciler, **not a diff tool**). It
@@ -196,7 +202,13 @@ appended tasks, runs **one** closing coding loop — no re-converge (guards the 
 For a `kind: goal`, converge reports + prints a ready-to-run `/claude-warp-new-goal` follow-up
 rather than mutating `GOAL.md`.
 
-**Release gate — "PR merged" is not "release ready" (`/claude-warp-release`).** Run before cutting a
+Install path: `skills/claude-warp-converge/SKILL.md`
+
+---
+
+### `/claude-warp-release`
+
+**"PR merged" is not "release ready."** Run before cutting a
 release to answer one question honestly: *is this ready to ship, or just merged?* It is **read-only**
 — it never tags, commits, or pushes; it **assesses**, packages the evidence (verifier output +
 diffstat since the last tag), prints the exact tag/release commands, and emits a **two-tier verdict**:
@@ -216,8 +228,7 @@ shipper (P2), and the act of releasing remains a Surface. Self-host safe — wit
 (release per complete batch, highest-severity bump wins, never leave `[Unreleased]` populated) as a
 checkable gate.
 
-Install paths: `skills/claude-warp-new-harness/SKILL.md`, `skills/claude-warp-converge/SKILL.md`,
-`skills/claude-warp-release/SKILL.md`
+Install path: `skills/claude-warp-release/SKILL.md`
 
 ---
 
@@ -424,3 +435,48 @@ instead). So you can `/claude-warp-contract` a plan and let it scaffold here wit
 **Scope of `verify`:** it checks source integrity and the install *copy contract* — it cannot
 reproduce the LLM behaviour of `/claude-warp-setup` itself (that is non-deterministic). Use
 `--live` when you need to exercise the actual setup skill end to end.
+
+### Writing per-PR verifiers: `scripts/verifier-lib.sh`
+
+Each implementation batch carries an independent verifier (kept gitignored in `working/`, e.g.
+`working/pr7-verify.sh`) that asserts the change landed. These verifiers grep the changed files —
+and grepping markdown is where they kept failing. The same **false-negative** bit four consecutive
+PRs: a phrase the verifier *correctly* asserted was present, but raw `grep` missed it because
+markdown had split or decorated the phrase — `**bold**` markers between words, an `inline code`
+span, or a prose line **soft-wrapped** across two physical lines so the multi-word pattern never
+matched on a single line. PRs that dodged it only did so by hand-anchoring asserts on short
+single-line tokens, which is fragile.
+
+`scripts/verifier-lib.sh` is the shared, tested fix. Source it from a verifier and use the matcher
+that fits each assertion:
+
+```bash
+source scripts/verifier-lib.sh
+
+chk "release skill exists"        "$(has   '^name: claude-warp-release' skills/claude-warp-release/SKILL.md)"  # structural → raw
+chk "documents the no-target case" "$(md_has 'no existing target code'    skills/claude-warp-contract/SKILL.md)" # prose phrase → markdown-aware
+```
+
+- **`has <pat> <file>`** — the original raw `grep -qiE` idiom. Use it for structural or
+  line-anchored patterns: `^name:`, a SemVer like `^0\.23\.0$`, JSON keys, exact tokens.
+- **`md_has <pat> <file>`** — normalizes the file first (strips `` `inline code` ``, `**bold**`
+  and `*italic*` markers, then joins soft-wrapped lines into one whitespace-collapsed stream)
+  before matching. Use it for **prose phrases** that markdown may decorate or wrap. Underscores
+  (`_`) and `__` are deliberately left intact so `snake_case` identifiers survive.
+- **`chk <label> <rc>`** — the assertion printer; both matchers echo their exit code so they drop
+  straight into `chk "label" "$(...)"`.
+
+Both matchers **fail closed**: a match over a missing file yields a non-zero (no-match) result, so
+a verifier can never read a NOT-RUN as a pass. The library proves all of this on itself:
+
+```bash
+bash scripts/verifier-lib.sh --self-test   # fires on the bold / soft-wrap / inline-code defect cases
+```
+
+The self-test plants each historical defect as a fixture and asserts `md_has` finds the phrase
+**while raw `grep` misses it** — so it demonstrates both the fix and the defect it retires.
+
+> The shared epistemic-honesty gate `scripts/check-ai-residuals.sh` is already markdown-aware in
+> the other direction (it skips code-construct HIGH patterns for `.md`/`.markdown`/`.txt`, so quoted
+> sample code in docs doesn't false-*positive*). `verifier-lib.sh` addresses the complementary
+> false-*negative* class in the per-PR verifiers.

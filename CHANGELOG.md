@@ -5,6 +5,40 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - **MINOR** — new skill or harness capability added
 - **PATCH** — fix, doc update, or component superseded by native CC feature
 
+## [0.23.0] — 2026-06-28
+
+**Shared markdown-aware verifier matcher** (tooling-debt PR7). Retires a false-negative that bit four
+consecutive PRs' per-PR verifiers: a phrase the verifier correctly asserted was present, but raw
+`grep` missed because markdown had split or decorated it (`**bold**` markers between words, an
+`` `inline code` `` span, or a prose line **soft-wrapped** across two physical lines). Flagged by four
+consecutive retros (PR3–PR6) and the `project-markdown-grep-verifier-defect` finding.
+
+### Added
+- **`scripts/verifier-lib.sh` — sourceable, markdown-aware matcher for verifiers.** Exposes
+  `md_normalize <file>` (strip `` `inline code` ``/`**bold**`/`*italic*` decoration, then join
+  soft-wrapped lines into one whitespace-collapsed stream), `md_has <pat> <file>` (markdown-aware
+  match for **prose** phrases), the original raw `has <pat> <file>` (for structural/line-anchored
+  patterns), and the `chk` assertion printer — so per-PR `working/` verifiers source **one**
+  definition instead of redefining raw-grep asserts. Underscores/`__` are left intact so
+  `snake_case` identifiers survive. Both matchers **fail closed** (a match over a missing file is
+  non-zero — NOT RUN ≠ pass). Carries a `--self-test` that plants each historical defect as a
+  fixture and proves `md_has` finds the phrase **while raw `grep` misses it**.
+
+### Changed
+- **`docs/loop-harness.md`** and **`README.md`** — document the matcher, the `has` vs `md_has`
+  split, and how per-PR verifiers source it (P8).
+- **`docs/loop-harness.md`** — promoted `/claude-warp-converge` and `/claude-warp-release` from
+  inline `**bold**` subsections to proper `###` sections, clearing a pre-existing
+  `scripts/dev.sh verify` docs-coherence failure (both skills had README rows but no matching
+  section heading). `verify` is green again.
+
+### Notes
+- **Scope narrowed mid-flight (honest):** the contracted "make `check-ai-residuals.sh`
+  markdown-aware" half was found **already done** — the residuals gate already skips code-construct
+  HIGH patterns for `.md`/`.markdown`/`.txt` (so quoted sample code in docs doesn't false-*positive*).
+  Claiming a fix there would have been fake-done (constitution **P6**); the residuals scanner was left
+  untouched. This PR addresses only the complementary false-*negative* class in the per-PR verifiers.
+
 ## [0.22.0] — 2026-06-28
 
 **Release-readiness gate — "PR merged" is not "release ready"** (follow-up PR6; COMPETITIVE-FINDINGS
