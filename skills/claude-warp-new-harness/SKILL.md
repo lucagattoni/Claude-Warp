@@ -348,7 +348,9 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 #                   R2+). The runner prints the proposed task breakdown and STOPS before executing.
 # --plan-approved   Grant approval for the surfaced decomposition; the runner proceeds to execute.
 #                   (Equivalent: CLAUDEWARP_PLAN_APPROVED=1.)
-# --retry           Inner/Outer Dual Loop: re-invoke initializer on MAX_ITER stall.
+# --retry           Inner/Outer Dual Loop with diagnostic routing: on a MAX_ITER stall, classify
+#                   the root cause (code/spec/intent) and route — code retries the loop in place,
+#                   spec re-invokes the initializer, intent Surfaces to a human (exit 3).
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails. Auto-enabled and
 #                   non-overridable at risk R2+ (mandatory qualify; constitution P2).
@@ -507,6 +509,32 @@ for t in d['tasks']:
   return 0
 }
 
+# ── diagnose_stall: classify a --retry stall's root cause (after PAUL diagnostic routing) ──
+# Echoes exactly one of: intent | spec | code, using PAUL's three-layer definitions.
+# CRITICAL CAVEAT (why the fallback, not the classifier, is load-bearing): the model introspecting
+# WHY it just stalled is an unreliable heuristic — it is the same context that failed, and our stall
+# is an AGGREGATE (several tasks, possibly mixed causes), unlike PAUL's per-task qualify. So we do
+# NOT trust the verdict: any uncertainty or unparseable reply collapses to 'spec' (the prior --retry
+# re-decompose), and only a CONFIDENT 'intent' diverts to a human. This makes Step 3 a strict,
+# non-regressive refinement — the classifier can only ever do better than blind re-decompose, never
+# worse.
+diagnose_stall() {
+  local stuck="$1" verdict
+  verdict=$(claude \
+    --permission-mode auto \
+    --max-turns 4 \
+    --max-budget-usd 0.25 \
+    --effort high \
+    --allowedTools "Read,Glob,Grep" \
+    -p "A coding harness stalled with these tasks incomplete: ${stuck}. Read <HARNESS_SLUG>-session-init.md and the incomplete tasks in $FEATURES (status pending/in_progress/needs_context/blocked, plus any 'concern' field). Classify the SINGLE root cause into exactly one layer:
+  code   — the plan was correct; the implementation just doesn't match it yet (a fresh attempt in place will help).
+  spec   — the plan was missing something or got a task wrong: right goal, but the task breakdown is wrong or too coarse (needs re-decomposition).
+  intent — the goal itself wants something DIFFERENT than what was planned; the spec itself is wrong and a human must supply the corrected intent (re-planning the same goal cannot fix it).
+Reply with ONLY one lowercase word: code, spec, or intent. If you cannot tell, reply: spec." \
+    2>/dev/null | tr '[:upper:]' '[:lower:]' | grep -oE 'intent|spec|code' | tail -1)
+  case "$verdict" in intent|spec|code) printf '%s' "$verdict" ;; *) printf 'spec' ;; esac
+}
+
 # ── Step 1: Initializer ───────────────────────────────────────────────────────
 TASK_COUNT=$(python3 -c "import json,sys; d=json.load(open('$FEATURES')); print(len(d['tasks']))" 2>/dev/null || echo 0)
 if [ "$TASK_COUNT" -eq 0 ]; then
@@ -553,28 +581,55 @@ fi
 run_coding_loop
 LOOP_RC=$?
 
-# ── Step 3: Inner/Outer Dual Loop — retry on stall ───────────────────────────
+# ── Step 3: Diagnostic failure routing — classify the stall, route to the right layer ───
+# (PAUL diagnostic routing) Instead of treating every stall as a re-decompose, classify the root
+# cause and route: code → retry the coding loop in place (breakdown is sound); spec → re-decompose
+# with stall context (the prior --retry behaviour); intent → Surface to a human (the goal itself is
+# wrong; re-planning cannot fix it — Type-B, never auto-resolved). Routing fires ONCE: bounded
+# recovery, the same guarantee as the prior single-pass --retry (a deliberate divergence from PAUL's
+# max-3 loop, since the coding loop already iterates internally).
 if [ "$LOOP_RC" -eq 2 ] && [ "$RETRY" -eq 1 ]; then
   STUCK=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
-titles=[t['title'] for t in d['tasks'] if t['status'] in ('pending','in_progress')]
+titles=[t['title'] for t in d['tasks'] if t['status'] in ('pending','in_progress','needs_context','blocked')]
 print(', '.join(titles[:5]))" 2>/dev/null || echo "unknown")
 
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] --retry: clearing tasks, re-invoking initializer with stall context..." >> "$LOG"
-  python3 -c "import json; d=json.load(open('$FEATURES')); d['tasks']=[]; json.dump(d,open('$FEATURES','w'),indent=2)"
+  LAYER=$(diagnose_stall "$STUCK")
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] --retry: stall root-cause classified as '$LAYER' (incomplete: ${STUCK})" | tee -a "$LOG"
 
-  RETRY_PROMPT="The previous run of <HARNESS_SLUG> stalled with these tasks incomplete: ${STUCK}. \
+  case "$LAYER" in
+    intent)
+      # PAUL: "do NOT patch — the spec itself was wrong." The corrected intent must come from a
+      # human; re-running the initializer on the same goal cannot help. Surface, never auto-resolve.
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE (intent-level stall): the goal appears to want something different than what was planned — a human must revise the intent/contract before retrying. NOT re-decomposing. Incomplete: ${STUCK}" | tee -a "$LOG"
+      exit 3
+      ;;
+    code)
+      # The breakdown is sound; give the workers another bounded coding pass WITHOUT re-decomposing.
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] code-level stall — retrying the coding loop in place (no re-decompose)." >> "$LOG"
+      run_coding_loop
+      LOOP_RC=$?
+      ;;
+    spec|*)
+      # The plan was wrong: clear tasks and re-invoke the initializer with stall context (the prior
+      # --retry behaviour — revise the task breakdown, then the coding loop fixes code against it).
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] spec-level stall — clearing tasks, re-invoking initializer with stall context..." >> "$LOG"
+      python3 -c "import json; d=json.load(open('$FEATURES')); d['tasks']=[]; json.dump(d,open('$FEATURES','w'),indent=2)"
+
+      RETRY_PROMPT="The previous run of <HARNESS_SLUG> stalled with these tasks incomplete: ${STUCK}. \
 Re-read <HARNESS_SLUG>-session-init.md, analyse why those tasks stalled (too large? ambiguous scope?), \
 and write a revised task breakdown in $FEATURES with smaller, more granular tasks."
 
-  if ! run_initializer "$RETRY_PROMPT"; then
-    echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: retry initializer failed — aborting." >> "$LOG"
-    exit 1
-  fi
+      if ! run_initializer "$RETRY_PROMPT"; then
+        echo "[$(date '+%Y-%m-%d %H:%M %Z')] ERROR: retry initializer failed — aborting." >> "$LOG"
+        exit 1
+      fi
 
-  run_coding_loop
-  LOOP_RC=$?
+      run_coding_loop
+      LOOP_RC=$?
+      ;;
+  esac
 fi
 
 [ "$LOOP_RC" -ne 0 ] && exit "$LOOP_RC"
@@ -676,7 +731,8 @@ The runner will:
      in parallel (--parallel-waves) or sequentially (default)
   3. On --with-qa (auto-on and non-overridable at R2+): invoke the QA evaluator after
      each task; task reverts to pending if QA fails, with feedback in features.json
-  4. On --retry: if stalled, re-invoke the initializer with failure context
+  4. On --retry: if stalled, classify the root cause (code/spec/intent) and route —
+     retry in place (code), re-invoke the initializer (spec), or Surface to a human (intent)
   5. On --converge: after all waves, run /claude-warp-converge once to reconcile the
      actual tree against intent; if it appends a convergence wave, run one closing
      coding loop (no re-converge). Severe contradictions Surface instead of auto-running.

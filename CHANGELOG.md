@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-06-28
+
+### Added
+- **Diagnostic failure routing** in the harness runner's `--retry` path (`claude-warp-new-harness`,
+  after PAUL's apply-phase routing). On a `MAX_ITER` stall, the runner now **classifies the root
+  cause** into one of three layers via a small read-only classifier agent and routes accordingly,
+  instead of blindly re-decomposing every stall:
+  - **code** ("plan was correct, implementation doesn't match") → re-run the coding loop **in place**, no re-decompose;
+  - **spec** ("plan was missing something or mis-scoped a task") → clear tasks and re-invoke the initializer with stall context (the prior `--retry` behaviour);
+  - **intent** ("the goal wants something *different* than planned") → **Surface to a human and stop (exit 3)** — re-planning the same goal cannot fix a wrong goal, so this is a Type-B judgment call that never auto-resolves (constitution P3).
+  An uncertain/unparseable verdict falls back to **spec**, making the change a strict, non-regressive
+  refinement of the prior `--retry`. Routing fires **once** (bounded recovery; a deliberate divergence
+  from PAUL's max-3 loop, since the coding loop already iterates internally).
+
 ## [0.25.0] — 2026-06-28
 
 ### Added

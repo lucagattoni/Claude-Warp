@@ -155,7 +155,13 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 
 **Decomposition approval gate.** Between the initializer and the coding loop, the runner can pause for the operator to review the proposed task breakdown before any budget is spent executing it. It is **required at R2+** (the same threshold that makes QA non-overridable) and **opt-in below** via `--approve-plan`. When the gate fires, the runner prints the breakdown (wave / id / title / `depends_on`) and **stops with exit 0** — no coding work runs — until you re-run with `--plan-approved` (or `CLAUDEWARP_PLAN_APPROVED=1`). Because `features.json` persists, the approved re-run skips the initializer and proceeds straight to execution. The gate is non-interactive by design, so a scheduled/unattended harness never executes an unreviewed decomposition. (It fires on the initial decomposition only, not on a `--retry` re-init, which is an explicit autonomous stall-recovery mode you've already opted into.)
 
-**`--retry` flag (Inner/Outer Dual Loop):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` clears the task list, re-invokes the initializer with failure context, and runs a final coding pass with a revised task breakdown.
+**`--retry` flag (Inner/Outer Dual Loop with diagnostic routing):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` first **classifies the stall's root cause** (after PAUL's diagnostic routing) into one of three layers and routes accordingly, instead of blindly re-decomposing every stall:
+
+- **code** — the plan was correct, the implementation just doesn't match yet → re-run the coding loop **in place** (no re-decompose).
+- **spec** — the plan was missing something or mis-scoped a task → clear the task list and re-invoke the initializer with failure context, then run a final coding pass with a revised breakdown (the original `--retry` behaviour).
+- **intent** — the goal itself wants something *different* than what was planned → **Surface to a human** and stop (exit 3); re-planning the same goal cannot fix a wrong goal, so this is a Type-B judgment call that never auto-resolves (constitution P3).
+
+The classifier is a small read-only agent; an uncertain or unparseable verdict falls back to **spec**, so routing is a strict, non-regressive refinement of the prior behaviour. Routing fires **once** (bounded recovery — a deliberate divergence from PAUL's max-3 loop, since the coding loop already iterates internally).
 
 **Per-task acceptance + negative scope (optional).** Beyond the global `verification` command, each
 task may carry its own done-bar and guardrails — both optional, so existing feature lists keep working
@@ -510,8 +516,8 @@ chk "documents the no-target case" "$(md_has 'no existing target code'    skills
 **Convention for new verifiers:** every new per-PR verifier should begin with
 `source scripts/verifier-lib.sh` and use `md_has` for prose asserts / `has` for structural ones,
 rather than redefining a raw-grep `has()`. **`working/pr7-verify.sh` is the reference template.**
-(The older `working/pr1`–`pr6` verifiers predate the library and are left as-is — they are dead
-scratch for already-merged PRs; migrating them buys nothing.)
+(Per-PR verifiers are one-shot gates kept in gitignored `working/`; once a PR merges its scratch
+is pruned, with `pr7` retained as the canonical example.)
 
 **Known gap — `_italic_`:** because `_`/`__` are left intact, a phrase split by *underscore*
 emphasis (`the _alpha_ omega`) is missed by `md_has` too. The `--self-test` asserts this boundary
