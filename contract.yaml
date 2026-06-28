@@ -1,65 +1,57 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Honesty riders for ClaudeWarp review/verdict outputs (multi-lens analysis Option 1)
-slug: honesty-riders
+name: Close the md_has _italic_/soft-wrap gap in verifier-lib.sh (boundary-aware underscore stripping)
+slug: md-has-italic-gap
 risk: R2
 
 scope:
   may_touch:
-    - skills/claude-warp-contract/SKILL.md          # Phase 6 critical-pass table + Phase 1.5 worth-it verdict
-    - skills/claude-warp-new-harness/SKILL.md        # Phase 5b QA evaluator output contract
-    - docs/loop-harness.md                           # document the riders + attribution
+    - scripts/verifier-lib.sh                         # md_normalize: strip single-underscore emphasis, boundary-aware; flip the KNOWN-GAP self-test
+    - docs/loop-harness.md                            # update the verifier-lib doc (gap now closed)
     - CHANGELOG.md
     - VERSION
-    - working/honesty-riders-verify.sh               # the independent verifier (gitignored scratch)
+    - working/md-has-italic-gap-verify.sh             # independent verifier (gitignored scratch)
   must_not_touch:
-    - "skills/claude-warp-new-harness/SKILL.md Phase 6 runner script (no parallel/panel plumbing)"
-    - "any new skill / --review-panel / fork / worktree runtime (those are Options 3/4, held)"
-    - scripts/verifier-lib.sh                         # reuse via source; do not modify its matcher
-    - "reproduction-required (Option 2.5) and red-team checker charter (Option 2) — separate batches"
+    - "the has() raw-grep matcher (unchanged idiom) — only md_normalize/md_has behaviour changes"
+    - "snake_case + __dunder__ preservation — these MUST still survive normalization (regression guard)"
+    - "any per-PR verifier under working/ — they keep working unchanged (strictly more permissive)"
 
 action: >
-  Add five honesty riders to ClaudeWarp's existing verdict-emitting surfaces — the contract Phase 6
-  critical pass, the new-harness QA evaluator, and the Phase 1.5 worth-it verdict — extending those
-  outputs (not adding any parallel review subsystem): (1) severity→verdict gating
-  [critical|major|minor|recommendation; only critical/major block]; (2) confidence-capped-by-verified-ratio
-  line; (3) anonymized-author rider; (4) anti-fabrication rule; (5) explicit "Unverified" set.
-
-# Tier scoping — RESOLVED at approval (recommended split; user confirmed 2026-06-28):
-#   severity-gating + confidence-cap + unverified-set  → apply at R2+ (advisory below R2; they attach to
-#       the R2+-mandatory QA evaluator and merge-gated verdicts — sub-R2 goals are not taxed with ceremony).
-#   anti-fabrication + anonymized-author               → apply at ALL tiers (free instruction text, no
-#       ceremony, pure honesty — no reason to gate them by risk).
+  Make md_normalize strip SINGLE-underscore `_italic_` emphasis markers in a boundary-aware way — a `_`
+  is stripped only when it is NOT flanked by alphanumerics on both sides (so emphasis delimiters go but
+  snake_case `must_not_touch` and `__dunder__`/`mcp__tool__` runs are preserved). Update the two
+  KNOWN-GAP self-test asserts to expect md_has now FINDS an underscore-split phrase, and add a
+  regression assert that dunders survive. Raw has() is untouched.
 
 budget:
-  loop_max_usd: 0          # one-shot goal; no recurring spend
-  step_max_budget_usd: 3
-  max_turns: 40
+  loop_max_usd: 0
+  step_max_budget_usd: 2
+  max_turns: 30
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/honesty-riders-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/check-ai-residuals.sh --risk R2"
+  check: "bash working/md-has-italic-gap-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
   independent: true
   mechanism: >
-    working/honesty-riders-verify.sh — sources scripts/verifier-lib.sh and asserts (via md_has) each of
-    the five riders is present at its named seam in both edited skills + the docs + a CHANGELOG entry +
-    bumped VERSION; verifier-lib.sh --self-test stays green; check-ai-residuals.sh --risk R2 clean.
-    Asserts only on TRACKED paths (the skills/docs), not the gitignored verifier itself. Known limitation:
-    these are LLM-instruction files, so the verifier greps that each rider's instruction is PRESENT — it
-    cannot execute the rider behaviour end-to-end (the accepted ceiling for instruction-file changes).
+    working/md-has-italic-gap-verify.sh — builds its OWN fixtures (a phrase split by _italic_ emphasis,
+    a snake_case token, a __dunder__/mcp__ token, a true-negative) and asserts md_has behaviour through
+    the public function, independent of the in-lib self-test. PLUS verifier-lib --self-test (behavioural
+    spec) green and dev.sh verify 6/6. Non-regression was confirmed against the (now-merged) honesty-riders
+    verifier: all 22 of its prose/rider assertions still passed under the new md_normalize; only its
+    hard-coded VERSION==0.28.0 pin flipped (correctly, since this PATCH bumps to 0.28.1). That one-shot
+    verifier was then pruned per the merged-PR scratch convention.
 
 surface_conditions:
-  - "Tier-scoping decision (all-tiers vs R2+ per rider) — RESOLVED: recommended split (gating/cap/unverified at R2+; anti-fabrication + anonymized-author all tiers)."
+  - "Direct-fix vs opt-in md_has_loose — RESOLVED (direct boundary-aware fix; opt-in perpetuates author-must-remember, the very tax the retro flagged). Not user-blocking; recorded here."
 
 escalation:
   after_attempts: 3
 
 decision_log:
-  - "kind=goal not harness: one coherent output-discipline change across 3 seams, single done-condition — not independent subplans."
-  - "R2 not R3: modifies merge-gating logic (the QA/critical-pass output contract) but is not prod-adjacent; independent verifier suffices, no human-approval step required."
-  - "Extends existing QA + Phase 6 + worth-it; explicitly NOT a panel (Options 3/4 held) — matches analysis §6bis 'extends, does not add parallel component', effort S."
-  - "Tier split RESOLVED (user, 2026-06-28): gating/cap/unverified at R2+ (avoid R0/R1 ceremony — the analysis's own anti-theater caution); anti-fabrication + anonymized-author free at all tiers."
-  - "Sources credited per credit-external-sources rule, by full name + author + link, where each mechanism lives (skill + docs + CHANGELOG): CCH TeamAgent Debate (Chachamaru127) → severity→verdict; idea-to-ship-skills/ITS (nelsonwerd) → confidence-cap; Karpathy LLM Council → /council → anonymized-author; brandonsimpson/devils-advocate → anti-fabrication + Unverified set."
+  - "kind=goal not harness: one focused change to one library function + its self-test/docs."
+  - "R2 not R1: verifier-lib is the matcher every merge-gating verifier sources; a false-positive regression here could pass a merge that should fail. Independent verifier with its own fixtures required."
+  - "Direct fix to md_has, NOT a new opt-in md_has_loose (retro's suggestion): opt-in repeats the 'author must remember' fragility the retro itself criticised. Boundary-aware stripping is monotonically more permissive on emphasis only — it cannot break a currently-passing assertion, and snake_case/dunders are provably preserved by the both-sides-alnum rule."
+  - "PATCH (v0.28.1): repairs a documented limitation (the KNOWN GAP) — a bug fix to a component, not a new capability."
