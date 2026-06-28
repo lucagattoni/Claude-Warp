@@ -178,9 +178,18 @@ first **corrected** the backlog: the Phase-2 read of `skills/claude-warp-converg
 state vs contract intent**. Re-aimed at the real mechanism, a spawned Sonnet agent ran `/converge` on a
 hint-stripped partial-satisfaction fixture and independently caught the `missing` doc gap **and** the
 `contradicts` `must_not_touch` breach, surfaced the latter as Type-B, and reported **NOT converged** —
-the honesty gate both corrected a latent doc error and produced the live evidence. Only
-reproduction-required (#4) now stays `unverified`: it is a genuinely **two-pass** mechanism (a finding
-raised, then reproduced-or-downgraded) a single live pass cannot exercise.
+the honesty gate both corrected a latent doc error and produced the live evidence.
+
+The final run (v0.31.4, **Dogfood D4**) flipped reproduction-required (#4) too — **the backlog is now
+4/4 `verified-live`**. The mechanism under test is the **pass-2 reproduction agent**, so a live Sonnet
+pass-2 (reasoning-blind) was fed a constructed pass-1 findings list carrying two equally-confident
+`critical` blockers — one true-by-fixture (`stop.check: "true"`), one false-by-fixture
+(`loop_max_usd` "missing" — it is present). Re-deriving each from the artifact, it **reproduced** the
+true blocker (kept it blocking) and **failed to reproduce** the false one (downgraded it to a
+non-blocking minor), with `[pass-2 / sonnet]` provenance — the exact reproduce-or-downgrade guarantee.
+P6 is preserved in the record: pass-1 was a constructed *input* artifact, only pass-2 (the mechanism)
+was the live agent, and a future cross-vendor or same-model-blind-spot test would still be a new,
+weaker-until-proven claim.
 
 ---
 

@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.4] — 2026-06-28
+
+### Added
+- **Final `verified-live` dogfood (D4) — reproduction-required corroboration (#4) flips; the backlog is
+  now 4/4 `verified-live`.** The v0.30.0 reproduce-or-downgrade logic lives in the **pass-2 reproduction
+  agent**, so the live test made pass-2 the spawned independent agent (**Sonnet**, different in-house
+  model from the Opus drafter, reasoning-blind). It was fed a new tracked, hint-stripped fixture
+  (`tests/dogfood/repro-fixture/` — the `contract-under-review.yaml` twin + a constructed, realistic
+  `pass1-findings.md`) carrying two equally-confident `critical` blockers: **A** `stop.check: "true"`
+  admits a trivial pass (**true-by-fixture**) and **B** `budget.loop_max_usd` missing (**false-by-fixture**
+  — `loop_max_usd: 5` is present), labelled nowhere. Re-deriving each from the artifact, pass-2
+  **reproduced A** (kept it `critical`/blocking) and **did not reproduce B** (downgraded it to a
+  non-blocking `minor`), with `[pass-2 / sonnet]` provenance and `qa_status: pending` — the exact
+  two-directional guarantee (a finding counts only if it reproduces; an unreproduced blocker does not
+  stall). RUNBOOK step 5c documents the two-pass procedure. **Scope honesty (P6):** pass-1 was a
+  constructed *input* artifact (the reproduction-pass analog of a planted defect); only pass-2 — the
+  mechanism under test — was the live agent, and the flip is scoped to the reproduce/downgrade behaviour.
+  A cross-vendor or same-model-blind-spot test would remain a new, weaker-until-proven claim.
+
 ## [0.31.3] — 2026-06-28
 
 ### Fixed

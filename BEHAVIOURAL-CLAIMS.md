@@ -104,19 +104,28 @@ backlog is to make that gap visible, not to paper over it.
   lower than the skill's "top severity" guidance, but still surfaced it correctly — the load-bearing
   behaviour held.)
 
-### 4. Reproduction-required corroboration — v0.30.0 — STATUS: `unverified`
+### 4. Reproduction-required corroboration — v0.30.0 — STATUS: `verified-live 2026-06-28`
 
 - **Behavioural claim:** a blocking finding reverts/blocks **only if a second pass reproduces it**; an
   unreproduced finding is **downgraded to a non-blocking minor**; a solo merge-gating PASS is labelled
   `uncorroborated`, never silently counted as full evidence.
-- **Predicted catch:** the fixture's `PLANT[non-reproducible-finding]` scripts a first pass raising
-  *"budget.loop_max_usd is missing"* (false — `loop_max_usd: 5` is present). A reproduction pass that
-  reads the fixture cannot reproduce it, so the finding is **downgraded**, not used to block.
-- **Why still `unverified`:** like #3, a meaningful test needs **two independent passes** (ideally the
-  `CLAUDEWARP_QA_MODEL` Opus↔Sonnet swap, RUNBOOK step 4). A single agent playing both passes cannot
-  honestly demonstrate reproduction. Dogfood D2's single live pass did not raise the scripted
-  non-reproducible finding (it correctly marked budget CLEAN), so there is nothing yet to test the
-  *downgrade* against. Held until a two-pass live run is orchestrated.
+- **Predicted catch:** feed a pass-2 reproduction agent a pass-1 findings list carrying two equally-
+  confident `critical` blockers against a fixture — one **true-by-fixture** (`stop.check: "true"` admits
+  a trivial pass) and one **false-by-fixture** (*"budget.loop_max_usd is missing"* — `loop_max_usd: 5`
+  is present) — labelled nowhere. A reproduction pass that actually reads the artifact must **reproduce
+  the true blocker (keep it blocking)** and **fail to reproduce the false one (downgrade it to a
+  non-blocking minor)**, tagging each `[pass-2 / <model>]`. Downgrading both, or rubber-stamping the
+  false one, fails — so a lazy agent cannot pass.
+- **Live evidence (Dogfood D4, below):** a spawned **Sonnet** pass-2 agent (different in-house model
+  from the Opus drafter, reasoning-blind) independently re-derived both findings from the artifact:
+  **reproduced** Finding A (quoting `check: "true"`, kept `critical`) and **did not reproduce** Finding
+  B (quoting `loop_max_usd: 5`, *"The field is not missing … Downgraded to non-blocking `minor` per
+  reproduction-pass rules"*), with `[pass-2 / sonnet]` provenance and `qa_status: pending` (the real
+  blocker stands). The reproduce-or-downgrade behaviour fired under genuine independence → claim **#4
+  flips `unverified` → `verified-live 2026-06-28`**. **Scope (P6):** pass-2 — *the mechanism under
+  test* — was the live agent; pass-1 was a constructed, realistic findings artifact (the input, the
+  reproduction-pass analog of a planted defect). The flip is for the **reproduce/downgrade** behaviour
+  with that scope honestly stated, not for a fully-autonomous two-live-agent chain (a panel stays held).
 
 ## Dogfood log
 
@@ -217,3 +226,47 @@ backlog is to make that gap visible, not to paper over it.
 - **Remaining:** claim #4 (reproduction-required) stays `unverified` — a genuinely two-pass mechanism
   (a finding raised in pass 1, reproduced-or-downgraded in pass 2) that needs an honestly non-reproducible
   finding, which D2 showed is hard to engineer to order. Deferred, recorded honestly.
+
+### Dogfood D4 — 2026-06-28 (verified-live, reproduction-required corroboration)
+
+- **Procedure:** [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md) step 5c (the two-pass live run).
+  The mechanism under test (v0.30.0) is the **pass-2 reproduction agent** — where the reproduce-or-
+  downgrade logic lives ([`skills/claude-warp-new-harness/SKILL.md`](skills/claude-warp-new-harness/SKILL.md)).
+- **Reviewer:** a **spawned Sonnet pass-2 agent** — a *different in-house model* from the Opus drafter,
+  **reasoning-blind** (given the reproduction-pass charter + the artifact + pass-1's findings; **not** told
+  which finding was sound).
+- **Fixture:** [`tests/dogfood/repro-fixture/`](tests/dogfood/repro-fixture/) — the hint-stripped
+  `contract-under-review.yaml` twin + a constructed-but-realistic [`pass1-findings.md`](tests/dogfood/repro-fixture/pass1-findings.md)
+  carrying **two** equally-confident `critical` blockers: **A** `stop.check: "true"` admits a trivial
+  pass (**true-by-fixture**), **B** `budget.loop_max_usd` missing (**false-by-fixture** — `loop_max_usd: 5`
+  is present). Neither is labelled true/false in the fixture.
+- **Contamination caught + re-run (the guard working on our own slip).** The first `pass1-findings.md`
+  carried a setup note saying *"one is true-by-fixture, one is false-by-fixture"* — a hint that primed
+  pass-2 that exactly one finding was wrong. The D4 verifier's `not_has` check **caught it** (the leak
+  words were in the fixture), so the note was stripped to a pure first-pass review and **pass-2 was
+  re-spawned on the clean fixture**. The result below is the **uncontaminated** run (same outcome, no
+  hint). This is the D2 contamination guard catching the author a second time — recorded, not hidden.
+- **What the live pass-2 produced (independently, re-deriving each from the artifact, clean run):**
+  - **Finding A → REPRODUCED, stays `critical`:** *"The literal string `"true"` evaluates to exit-0
+    unconditionally … An empty `src/auth/` and a completely untouched `validateToken()` both satisfy
+    this condition … the loop can declare PASS with zero implementation."* `[pass-2 / sonnet]`
+  - **Finding B → NOT REPRODUCED, downgraded to minor:** *"`loop_max_usd: 5` is present. The field is
+    not missing. Pass-1's factual predicate is wrong."* → *"downgraded to non-blocking `minor`"* (the
+    work is not stalled by an unconfirmed solo finding). `[pass-2 / sonnet]`
+  - **Overall:** `qa_status: pending` — *"One reproduced `critical` blocker (Finding A) remains
+    standing … Work does **not** proceed."* — `confidence: 9/10`, with an honest `Unverified:` set.
+- **Why this is the load-bearing catch:** it is **two-directional**. The pass **kept** the reproducible
+  blocker blocking **and** **downgraded** the non-reproducible one — exactly the v0.30.0 guarantee
+  (a finding counts only if it reproduces; an unreproduced blocker does not stall). Rubber-stamping B,
+  or downgrading both, would have failed; the agent did neither, citing the artifact line-by-line.
+- **Honesty caveat (recorded, not glossed):** pass-2's `Unverified` set flagged that it *"did not verify
+  the shell interpreter that evaluates `stop.check` (assumed POSIX shell; if the runner uses a custom
+  evaluator, the 'true' behavior might differ — but this is unlikely to change the conclusion)"* — an
+  honest epistemic hedge that does not weaken the catch (it reproduced A on the plain reading). And
+  per P6: **pass-1 was a constructed input artifact, not a live agent** — only pass-2 (the mechanism) was
+  live; the flip is scoped to the reproduce/downgrade behaviour, which is what claim #4 asserts.
+- **Verdict:** the predicted catch **fired under genuine independence** → claim **#4 flips `unverified` →
+  `verified-live 2026-06-28`**. **With this flip the backlog reaches 4/4 `verified-live`** — every
+  instruction-only reviewer feature (v0.28.0 → v0.30.0) has now produced its predicted catch under a real
+  spawned independent agent. The backlog stays a live ledger: a future same-model blind spot, or a
+  cross-vendor independence test, would still be a new, weaker-until-proven claim (P6 holds).
