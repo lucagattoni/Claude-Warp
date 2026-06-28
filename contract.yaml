@@ -1,75 +1,69 @@
 # contract.yaml — approved goal contract
 kind: goal
-name: Reproduction-required corroboration on the merge-gating reviewers (Option 2.5)
-slug: reproduction-required
-risk: R2
+name: Behavioural-claim backlog + repeatable fixture-dogfood validation
+slug: behavioural-claim-backlog
+risk: R1
 
 scope:
   may_touch:
-    - skills/claude-warp-new-harness/SKILL.md          # QA evaluator: add the Reproduction-required corroboration section; runner Phase 6: add --corroborate (auto-R3+) second pass + provenance/graceful-degradation; DOER/CHECKER note
-    - skills/claude-warp-contract/SKILL.md             # stop.evidence: add the corroboration clause (R2+ merge-gating PASS should be corroborated; a solo pass is labeled uncorroborated) + one Phase 6 row
-    - docs/loop-harness.md                             # document Option 2.5 + extend the prior-art table (/ultrareview, alecnielsen/ng, robertoecf rows)
+    - BEHAVIOURAL-CLAIMS.md          # NEW — tracked standing registry (created by this goal)
+    - tests/dogfood/                 # NEW — tracked fixtures + runbook (reproducible by others)
+    - docs/loop-harness.md           # MODIFY — document the backlog + dogfood procedure
     - CHANGELOG.md
     - VERSION
-    - working/reproduction-required-verify.sh          # independent verifier (gitignored scratch)
+    - working/behavioural-claim-backlog-verify.sh   # gitignored one-shot verifier
   must_not_touch:
-    - "the v0.28.0 honesty riders + v0.29.0 red-team / Skeptic charter at both seams — corroboration is ADDED alongside them, not a rewrite (anti-fabrication, anonymized-author, severity gating, confidence cap, Unverified set, the try-to-break/control-validation/reasoning-blind charter all stay verbatim)"
-    - "any cross-vendor dependency (Decision 3a, held) — the reproduction pass runs on a DIFFERENT IN-HOUSE model (Opus<->Sonnet, Decision-3 b.5), never a second vendor"
-    - "any NEW parallel review runtime (no --review-panel, no fork/worktree fan-out — that is Option 3, held); --corroborate is ONE sequential second pass, not a panel"
-    - "the --with-qa R2+ mandatory threshold (untouched — corroboration rides BEHIND the existing QA gate; it does not change when QA itself runs)"
+    - skills/claude-warp-contract/SKILL.md          # merge-gating reviewer logic — DONE, not edited
+    - skills/claude-warp-new-harness/SKILL.md        # QA evaluator / runner — DONE, not edited
+    - scripts/verifier-lib.sh                        # shared matcher — unchanged (only sourced)
+    - scripts/dev.sh
 
 action: >
-  Add reproduction-required corroboration to ClaudeWarp's two merge-gating reviewers — the cheapest
-  real-independence proxy (no second vendor, no panel). (1) new-harness QA evaluator gains a
-  "Reproduction-required corroboration" section: a blocking (critical/major) FAIL reverts the task
-  ONLY if a second reproduction pass independently reproduces it — else it is DOWNGRADED to a recorded
-  non-blocking minor with provenance; a merge-gating PASS is marked CORROBORATED only if the second
-  pass also passes, else UNCORROBORATED. (2) new-harness runner Phase 6 gains a --corroborate flag
-  (auto-on at R3+, opt-in at R2 and below) that runs ONE reproduction pass after a blocking QA FAIL or
-  a merge-gating PASS, ideally on a DIFFERENT in-house model via a CLAUDEWARP_QA_MODEL swap (Opus<->Sonnet,
-  Decision-3 b.5 free diversity). Every finding/verdict carries a [pass-N / model] PROVENANCE tag
-  (robertoecf) so agreement is N traceable data points, not headcount. GRACEFUL DEGRADATION (robertoecf):
-  if the second pass cannot run, mark "single-pass, uncorroborated" LOUD — never silently treat a solo
-  pass as corroborated (P6: NOT corroborated != corroborated). (3) contract stop.evidence gains a
-  corroboration clause: at R2+, evidence for a merge-gating PASS should be corroborated; a solo pass is
-  labeled uncorroborated, never silently counted as full evidence.
+  Create a tracked behavioural-claim backlog (BEHAVIOURAL-CLAIMS.md) registering every
+  instruction-only reviewer feature with the behavioural claim it makes, the catch it predicts on a
+  planted defect, and a status from a controlled vocabulary that keeps verified-on-fixture distinct
+  from verified-live; add a tracked, reproducible fixture-dogfood procedure under tests/dogfood/
+  (a deliberately-broken contract fixture + runbook); execute ONE in-context fixture-dogfood now,
+  record the catch with auditable evidence, and flip at least one claim to verified-on-fixture.
 
 budget:
   loop_max_usd: 0
-  step_max_budget_usd: 3
-  max_turns: 40
+  step_max_budget_usd: 0
+  max_turns: 0
 
 stop:
   verdict: PASS
   evidence: required
-  check: "bash working/reproduction-required-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify && bash scripts/check-ai-residuals.sh --risk R2"
+  # Discriminating done-bar (Phase 6 red-team): "verified-on-fixture" is NOT satisfied by the status
+  # string alone — the backlog entry must carry the planted-defect description + the specific catch
+  # the in-context reviewer produced + which charter row fired + a pointer to the TRACKED fixture, so
+  # the dogfood is auditable/reproducible, not asserted. The verifier checks that evidence exists.
+  check: "bash working/behavioural-claim-backlog-verify.sh && bash scripts/verifier-lib.sh --self-test && bash scripts/dev.sh verify"
 
 verifier:
-  independent: true
+  independent: true   # working/ check is a separate artifact from the registry it grades
   mechanism: >
-    working/reproduction-required-verify.sh — sources scripts/verifier-lib.sh and asserts (md_has on
-    prose, plus literal grep for the flag token) that each mechanism is PRESENT at both seams: the QA
-    evaluator's Reproduction-required corroboration section (reproduce-before-block, downgrade rule,
-    corroborated/uncorroborated PASS), the runner's --corroborate flag parse + auto-R3+ + CLAUDEWARP_QA_MODEL
-    second-pass + the help/runner-will lines, the provenance-tag rule, the graceful-degradation-loud rule,
-    and the contract stop.evidence corroboration clause; plus the v0.28.0 riders + v0.29.0 charter preserved
-    (non-regression), the three external-source credits (/ultrareview, alecnielsen/ng, robertoecf) mapped
-    to mechanism, the docs prior-art rows, the CHANGELOG 0.30.0 entry, and VERSION. Cross-checked by
-    verifier-lib --self-test, dev.sh verify 6/6, and check-ai-residuals --risk R2 (blocking) clean.
+    working/behavioural-claim-backlog-verify.sh (sources scripts/verifier-lib.sh; md_has on prose,
+    raw has on literal tokens) asserts: the four seeded features each present with claim +
+    predicted-catch + a status from the controlled vocabulary; the controlled vocabulary documented;
+    tests/dogfood/ fixture + runbook exist and are tracked; the executed dogfood recorded a
+    verified-on-fixture flip whose evidence block names the planted defect, the catch, the firing
+    charter row, and the fixture path; docs row + CHANGELOG 0.31.0 + VERSION. Plus verifier-lib
+    --self-test and dev.sh verify 6/6. check-ai-residuals --risk R1 advisory.
 
 surface_conditions:
-  - "Accepted prototype ceiling (analysis verdict: iterate/prototype): the edited files are LLM-instruction files, so the verifier asserts each corroboration mechanism is PRESENT, not that the second pass executes and reconciles end-to-end. The analysis success-metric (false-positive blocks -> ~0 because unreproduced findings downgrade) is confirmable only in live dogfooding, not by this static verifier. Same ceiling as Option 1 / Option 2."
-  - "A downgrade (unreproduced finding) or an 'uncorroborated' mark must SURFACE, never auto-resolve a Type-B human gate: a blocking finding that is actually a deliberate human-gated decision still routes to needs_context/blocked, it is not silently downgraded to minor."
-
-escalation:
-  after_attempts: 3
+  - "If the in-context dogfood does NOT produce the predicted catch, record the claim as `unverified` with the negative result — never flip to verified-on-fixture to make the bar pass (P6: a dogfood that didn't fire is not a pass)."
 
 decision_log:
-  - "kind=goal not harness: one coherent discipline (reproduction-required corroboration) added across two existing reviewer seams + docs; single done-bar (each mechanism present at both seams). Fits one context."
-  - "R2 not R3: edits the new-harness QA/runner (mandatory at R2+) and the contract stop.evidence (the negotiation spine every PR traverses). A regression that garbles the corroboration logic could let a solo/unreproduced verdict gate a merge — so an independent verifier asserting each mechanism at both seams is required. It does not itself touch prod/data, so not R3."
-  - "AUTO-ON THRESHOLD RESOLVED to R3+ (opt-in --corroborate at R2 and below), NOT R2+. Why: Option 2.5 is prototype-grade ('iterate'); R2 is the most common merge-gating tier (every normal feature/fix goal), so auto-forcing a ~2x second review pass there would tax the entire common workflow for an unproven discipline. R3+ reserves the 2x cost for prod-adjacent stakes and keeps it opt-in below. It rides BEHIND the existing --with-qa R2+ gate (does not change when QA runs), and matches robertoecf's graceful-degradation ethos (don't mandate cost you can't always pay). The user authorized autonomous resolution ('ask me only if needed'); this default is analysis-faithful and overridable via the flag, so resolved without interrupting."
-  - "Different IN-HOUSE model (Opus<->Sonnet via CLAUDEWARP_QA_MODEL), NOT cross-vendor: Decision 3 picks (c) reproduction-required layered with (b.5) cross-model-same-vendor as the near-free diversity bump; cross-vendor (3a) is explicitly held (hard 2nd-vendor dependency, wrong altitude for a scaffolder). A same-model reproduction still filters non-reproducible findings; the model swap is an optional diversity upgrade, not a hard requirement (degrades gracefully to same-model)."
-  - "ONE sequential second pass, not a panel: --corroborate runs a single reproduction pass, reusing the existing QA-evaluator agent with a reproduction brief — no new parallel runtime, no fork/worktree (Option 3, held). Reproduction is /ultrareview's 'a finding counts only if a second agent reproduces it', applied to ONE corroborator, not a fan-out."
-  - "MINOR (v0.30.0): adds a new reviewer capability (--corroborate flag + the corroboration discipline), not a bug fix. Stacked on v0.29.0."
-  - "Adapt critically: reproduction-required filters non-reproducible findings but a SAME-FAMILY blind spot both passes share survives (the residual cross-vendor gap, accepted; flip-to-3a only if dogfooding shows a shared-blind-spot bug class). Provenance tags make 'agreement' N traceable data points, not headcount theater. The downgrade path must still route Type-B calls to Surface (a human-gated decision is never silently downgraded)."
-  - "Credits per credit-external-sources rule, mapped to mechanism: /ultrareview (Anthropic, /code-review ultra) -> reproduction-required (a finding counts only if reproduced); alecnielsen/ng adversarial-review -> consensus-gating (a finding needs corroboration to count, solo != confirmed); robertoecf/adversarial-review -> provenance tags + graceful-degradation-loud."
+  - "Shape = goal: one focused deliverable set (registry + fixture + one recorded dogfood), single context, single stop.check. Not a harness (no interdependent subplans) and not a loop (one-shot)."
+  - "Phase 1.5 SKIPPED: concrete settled scope, explicitly chosen by the user from a menu (Option A) — worth already decided; a concrete change is never taxed by the worth-it gate."
+  - "Risk = R1: reversible writes; new tracked doc + fixtures + a docs edit; touches NO merge-gating reviewer logic (those disciplines are done); the dogfood is read-only judgment recorded as text. Independent working/ verifier included anyway (cheap, consistent with prior batches)."
+  - "Open Q1 (location) RESOLVED -> root BEHAVIOURAL-CLAIMS.md: it is an operational registry updated by future retros/dogfoods, matching the root RETRO.md/CHANGELOG.md convention — not narrative documentation (which lives in docs/)."
+  - "Open Q2 (fixtures tracked vs gitignored) RESOLVED -> TRACKED under tests/dogfood/: reproducibility by others/future-me is the entire point of a dogfood procedure; gitignored scratch would defeat it. (Contrast: the working/ verifier stays gitignored one-shot scratch as usual.)"
+  - "Lifecycle (new-persisted-file rule): BEHAVIOURAL-CLAIMS.md is tracked-in-git, created by this goal, and updated by future retros/dogfoods (a standing registry, not a per-run cache). tests/dogfood/ fixtures tracked + permanent. Both settled here, not at commit time."
+  - "Phase 6 red-team (AC admits trivially-passing impl): the verified-on-fixture flip would pass on the bare status string, proving nothing. Hardened the done-bar to require an auditable evidence block (planted defect + catch text + firing charter row + tracked-fixture pointer) that the verifier asserts — a check that can't fail proves nothing."
+  - "Phase 6 red-team (load-bearing claim verified not assumed): the four behavioural claims are NOT asserted as true here — the whole goal is that they are PRESENT-but-unverified. The backlog records them as unverified by default; only the one actually dogfooded flips, and only to verified-on-FIXTURE (the weaker, honest status), never verified-live."
+  - "HONESTY CRUX (P6 on our own claims): a fixture pass shows the INSTRUCTIONS CAUSE THE CATCH (an in-context reviewer applying the charter flags the planted defect) — NOT that a live spawned independent agent catches it in prod. Status vocab keeps verified-on-fixture and verified-live distinct; a real claude -p spawned run is an OPTIONAL runbook step, never conflated with the fixture pass."
+  - "Out of scope (held): editing any merge-gating reviewer skill (validation/evidence work, not a new discipline); spawning expensive live agents as a hard requirement (optional runbook step only); Options 3/4."
+  - "Credit: the registry is ClaudeWarp's own synthesis answering its retro; the dogfood-the-claim / NOT-RUN-not-pass framing echoes idea-to-ship-skills (nelsonwerd) and reproduction-required (/ultrareview, Anthropic) — credited in docs + CHANGELOG, adapted critically (a fixture pass is explicitly weaker than a live run)."
+  - "Version = MINOR (0.31.0): adds a new standing capability (the behavioural-claims registry) + a reusable dogfood procedure — additive, no breaking change to install/CLI/API."
