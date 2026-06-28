@@ -604,8 +604,14 @@ chk "documents the no-target case" "$(md_has 'no existing target code'    skills
   markdown may decorate or wrap. Underscore stripping is **boundary-aware** — only a complete
   `_word_` emphasis pair flanked by non-word chars is removed, so `snake_case` identifiers,
   leading-underscore names (`_phase`), and `__dunder__` / `mcp__tool__` runs all survive.
-- **`chk <label> <rc>`** — the assertion printer; both matchers echo their exit code so they drop
-  straight into `chk "label" "$(...)"`.
+- **`not_has <pat> <file>`** — the **absence** assert (inverse of `has`): echoes `0` when the
+  pattern is **absent**, `1` when present. Use it to prove a residual was removed, a placeholder
+  filled, or a hint-stripped fixture carries no leak tags — instead of hand-rolling
+  `[ "$(has …)" -ne 0 ] && echo 0 || echo 1`. ⚠ Unlike `has`/`md_has` it is **not fail-closed**: over
+  a missing file grep finds nothing, so `not_has` reports absent-`0`. It answers *"is this gone?"*,
+  not *"does the file exist and lack it?"* — when presence is what matters, use `has`/`md_has`.
+- **`chk <label> <rc>`** — the assertion printer; all three matchers echo their exit code so they
+  drop straight into `chk "label" "$(...)"`.
 
 **Convention for new verifiers:** every new per-PR verifier should begin with
 `source scripts/verifier-lib.sh` and use `md_has` for prose asserts / `has` for structural ones,

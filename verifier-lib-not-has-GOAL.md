@@ -12,13 +12,13 @@ across three retros.
 
 ## Done conditions
 
-- [ ] `not_has() { … }` added to `scripts/verifier-lib.sh` (inverse of `has`: echoes 0 absent, 1 present).
-- [ ] Header usage comment lists `not_has` alongside `has`/`md_has`/`chk`, incl. the missing-file wrinkle.
-- [ ] `--self-test` gains a case proving not_has = 0 on absent, 1 on present, and chk-composition.
-- [ ] `docs/loop-harness.md` helper enumeration gains a `not_has` bullet.
-- [ ] `working/verifier-lib-not-has-verify.sh` asserts not_has BEHAVIOUR (not mere presence) and PASSES.
-- [ ] `verifier-lib --self-test` green; `dev.sh verify` 6/6; residuals R1 HIGH=0.
-- [ ] CHANGELOG `[Unreleased]`/PATCH entry + VERSION bumped.
+- [x] `not_has() { … }` added to `scripts/verifier-lib.sh` (inverse of `has`: echoes 0 absent, 1 present).
+- [x] Header usage comment lists `not_has` alongside `has`/`md_has`/`chk`, incl. the missing-file wrinkle.
+- [x] `--self-test` gains a case proving not_has = 0 on absent, 1 on present, and chk-composition.
+- [x] `docs/loop-harness.md` helper enumeration gains a `not_has` bullet.
+- [x] `working/verifier-lib-not-has-verify.sh` asserts not_has BEHAVIOUR (not mere presence) and PASSES.
+- [x] `verifier-lib --self-test` green; `dev.sh verify` 6/6; residuals R1 HIGH=0.
+- [x] CHANGELOG `[Unreleased]`/PATCH entry + VERSION bumped.
 
 ## Guardrails
 
@@ -31,4 +31,4 @@ across three retros.
 
 ## Execution log
 
-- (pending implementation)
+- 2026-06-28 — Implemented not_has() (inverse of has; 0 absent / 1 present) + 3 --self-test cases + working behavioural verifier + docs bullet + CHANGELOG 0.31.2 + VERSION. self-test PASS; working verifier PASS; dev.sh 6/6; residuals R1 HIGH=0. COMPLETE 7/7.

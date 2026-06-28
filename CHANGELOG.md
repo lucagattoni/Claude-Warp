@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.31.2] — 2026-06-28
+
+### Added
+- **`not_has` absence-assert helper in `scripts/verifier-lib.sh`** — the inverse of `has`: echoes `0`
+  when a pattern is **absent**, `1` when present, composing with `chk` exactly like `has`/`md_has`.
+  Formalizes the `[ "$(has …)" -ne 0 ] && echo 0 || echo 1` idiom repeated ~6× in the self-test and
+  hand-rolled in the v0.31.1 Dogfood-D2 verifier (the hint-stripped twin must carry **no** PLANT leak
+  tags — a textbook absence assert). The `--self-test` gains cases proving `0`-on-absent / `1`-on-present
+  and `chk`-composition; `docs/loop-harness.md` documents it, including the one wrinkle — `not_has` is
+  **not** fail-closed (over a missing file grep finds nothing, so it reports absent-`0`; use `has`/`md_has`
+  when *presence* is what matters). Additive — `has`/`md_has`/`chk` semantics unchanged. The retro's #2
+  improvement, flagged across three retros.
+
 ## [0.31.1] — 2026-06-28
 
 ### Added
