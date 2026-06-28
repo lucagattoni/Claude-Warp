@@ -155,13 +155,13 @@ Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://
 
 **Decomposition approval gate.** Between the initializer and the coding loop, the runner can pause for the operator to review the proposed task breakdown before any budget is spent executing it. It is **required at R2+** (the same threshold that makes QA non-overridable) and **opt-in below** via `--approve-plan`. When the gate fires, the runner prints the breakdown (wave / id / title / `depends_on`) and **stops with exit 0** — no coding work runs — until you re-run with `--plan-approved` (or `CLAUDEWARP_PLAN_APPROVED=1`). Because `features.json` persists, the approved re-run skips the initializer and proceeds straight to execution. The gate is non-interactive by design, so a scheduled/unattended harness never executes an unreviewed decomposition. (It fires on the initial decomposition only, not on a `--retry` re-init, which is an explicit autonomous stall-recovery mode you've already opted into.)
 
-**`--retry` flag (Inner/Outer Dual Loop with diagnostic routing):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` first **classifies the stall's root cause** (after PAUL's diagnostic routing) into one of three layers and routes accordingly, instead of blindly re-decomposing every stall:
+**`--retry` flag (Inner/Outer Dual Loop with diagnostic routing):** if the coding loop hits `MAX_ITER` with tasks still pending, `--retry` first **classifies the stall's root cause** into one of three layers and routes accordingly, instead of blindly re-decomposing every stall. The intent/spec/code routing is adapted from the diagnostic-failure-routing design in the [**PAUL** project](https://github.com/ChristopherKahler/paul) (*Plan · Apply · Unify Loop*, by Christopher Kahler) — see [`apply-phase.md`](https://github.com/ChristopherKahler/paul/blob/main/src/workflows/apply-phase.md); we adapt it critically (the classifier is non-load-bearing — see below) rather than copying it:
 
 - **code** — the plan was correct, the implementation just doesn't match yet → re-run the coding loop **in place** (no re-decompose).
 - **spec** — the plan was missing something or mis-scoped a task → clear the task list and re-invoke the initializer with failure context, then run a final coding pass with a revised breakdown (the original `--retry` behaviour).
 - **intent** — the goal itself wants something *different* than what was planned → **Surface to a human** and stop (exit 3); re-planning the same goal cannot fix a wrong goal, so this is a Type-B judgment call that never auto-resolves (constitution P3).
 
-The classifier is a small read-only agent; an uncertain or unparseable verdict falls back to **spec**, so routing is a strict, non-regressive refinement of the prior behaviour. Routing fires **once** (bounded recovery — a deliberate divergence from PAUL's max-3 loop, since the coding loop already iterates internally).
+The classifier is a small read-only agent; an uncertain or unparseable verdict falls back to **spec**, so routing is a strict, non-regressive refinement of the prior behaviour. Routing fires **once** (bounded recovery — a deliberate divergence from the PAUL project's max-3 loop, since the coding loop already iterates internally).
 
 **Per-task acceptance + negative scope (optional).** Beyond the global `verification` command, each
 task may carry its own done-bar and guardrails — both optional, so existing feature lists keep working
@@ -539,3 +539,24 @@ known-gap pair asserting both matchers miss an `_italic_`-split phrase.
 > the other direction (it skips code-construct HIGH patterns for `.md`/`.markdown`/`.txt`, so quoted
 > sample code in docs doesn't false-*positive*). `verifier-lib.sh` addresses the complementary
 > false-*negative* class in the per-PR verifiers.
+
+---
+
+## Prior art & acknowledgements
+
+Several of ClaudeWarp's design decisions were sharpened by studying mature open-source projects that
+tackle the same problem — turning a fuzzy intent into a verifiable, closed loop. We adapt their ideas
+**critically** (diverging where their assumptions don't hold for an agent-based, budget-governed infra
+layer), and credit them here:
+
+| Project | Author | Influenced |
+|---|---|---|
+| [**PAUL** — *Plan · Apply · Unify Loop*](https://github.com/ChristopherKahler/paul) | Christopher Kahler | Diagnostic failure routing on `--retry` (v0.26.0); per-task acceptance criteria (v0.18.0); the richer `done_with_concerns` / `needs_context` / `blocked` task-status enum |
+| [**claude-code-harness**](https://github.com/Chachamaru127/claude-code-harness) | Chachamaru127 | The AI-residuals epistemic-honesty scan (`scripts/check-ai-residuals.sh`); reconcile-and-re-ticket closure (`claude-warp-converge`) |
+| [**idea-to-ship-skills**](https://github.com/nelsonwerd/idea-to-ship-skills) | nelsonwerd | The worth-it gate — `success_metric` + `kill_criterion` (contract Phase 1.5, v0.20.0); the epistemic-honesty rule-set ("NOT RUN ≠ pass", v0.17.0) |
+| [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
+
+Where a specific mechanism is borrowed, the relevant skill or doc names its source inline (for
+example, the `--retry` routing above credits PAUL's `apply-phase.md`). ClaudeWarp's own framing —
+the two-axis shape × risk (R0–R5) classification, budget governance, independent verifiers, and the
+agent/fork execution model — is where it deliberately diverges from each of these.

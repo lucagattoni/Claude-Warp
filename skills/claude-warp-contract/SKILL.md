@@ -263,6 +263,7 @@ model than the drafting agent"'
 | REPORT only on delta? | Notification fatigue | "Reporting every run trains the team to ignore it. Notify on change only." |
 | Attempt cap on failure? | Infinite fix loop | "No cap means it retries forever. Cap at N then handoff." |
 | Intent documented? | Intent debt | "Why this approach over the alternative? Record it in `decision_log`." |
+| External prior art credited? | Uncredited borrowing | "This adapts an external project/resource. Credit it by **full name + author + link** (and the specific source artifact) where the mechanism lives — docs, the skill, and the changelog — not a bare shorthand. Adapt it **critically**: note where its assumptions don't transfer." |
 | Conflicts a constitution MUST? | Governance violation | "Principle `<Pn>` forbids this. Adjust the **contract**, not the principle — amending the constitution is a separate explicit act." |
 | Verifier distinguishes not-run from pass? | Verifier theater | "An unrun check is `not run`, never green. Make `stop.check` fail closed when the verifier can't execute." |
 | Verifier asserts only tracked paths in git-diff checks? | Vacuous assertion | "A `git diff` against a gitignored/untracked path is always empty — it passes even if the file was rewritten. Assert on tracked paths, or check the file's content directly." |

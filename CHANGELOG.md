@@ -7,11 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-06-28
+
+### Added
+- **Attribution check in the contract critical pass** (`claude-warp-contract` Phase 6): a new
+  "External prior art credited?" row that flags uncredited borrowing — any contract adapting an
+  external project/resource must credit it by full name + author + link (and the specific source
+  artifact) where the mechanism lives, and adapt it critically. Makes crediting external sources a
+  **general, enforced rule** of the negotiation, not a per-PR habit.
+
+### Docs
+- **Credit the prior-art projects** that shaped ClaudeWarp's design, by full name, author, and link.
+  Adds a **Prior art & acknowledgements** section to `docs/loop-harness.md` crediting
+  [PAUL](https://github.com/ChristopherKahler/paul) (Christopher Kahler),
+  [claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) (Chachamaru127),
+  [idea-to-ship-skills](https://github.com/nelsonwerd/idea-to-ship-skills) (nelsonwerd), and
+  [spec-kit](https://github.com/github/spec-kit) (GitHub), mapped to the features each influenced.
+  Also credits PAUL inline (full name + `apply-phase.md` link) in the `claude-warp-new-harness`
+  runner comment and the 0.26.0 changelog entry, rather than a bare "PAUL".
+
 ## [0.26.0] — 2026-06-28
 
 ### Added
-- **Diagnostic failure routing** in the harness runner's `--retry` path (`claude-warp-new-harness`,
-  after PAUL's apply-phase routing). On a `MAX_ITER` stall, the runner now **classifies the root
+- **Diagnostic failure routing** in the harness runner's `--retry` path (`claude-warp-new-harness`),
+  adapted from the diagnostic-failure-routing design in the [PAUL project](https://github.com/ChristopherKahler/paul)
+  (*Plan · Apply · Unify Loop*, by Christopher Kahler). On a `MAX_ITER` stall, the runner now **classifies the root
   cause** into one of three layers via a small read-only classifier agent and routes accordingly,
   instead of blindly re-decomposing every stall:
   - **code** ("plan was correct, implementation doesn't match") → re-run the coding loop **in place**, no re-decompose;
