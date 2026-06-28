@@ -77,3 +77,14 @@ check-ai-residuals --risk R1 (advisory).
   `working/behavioural-claim-backlog-verify.sh` PASS 47/47; verifier-lib --self-test green; dev.sh
   verify 6/6; check-ai-residuals --risk R1 exit 0 (HIGH=0, 5 pre-existing MEDIUM, none from this diff).
   STOP.CHECK chain PASS. COMPLETE 9/9.
+- 2026-06-28 — **Dogfood D2 (verified-live), v0.31.1.** Ran RUNBOOK step 3 with the user's explicit
+  budget go-ahead: spawned a real **Sonnet** reviewer (different in-house model from the Opus drafter,
+  reasoning-blind, fresh context) against the **hint-stripped twin** `tests/dogfood/contract-under-review.yaml`
+  (PLANT tags removed so the catch couldn't be read off — a contamination guard surfaced mid-run and now
+  tracked + mandated in RUNBOOK step 3). The live reviewer **independently** named the `stop.check: "true"`
+  trivial pass ("an empty src/auth/ satisfies this check"), the assumed `validateToken()` claim, and the
+  `independent: false` self-grading tautology — BLOCK, confidence 9/10, budget marked CLEAN (anti-fabrication
+  held under independence). Catch survived independence → **claims #1 (honesty riders) + #2 (red-team charter)
+  flipped `verified-on-fixture` → `verified-live 2026-06-28`**. #3 /converge + #4 reproduction-required stay
+  `unverified` (two-pass mechanisms; one live pass can't test them — recorded honestly). Verifier PASS;
+  verifier-lib --self-test green; dev.sh verify 6/6; residuals R1 HIGH=0. Branch `feat/dogfood-live-run`.
