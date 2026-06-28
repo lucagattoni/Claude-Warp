@@ -243,3 +243,49 @@ share it.
    relabelling.
 
 ---
+
+## Retro: dogfood-repro-d4 (goal) — 2026-06-28
+
+**Outcome:** COMPLETE — 6/6 done conditions met
+**Milestones:** 1 execution-log entry | rework: one in-flight re-spawn (the contaminated first pass-2 run, caught by the verifier and re-run clean — caught pre-merge, not post-ship)
+
+### What worked
+- **The whole backlog is closed honestly (4/4 verified-live).** The hardest claim — a genuinely
+  two-pass mechanism — flipped by recognising that the mechanism under test is *pass-2*, and making
+  pass-2 the live independent agent while pass-1 is a constructed planted-finding artifact. The catch
+  was two-directional (kept the reproducible blocker, downgraded the non-reproducible one), so a lazy
+  agent couldn't pass.
+- **The verifier caught my own contamination.** The first `pass1-findings.md` carried a setup note that
+  hinted one finding was false; the `not_has` hint-strip assertion failed loudly, I stripped the note
+  and re-spawned pass-2 clean. The contamination guard the project built caught its own author — the
+  second time (D2's PLANT self-leak was the first). This is the dogfood discipline paying for itself.
+- **Behaviour-not-presence held under the hardest claim.** The verifier asserts the recorded
+  two-directional disposition (A reproduced/kept, B not-reproduced/downgraded, `[pass-2/sonnet]`) plus
+  the fixture's true/false-by-construction (twin really has `check: "true"` AND `loop_max_usd: 5`), not
+  a banner string.
+
+### What failed / friction
+- **I contaminated my own fixture on the first pass (caught, corrected).** A meta-note explaining the
+  test setup leaked into the artifact the live agent reads. Structural: when an evidence file documents
+  *why* it exists, that rationale can leak the answer. The fix is the same each time — the explanation
+  belongs in `BEHAVIOURAL-CLAIMS.md`/the verifier, never in the artifact under review.
+- **The backtick-strip regex trap recurred (again).** Three D4 verifier patterns used `.` placeholders
+  for backticks `md_has` strips. Identical to the D3 retro's #1 improvement — the lesson hadn't been
+  encoded anywhere a future verifier-author would see it before writing patterns.
+- **Index hygiene: a stray `git add -A` during verification swept the whole batch into the contract
+  commit.** Required a soft reset + re-split into contract + feat commits. Running the verifier with
+  `git add -A` mid-flow pollutes the index for the eventual structured commit.
+
+### Top 3 improvements
+1. Phase 2 (fixture authoring) — never put test-setup rationale ("one of these is false", "planted
+   defect", PLANT tags) inside the artifact the live agent reviews; keep it in the backlog/verifier —
+   why: it leaked into pass-1 here and into the D2 twin before; same root cause twice.
+2. Tooling — encode the `md_has` normalization rule where verifier-authors hit it (a header comment in
+   `scripts/verifier-lib.sh` near `md_has`, or a one-line `--self-test` note): *assert against
+   backtick/emphasis-stripped text; no `.` placeholder for a stripped backtick* — why: this trap has now
+   cost first-run FAILs in three consecutive batches (D3, and twice in D4).
+3. Phase 9 (commit hygiene) — stage explicitly (`git add <paths>`) for structured commits; never rely
+   on a `git add -A` that a verification step may have already run — why: it merged the contract and
+   feat commits here and forced a soft-reset recovery.
+
+---
