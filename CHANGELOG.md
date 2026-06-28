@@ -7,6 +7,47 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-06-28
+
+### Added
+- **Reproduction-required corroboration on the merge-gating reviewers (Option 2.5 of the
+  multi-lens-review design — the cheapest real-independence proxy).** The red-team charter (v0.29.0)
+  made each reviewer sharper, but every reviewer is still same-model. Option 2.5 adds independence
+  without a second vendor or a panel: a finding only counts if it **reproduces**, and a merge-gating
+  PASS must be **corroborated**, not solo. Additive to the v0.28.0 honesty riders + v0.29.0 charter:
+  - **`skills/claude-warp-new-harness/SKILL.md`** — the QA evaluator persona gains a
+    **Reproduction-required corroboration** section: when invoked as the reproduction pass, a blocking
+    (critical/major) finding reverts the task **only if it independently reproduces**; an unreproduced
+    finding is **downgraded** to a recorded non-blocking minor. A merge-gating PASS is
+    `approved (corroborated)` only if the second pass agrees; if the second pass can't run, the verdict
+    is marked `uncorroborated — single-pass` **loudly** (P6: NOT corroborated ≠ corroborated). The
+    runner Phase 6 gains a **`--corroborate`** flag — **auto-on at R3+**, opt-in at R2 and below —
+    that runs ONE reproduction pass on a **different in-house model** via `CLAUDEWARP_QA_MODEL`
+    (Opus↔Sonnet, near-free diversity). Every finding/verdict carries a `[pass-N / model]` **provenance
+    tag** so agreement is N traceable data points, not headcount.
+  - **`skills/claude-warp-contract/SKILL.md`** — the `stop.evidence` rule gains a corroboration clause
+    (at R2+, a merge-gating PASS should be reproduced/corroborated; a solo green is labeled
+    `uncorroborated`, never silently counted as full evidence) plus a Phase 6 critical-pass row.
+
+  `--corroborate` rides **behind** the existing `--with-qa` gate (no first pass ⇒ nothing to corroborate
+  ⇒ no-op). It is **one sequential second pass**, not a panel (Option 3, held), on a different *in-house*
+  model, not cross-vendor (Decision 3a, held). A downgrade or `uncorroborated` mark **Surfaces** a
+  Type-B call; it never silently downgrades a human-gated decision. Prototype-grade (analysis verdict:
+  *iterate*) — the verifier asserts each mechanism is present; the end-to-end false-positive-drop is
+  confirmable only in live dogfooding.
+
+### Credits
+- Adapts external prior art, credited where each mechanism lives (the skills, `docs/loop-harness.md`):
+  **/ultrareview** (Anthropic — `/code-review ultra`) — reproduction-required (a finding counts only if
+  a second pass reproduces it); **alecnielsen/adversarial-review** + the **ng** fork — consensus-gating
+  (a finding needs corroboration to count; solo ≠ confirmed); **robertoecf/adversarial-review** —
+  provenance tags + graceful-degradation-loud. The different-in-house-model reproduction is Decision-3
+  b.5 (cross-model same-vendor) from the analysis.
+
+### Docs
+- `docs/loop-harness.md` documents Option 2.5 (element × seam × source table) and extends the prior-art
+  credit table with the **/ultrareview**, **alecnielsen/ng**, and **robertoecf** rows.
+
 ## [0.29.0] — 2026-06-28
 
 ### Added

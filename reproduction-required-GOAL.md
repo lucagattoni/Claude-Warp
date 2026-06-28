@@ -18,16 +18,16 @@ Additive to the v0.28.0 honesty riders + v0.29.0 red-team / Skeptic charter, whi
 
 ## Done conditions
 
-- [ ] new-harness QA evaluator gains a Reproduction-required corroboration section: a blocking critical/major FAIL reverts the task ONLY if a second pass reproduces it; else DOWNGRADE to recorded non-blocking minor with provenance; a merge-gating PASS is CORROBORATED only if the second pass also passes, else UNCORROBORATED
-- [ ] new-harness runner Phase 6 gains a `--corroborate` flag: parsed, auto-on at R3+ (opt-in at R2/below), runs ONE reproduction pass after a blocking QA FAIL or a merge-gating PASS via a `CLAUDEWARP_QA_MODEL` second-model swap; added to the `To run:` help + the "runner will" list + the DOER/CHECKER note
-- [ ] Provenance tags: every finding/verdict carries `[pass-N / model]` so agreement is N traceable data points, not headcount (robertoecf)
-- [ ] Graceful degradation: if the second pass cannot run, mark "single-pass, uncorroborated" LOUD — never silently treat a solo pass as corroborated (P6: NOT corroborated ≠ corroborated) (robertoecf)
-- [ ] contract `stop.evidence` gains the corroboration clause + one Phase 6 row (R2+ merge-gating PASS should be corroborated; solo = uncorroborated, never silently full evidence)
-- [ ] v0.28.0 riders + v0.29.0 red-team charter preserved verbatim at both seams (additive, asserted by the verifier)
-- [ ] Type-B safety preserved: a downgrade / uncorroborated mark Surfaces, never auto-resolves a human-gated decision (a blocking finding that is a deliberate human gate routes to needs_context/blocked, not silently downgraded)
-- [ ] Three external sources credited where each mechanism lives + docs prior-art rows: /ultrareview (Anthropic)→reproduction-required, alecnielsen/ng→consensus-gating, robertoecf→provenance + graceful-degradation
-- [ ] docs/loop-harness.md documents Option 2.5; CHANGELOG 0.30.0 + VERSION → 0.30.0 (MINOR)
-- [ ] `working/reproduction-required-verify.sh` PASS (each mechanism at both seams + riders/charter preserved + credits + docs rows + version); verifier-lib --self-test green; dev.sh verify 6/6; check-ai-residuals --risk R2 clean
+- [x] new-harness QA evaluator gains a Reproduction-required corroboration section: a blocking critical/major FAIL reverts the task ONLY if a second pass reproduces it; else DOWNGRADE to recorded non-blocking minor with provenance; a merge-gating PASS is CORROBORATED only if the second pass also passes, else UNCORROBORATED
+- [x] new-harness runner Phase 6 gains a `--corroborate` flag: parsed, auto-on at R3+ (opt-in at R2/below), runs ONE reproduction pass after a blocking QA FAIL or a merge-gating PASS via a `CLAUDEWARP_QA_MODEL` second-model swap; added to the `To run:` help + the "runner will" list + the DOER/CHECKER note
+- [x] Provenance tags: every finding/verdict carries `[pass-N / model]` so agreement is N traceable data points, not headcount (robertoecf)
+- [x] Graceful degradation: if the second pass cannot run, mark "single-pass, uncorroborated" LOUD — never silently treat a solo pass as corroborated (P6: NOT corroborated ≠ corroborated) (robertoecf)
+- [x] contract `stop.evidence` gains the corroboration clause + one Phase 6 row (R2+ merge-gating PASS should be corroborated; solo = uncorroborated, never silently full evidence)
+- [x] v0.28.0 riders + v0.29.0 red-team charter preserved verbatim at both seams (additive, asserted by the verifier)
+- [x] Type-B safety preserved: a downgrade / uncorroborated mark Surfaces, never auto-resolves a human-gated decision (a blocking finding that is a deliberate human gate routes to needs_context/blocked, not silently downgraded)
+- [x] Three external sources credited where each mechanism lives + docs prior-art rows: /ultrareview (Anthropic)→reproduction-required, alecnielsen/ng→consensus-gating, robertoecf→provenance + graceful-degradation
+- [x] docs/loop-harness.md documents Option 2.5; CHANGELOG 0.30.0 + VERSION → 0.30.0 (MINOR)
+- [x] `working/reproduction-required-verify.sh` PASS (each mechanism at both seams + riders/charter preserved + credits + docs rows + version); verifier-lib --self-test green; dev.sh verify 6/6; check-ai-residuals --risk R2 clean
 
 ## Guardrails (must not touch)
 
@@ -53,3 +53,15 @@ R2 (blocking) clean.
   R2+) RESOLVED autonomously to **R3+ auto-on / R2 opt-in** — prototype-grade discipline must not tax the
   common R2 tier with 2× review; rides behind the existing --with-qa gate; overridable via the flag.
   Branch `feat/reproduction-required` cut from main (v0.29.0).
+- 2026-06-28 — Implemented at both seams. new-harness: QA evaluator "Reproduction-required
+  corroboration" section (reproduce-before-block, downgrade rule, corroborated/uncorroborated PASS,
+  provenance `[pass-N / model]`, graceful-degradation-loud, Type-B never silently downgraded) + runner
+  Phase 6 `--corroborate` flag (parse, auto-R3+, `CLAUDEWARP_QA_MODEL` second-model reproduction pass,
+  pass-1/pass-2 tags, UNCORROBORATED warning on a failed second pass) + help + step-3b. contract:
+  `stop.evidence` corroboration clause + Phase 6 row. docs: Option 2.5 element×seam×source table +
+  three prior-art credit rows (/ultrareview, alecnielsen/ng, robertoecf). v0.28.0 riders + v0.29.0
+  charter preserved verbatim (asserted). CHANGELOG 0.30.0 + VERSION bump. Independent verifier
+  `working/reproduction-required-verify.sh` PASS 46/46 (each mechanism at both seams + non-regression +
+  credits + docs + version; dogfoods md_has on soft-wrapped/decorated prose). verifier-lib --self-test
+  green; dev.sh verify 6/6; check-ai-residuals --risk R2 exit 0 (HIGH=0, 6 pre-existing MEDIUM none from
+  diff). STOP.CHECK chain PASS. COMPLETE.
