@@ -49,7 +49,7 @@ there before writing the SKILL.md.
 ## Scheduling
 
 External trigger (cron/launchd) → `scripts/run-<name>.sh` → `claude -p "/<name>"`.
-See `templates/trigger.crontab.tpl` and `docs/usage.md` for setup instructions.
+See `templates/trigger.crontab.tpl` and `docs/guides/scheduling.md` for setup instructions.
 
 ## Escalation rules
 

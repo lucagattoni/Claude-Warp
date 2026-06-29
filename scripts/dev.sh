@@ -134,13 +134,13 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/8] Docs coherence — every skill has a section in loop-harness.md + a README row"
+  echo "[5/8] Docs coherence — every skill has a section in reference/skills.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
-    grep -q "### \`/$name" docs/loop-harness.md || note_fail "$name: no section in docs/loop-harness.md"
-    grep -q "/$name" README.md                  || note_fail "$name: not listed in README.md"
+    grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
+    grep -q "/$name" README.md                      || note_fail "$name: not listed in README.md"
   done
-  [ "$FAIL" -eq 0 ] && note_ok "all skills documented in loop-harness.md and README"
+  [ "$FAIL" -eq 0 ] && note_ok "all skills documented in reference/skills.md and README"
 }
 
 check_executable_selftests() {
@@ -182,9 +182,9 @@ check_claim_count_coherence() {
   expected="${verified}/${total}"
   grep -qF "$expected" "$bc" \
     || note_fail "BEHAVIOURAL-CLAIMS.md states no '$expected' (computed: $verified verified-live of $total claims)"
-  if [ -f docs/loop-harness.md ]; then
-    grep -qF "$expected" docs/loop-harness.md \
-      || note_fail "docs/loop-harness.md count drifted from the registry's '$expected'"
+  if [ -f docs/reference/architecture.md ]; then
+    grep -qF "$expected" docs/reference/architecture.md \
+      || note_fail "docs/reference/architecture.md count drifted from the registry's '$expected'"
   fi
   [ "$FAIL" -eq 0 ] && note_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
 }

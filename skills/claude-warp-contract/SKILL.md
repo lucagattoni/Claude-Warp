@@ -279,7 +279,7 @@ are the load-bearing ones; the **reasoning-blind** framing (judge the artifact, 
 defence of it) is what keeps the pass from rubber-stamping its own draft. A clean red-team result is
 valid — do not manufacture a break (the anti-fabrication rider still binds). A "trivially-passing AC"
 that is actually a deliberate human-gated decision **Surfaces** as a Type-B call, never auto-fails.
-This charter adapts external prior art (credited in `docs/loop-harness.md` + CHANGELOG): **CCH
+This charter adapts external prior art (credited in `docs/reference/developing.md` + CHANGELOG): **CCH
 TeamAgent Debate** (Chachamaru127) — the Skeptic / try-to-break charter; **brandonsimpson/devils-advocate**
 (MIT) — the reasoning-blind independence gate; **Karpathy LLM Council** → **/council** — the
 fresh-context, single-round rule (one pass, no debate loop); **agent-review-panel** (wan-huiyan) — the
@@ -329,7 +329,7 @@ to not tax small R0/R1 goals):
   command not executed here, a path not read). This makes P6 (NOT RUN ≠ pass) visible in the output
   rather than implicit — the reader sees the pass's blind spots, not just its findings.
 
-These riders adapt external prior art, credited where each lives (and in `docs/loop-harness.md` +
+These riders adapt external prior art, credited where each lives (and in `docs/reference/developing.md` +
 CHANGELOG): **CCH TeamAgent Debate** (Chachamaru127) — severity→verdict gating; **idea-to-ship-skills**
 (nelsonwerd) — confidence-capped-by-verified-ratio; **Karpathy LLM Council** → **/council** —
 anonymized-author; **brandonsimpson/devils-advocate** (MIT) — anti-fabrication + the "Unverified" set.

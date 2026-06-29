@@ -27,6 +27,7 @@ one-off deliverables: `RETRO.md`, `CHANGELOG.md`, `BEHAVIOURAL-CLAIMS.md`,
 | [`2026-06-28-corroboration-rigor-GOAL.md`](GOALS/2026-06-28-corroboration-rigor-GOAL.md) | Corroboration rigor for merge-gating PASS (Option 2.5) | ✅ shipped in **v0.32.0** |
 | [`2026-06-29-devsh-hardening-GOAL.md`](GOALS/2026-06-29-devsh-hardening-GOAL.md) | Harden `scripts/dev.sh verify` checks | ✅ shipped in **v0.32.1** |
 | [`2026-06-29-dogfood-d5-GOAL.md`](GOALS/2026-06-29-dogfood-d5-GOAL.md) | Live D5 dogfood (claim #5) | ✅ shipped in **v0.32.2** |
+| [`2026-06-29-docs-restructure-GOAL.md`](GOALS/2026-06-29-docs-restructure-GOAL.md) | Restructure docs along the Diátaxis model (quickstart + nested reference/ + guides/) | ✅ shipped in **v0.34.3** |
 
 ## `CONTRACTS/` — approved goal contracts
 
@@ -34,6 +35,7 @@ one-off deliverables: `RETRO.md`, `CHANGELOG.md`, `BEHAVIOURAL-CLAIMS.md`,
 |---|---|---|
 | [`2026-06-26-unified-planner-contract.yaml`](CONTRACTS/2026-06-26-unified-planner-contract.yaml) | Unify the planning entry point + clarify the model | ✅ shipped in **v0.15.0** |
 | [`2026-06-29-dogfood-d5-contract.yaml`](CONTRACTS/2026-06-29-dogfood-d5-contract.yaml) | Goal contract for the D5 dogfood | ✅ shipped in **v0.32.2** |
+| [`2026-06-29-docs-restructure-contract.yaml`](CONTRACTS/2026-06-29-docs-restructure-contract.yaml) | Goal contract for the Diátaxis documentation restructure | ✅ shipped in **v0.34.3** |
 
 ## `SCRIPTS/` — spent one-shot runners
 

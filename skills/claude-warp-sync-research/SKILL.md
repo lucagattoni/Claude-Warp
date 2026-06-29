@@ -236,7 +236,7 @@ this gap (record the reason in the implementation log):
 **IMPLEMENT** — write/edit the files; follow all existing ClaudeWarp conventions:
 - Skills live in `skills/<name>/SKILL.md` with frontmatter (`name`, `description`)
 - Templates live in `templates/` with `.tpl` extension
-- Docs live in `docs/`; update `docs/loop-harness.md` for any new skills or templates
+- Docs live in `docs/`; update `docs/reference/skills.md` for any new skills or templates
 - Update `README.md` Skills table if a new skill is added
 
 **POST-REVIEW** — five checks, ordered most-impactful-first; fix before committing:
@@ -266,7 +266,7 @@ this gap (record the reason in the implementation log):
    Address every objection that cannot be dismissed.
 
 4. **Reference audit** (systematic, not impressionistic — grep, don't rely on
-   memory): In one pass, check: `docs/loop-harness.md` documents the new skill
+   memory): In one pass, check: `docs/reference/skills.md` documents the new skill
    or template; `README.md` Skills table is updated if a new skill was added;
    `CHANGELOG.md` has an `[Unreleased]` entry; no file still describes the old
    behaviour using old names.
