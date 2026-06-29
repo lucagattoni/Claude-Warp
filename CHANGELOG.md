@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.1] — 2026-06-29
+
+### Fixed
+- **Plugin manifest version was stale.** `.claude-plugin/plugin.json` reported `"version": "0.16.0"`
+  (the version at which the plugin was first installed) while `VERSION` had advanced to `0.34.0`, so
+  the installed plugin announced the wrong version. Synced it to `0.34.0`. The release gate
+  (`/claude-warp-release`) is read-only and does not touch `plugin.json`, which is why it drifted —
+  follow-up: add a `plugin.json` ↔ `VERSION` coherence check to `scripts/dev.sh verify`.
+
+### Changed
+- **Archived completed one-off artifacts and reorganized `archive/` by kind.** The 13 finished
+  root `*-GOAL.md` files (plus the spent `dogfood-d5` contract and the `run-plugin-install.sh`
+  runner) were moved out of the repo root, and the whole `archive/` tree — including the earlier
+  unified-planner batch — was regrouped into kind subfolders (`GOALS/`, `CONTRACTS/`, `SCRIPTS/`,
+  `FEATURES/`) with date-prefixed filenames and a single top-level README mapping each artifact to
+  its shipped release (v0.13.0–v0.32.2). Append-only logs (`RETRO.md`, `CHANGELOG.md`,
+  `BEHAVIOURAL-CLAIMS.md`, `.claudewarp/ledger.jsonl`) were kept in the repo root. No live skill or
+  doc referenced the moved files; `dev.sh verify` stays green.
+
 ## [0.34.0] — 2026-06-29
 
 ### Added
