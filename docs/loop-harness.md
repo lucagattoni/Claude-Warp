@@ -274,6 +274,16 @@ Scaffolds a complete **recurring** single-agent loop from a one-line goal descri
 | `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
+**Retry-with-backoff + safe-to-retry guard (v0.34.0).** The headless runner (`run-headless.sh.tpl`) wraps
+each `claude -p` attempt in a bounded retry loop (`--max-retries`, default **2**, exponential backoff
+30s→60s→…). A retry only fires when the failed attempt is **safe to retry** — it left **no durable trace**:
+the working tree is clean **and** `HEAD` is unchanged from before the attempt. If the attempt committed or
+dirtied the tree (a partial write that a re-run could double-apply), the runner does **not** retry — it
+writes a loud `NOTIFY` line and exits non-zero so cron/launchd surfaces the failure. A `timeout` (the
+`--max-minutes` wall-clock cap) is treated as a cap, **not** a transient drop, and is never retried. This
+distinguishes a recoverable API/network blip from a real failure without ever silently re-running work that
+already half-landed. Sourced from the ClaudeLoops `2.4.4` sync (doc-09, transient-failure handling).
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---
@@ -330,6 +340,16 @@ recoverable hold to a failure (all optional — a harness that never uses them i
 - `blocked` — externally blocked; also a holding status, surfaced.
 
 `needs_context` / `blocked` are Type-B holds — the runner never auto-resolves them to `done`.
+
+**Verdict-oscillation guard (v0.34.0).** A blocking QA finding reverts a task to `pending` so the worker
+can re-work it — but if the **same blocker** keeps reverting the **same task**, the loop is *oscillating*,
+not converging, and would otherwise burn iterations up to `MAX_ITER` (50) on the same wall. When QA reverts
+a task it records the oscillation signal (`revert_count` + a stable `last_blocker` signature); once a task's
+`revert_count` reaches `CLAUDEWARP_REPEAT_THRESHOLD` (default **2**) on the same blocker, the runner stops
+re-attempting it and flips it to **`needs_context`** with an oscillation `concern`, so the existing Surface
+logic escalates it to a human instead of looping. A *different* blocker resets the streak (genuine progress
+is not penalised). Sourced from the ClaudeLoops `2.4.x` sync (verdict-stability guidance).
+
 Separately, the **qualify/QA re-read is mandatory and non-overridable at risk R2+** (it runs by
 default, no `--no-qa`) — the structural one-level-down enforcement of constitution P2 (merge-gated
 work needs an independent verifier). When a task's output isn't independently gradable, QA re-runs its

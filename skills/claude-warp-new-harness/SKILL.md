@@ -349,7 +349,13 @@ actually a deliberate human-gated decision is a Type-B hold (`needs_context`), s
 
 For each criterion: PASS, FAIL, or NOT RUN with one sentence of evidence.
 If any criterion FAILs at **critical/major** severity: write a `qa_feedback` field on the task in
-features.json and set status back to `pending`. The coding agent will re-read the feedback.
+features.json and set status back to `pending`. The coding agent will re-read the feedback. **When you
+revert a task, also record the oscillation signal** so the runner can detect a stuck task: increment the
+task's integer `revert_count` (start at `1`) and write `last_blocker` — a short stable **signature** of the
+blocking finding (e.g. the failing criterion id + the one-line reason, *not* the full prose). If your new
+`last_blocker` signature **matches the value already on the task**, it is the *same* blocker recurring —
+leave the signature unchanged so the runner sees the repeat; if it is a *different* blocker, overwrite it
+and the count is effectively a fresh streak (the runner compares signatures, below).
 If the only FAILs are **minor/recommendation**: record them in `qa_feedback`, set
 `"qa_status": "approved_with_notes"`, and let the task proceed.
 If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
@@ -508,6 +514,12 @@ esac
 # (still filters non-reproducible findings, just without the model-diversity bump).
 REPRO_MODEL="${CLAUDEWARP_QA_MODEL:-sonnet}"
 
+# Verdict-oscillation guard: how many times the SAME blocker may revert a task before the runner stops
+# re-attempting it and escalates to a human (needs_context + Surface) instead of looping to max_iter.
+# Default 2 (a blocker that survives one re-work and reverts the task a second time is oscillating, not
+# progressing). Operator-overridable via CLAUDEWARP_REPEAT_THRESHOLD.
+REPEAT_THRESHOLD="${CLAUDEWARP_REPEAT_THRESHOLD:-2}"
+
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
@@ -621,6 +633,36 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
               echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARNING: reproduction pass did not run — verdict stands but is UNCORROBORATED (single-pass). NOT corroborated ≠ corroborated." >> "$LOG"
             fi
           fi
+        fi
+
+        # ── Verdict-oscillation guard ──────────────────────────────────────────────
+        # If the SAME blocker (last_blocker signature) has reverted a task to `pending`
+        # >= REPEAT_THRESHOLD times, the loop is oscillating on it, not converging. Stop
+        # re-attempting: flip the task to `needs_context` (a Type-B hold) with an
+        # oscillation concern, so the Surface logic reports it and a human breaks the tie —
+        # instead of burning the remaining iterations up to max_iter on the same wall.
+        OSC=$(python3 -c "
+import json
+try:
+    d=json.load(open('$FEATURES'))
+except Exception:
+    raise SystemExit
+ch=False
+for t in d['tasks']:
+    if t.get('status')=='pending' and int(t.get('revert_count',0))>=$REPEAT_THRESHOLD and t.get('last_blocker'):
+        t['status']='needs_context'
+        sig=t.get('last_blocker')
+        t['concern']=('verdict oscillation: blocker %r reverted this task %s times '
+                      '(>= threshold $REPEAT_THRESHOLD) without resolving — escalated to a human '
+                      'instead of re-attempting.' % (sig, t.get('revert_count')))
+        print('  task %s — %s (blocker: %s)' % (t.get('id'), t.get('title',''), sig))
+        ch=True
+if ch:
+    json.dump(d, open('$FEATURES','w'), indent=2)
+" 2>/dev/null || echo "")
+        if [ -n "$OSC" ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] OSCILLATION GUARD — escalating stuck task(s) to needs_context:" >> "$LOG"
+          printf '%s\n' "$OSC" | while IFS= read -r l; do echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE:$l" >> "$LOG"; done
         fi
       done
     fi
