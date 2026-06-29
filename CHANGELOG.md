@@ -7,6 +7,27 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.2] — 2026-06-29
+
+### Added
+- **8th `dev.sh verify` check — plugin-manifest version coherence.** `scripts/dev.sh verify` now
+  asserts `.claude-plugin/plugin.json`'s `version` equals `VERSION`, failing closed (and exiting
+  non-zero in CI) if they drift. The release gate (`/claude-warp-release`) is read-only and never
+  edits `plugin.json`, so its version could silently lag — this pins them. Self-host safe: skipped
+  when there is no `plugin.json` or `VERSION`. Documented in `docs/loop-harness.md` (now "eight
+  deterministic checks").
+
+### Fixed
+- **`plugin.json` version was off by one after v0.34.1.** The v0.34.1 fix synced `plugin.json` to
+  the then-current `VERSION` (`0.34.0`) immediately *before* `VERSION` was bumped to `0.34.1`,
+  leaving `plugin.json` at `0.34.0`. The new coherence check caught it; both are now pinned at
+  `0.34.2`.
+
+### Changed
+- **`archive/README.md` now links every archived file to its target.** Each row in the archive
+  index is a clickable relative link to the file it describes (`GOALS/…`, `CONTRACTS/…`,
+  `SCRIPTS/…`, `FEATURES/…`).
+
 ## [0.34.1] — 2026-06-29
 
 ### Fixed

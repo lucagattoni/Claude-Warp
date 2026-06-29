@@ -13,7 +13,8 @@
 # What `verify` does and does NOT cover (be honest):
 #   - Covers: every skill is well-formed; the documented copy loop lands all skills; the two
 #     setup-filled templates (CLAUDE.md, harness-manifest.json) leave no unfilled placeholder;
-#     the shared executables (verifier-lib.sh, ledger.sh) pass their own --self-test.
+#     the shared executables (verifier-lib.sh, ledger.sh) pass their own --self-test; the plugin
+#     manifest version (.claude-plugin/plugin.json) tracks VERSION.
 #   - Does NOT cover: the actual LLM behaviour of /claude-warp-setup. That is non-deterministic
 #     and only exercised by `verify --live`.
 set -euo pipefail
@@ -59,7 +60,7 @@ note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
 
 check_source_integrity() {
-  echo "[1/7] Source integrity — every skill is well-formed"
+  echo "[1/8] Source integrity — every skill is well-formed"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -73,7 +74,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/7] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/8] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -83,7 +84,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/7] Copy contract — the documented loop lands every skill"
+  echo "[3/8] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -105,7 +106,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/7] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/8] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -133,7 +134,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/7] Docs coherence — every skill has a section in loop-harness.md + a README row"
+  echo "[5/8] Docs coherence — every skill has a section in loop-harness.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/loop-harness.md || note_fail "$name: no section in docs/loop-harness.md"
@@ -143,7 +144,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/7] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/8] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -170,7 +171,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/7] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/8] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
@@ -186,6 +187,28 @@ check_claim_count_coherence() {
       || note_fail "docs/loop-harness.md count drifted from the registry's '$expected'"
   fi
   [ "$FAIL" -eq 0 ] && note_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
+}
+
+check_plugin_version_coherence() {
+  echo "[8/8] Plugin manifest version coherence — plugin.json tracks VERSION"
+  local pj=.claude-plugin/plugin.json
+  # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
+  if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
+    note_ok "no plugin.json / VERSION — skipped (not a packaged plugin)"
+    return
+  fi
+  # The release gate (/claude-warp-release) is read-only and never edits plugin.json, so its
+  # "version" can silently lag VERSION (it drifted 0.16.0 vs 0.34.0 before v0.34.1). Pin them here.
+  local want got
+  want="$(tr -d ' \t\n\r' < VERSION)"
+  got="$(python3 -c 'import json; print(json.load(open(".claude-plugin/plugin.json")).get("version",""))' 2>/dev/null)"
+  if [ -z "$got" ]; then
+    note_fail "plugin.json has no readable \"version\" field"
+  elif [ "$got" != "$want" ]; then
+    note_fail "plugin.json version '$got' != VERSION '$want' (bump plugin.json on release)"
+  else
+    note_ok "plugin.json version matches VERSION ($want)"
+  fi
 }
 
 verify_live() {
@@ -214,6 +237,7 @@ verify() {
   check_docs_coherence
   check_executable_selftests
   check_claim_count_coherence
+  check_plugin_version_coherence
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   if [ "$FAIL" -eq 0 ]; then
