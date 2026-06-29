@@ -380,6 +380,17 @@ real-independence proxy: a finding only counts if it **reproduces**, and a merge
   reproduce-before-block rule applies, now grounded in *command output* instead of a second reading. Keep
   it **advisory**: a tag informs the verdict, it never deletes a finding outright. Predicates that are not
   command-checkable (a design judgment, a missing test's *intent*) fall back to the re-derive rule above.
+- **Provenance-bind a cited git artifact (object-store predicates).** When a pass-1 finding **cites a git
+  object** — "fixed in commit `<sha>`", "the regression is the blob at `<path>@<sha>`", "tag `<name>`
+  exists" — re-check the citation against the **object store** before accepting it, with **read-only**
+  plumbing only: `git cat-file -e <sha>^{object}` (does the object resolve?) and, for a content claim,
+  `git rev-parse --verify <ref>` / `git cat-file -p <sha>:<path>`. Tag `[SHA_CONFIRMED]` when the object
+  resolves and matches the claim, `[SHA_MISSING]` when it does not. A `[SHA_MISSING]` citation is
+  **rejected** — a blocker (or a *"this is already fixed in `<sha>`"* dismissal) that rests on a git object
+  which does not exist cannot gate **or** clear a merge; it is demoted exactly as `[CMD_CONTRADICTED]`. Like
+  command-verification this stays **advisory and read-only** (never a `git` write command), grounded in the
+  object store instead of a second reading — it closes the *"I verified commit abc123 fixes this"* assertion
+  when `abc123` does not exist or does not touch the cited path.
 - **Agreement by re-reading the same lines does not compound to "confirmed".** If your reproduction
   reaches pass-1's conclusion only by reading the **same** source lines (or by citing pass-1's finding
   rather than the source), that is consensus on an *interpretation*, not on a *fact* — tag it
@@ -412,7 +423,13 @@ split they ground (pass-1 finds, pass-2 verifies) is the **Find/Verify** framing
 ecosystem, with research grounding in **NABAOS / "tool receipts"** (arXiv 2603.10060 — distinguish
 *observation* from *inference*). Adapt critically: this is ONE sequential second pass (not a panel — Option 3
 held) on a different *in-house* model (not cross-vendor — Decision 3a held), and command-checks stay
-**advisory** (they demote, never auto-delete a finding).
+**advisory** (they demote, never auto-delete a finding). The provenance-binding tier
+(`[SHA_CONFIRMED]`/`[SHA_MISSING]` — re-checking a **cited git object** via `git cat-file` before a finding
+counts) adapts **krishddd/Strive_Engineering** (the provenance-bound SHA-citation verifier — every claim
+cites a git SHA re-verified against the object store), with the same pattern converging independently in
+**grapheneaffiliate/Harness** ("The RIG" — deterministic verification gates) and **kok1eee/flywheel**
+(sensors-first harness loop engine); kept advisory and read-only in the same spirit as the command-checks
+above (a `[SHA_MISSING]` citation is demoted, not deleted).
 
 **Re-read `done_with_concerns` tasks closely.** If the task's status is `done_with_concerns`, the
 worker has flagged a caveat in `concern` — grade it with extra scrutiny: verify the concern is the

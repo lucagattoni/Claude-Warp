@@ -137,6 +137,7 @@ contract `stop.evidence` rule (a "new gate on the existing verify step"):
 | **Graceful degradation (loud)** | runner + `stop.evidence` | If the second pass can't run, mark `uncorroborated — single-pass` **loudly**; never silently treat a solo pass as corroborated (P6: NOT corroborated ≠ corroborated) | [adversarial-review](https://github.com/robertoecf/adversarial-review) (robertoecf) |
 | **Different in-house model** | runner (`CLAUDEWARP_QA_MODEL`) | The reproduction pass runs on Opus↔Sonnet for near-free diversity; same-model still filters non-reproducible findings | Decision-3 b.5 (cross-model same-vendor) |
 | **Command-verification** | QA evaluator (reproduction pass) | A checkable-fact blocker must be reproduced by a **read-only command** (`grep`/`cat`/`head`/`tail`/`wc`) and tagged `[CMD_CONFIRMED]`/`[CMD_CONTRADICTED]`; a contradicted blocker is demoted one level — advisory, never auto-deletes | [agent-review-panel](https://github.com/wan-huiyan/agent-review-panel) (wan-huiyan) — read-only command validation + find/verify split; **NABAOS / tool-receipts** (arXiv 2603.10060) |
+| **Provenance-binding (cited git artifacts)** | QA evaluator (reproduction pass) | A finding that **cites a git object** (commit/tag/blob) has its citation re-checked against the object store — `git cat-file -e <sha>^{object}` / `git rev-parse --verify` (read-only) — and tagged `[SHA_CONFIRMED]`/`[SHA_MISSING]`; a `[SHA_MISSING]` citation is rejected (cannot gate **or** clear a merge), demoted like `[CMD_CONTRADICTED]` — advisory, never a `git` write | [Strive_Engineering](https://github.com/krishddd/Strive_Engineering) (krishddd) — provenance-bound SHA-citation verifier; converging in [Harness/"The RIG"](https://github.com/grapheneaffiliate/Harness) (grapheneaffiliate) · [flywheel](https://github.com/kok1eee/flywheel) (kok1eee) |
 | **Static-inference consensus ≠ corroboration** | QA evaluator (reproduction pass) | Agreement reached by reading the **same source lines** (or citing pass-1) is `[STATIC-INFERENCE-CONSENSUS]`, not independent corroboration; only a re-derived catch or a `[CMD_CONFIRMED]` predicate compounds | [agent-review-panel](https://github.com/wan-huiyan/agent-review-panel) (wan-huiyan) · [llm-council](https://github.com/karpathy/llm-council) (karpathy) — "unanimous ≠ independent" |
 | **Read-only-reviewer guard** | `scripts/reviewer-guard.sh` (runner) | Snapshots the tree (`git status --porcelain` + a tracked-content digest) before/after a spawned review pass; ANY mutation fails **loud** — proving the reviewer was truly read-only | [adversarial-review](https://github.com/dementev-dev/adversarial-review) (dementev-dev) — porcelain + sha256 integrity snapshot |
 
@@ -216,6 +217,17 @@ flips `unverified` → `verified-live 2026-06-29`, taking the backlog to **5/5 `
 instruction-only reviewer feature (v0.28.0 → v0.32.0) has now produced its predicted catch under a real spawned
 independent agent. The ledger stays live: a cross-vendor or same-model-blind-spot test would still be a new,
 weaker-until-proven claim (P6 holds).
+
+**v0.33.0 — provenance-binding registered as claim #6 (`unverified`); the backlog re-opens to 5/6.** A sixth
+reviewer rule lands in the QA reproduction pass: a finding that **cites a git object** (commit/tag/blob) has
+its citation re-checked against the object store — `git cat-file -e <sha>^{object}` / `git rev-parse --verify`,
+read-only — and is tagged `[SHA_CONFIRMED]` or `[SHA_MISSING]`; a `[SHA_MISSING]` citation is **rejected** (it
+cannot gate *or* clear a merge), demoted exactly like `[CMD_CONTRADICTED]`. Like every fresh instruction-only
+feature it enters `unverified` — the static checker proves the charter text is present, not that a live agent
+runs `cat-file` under independence — so the backlog count moves **5/5 → 5/6** and the live flip is **Dogfood D6**
+(pending). The re-open is the backlog doing its job: a new untested mechanism is tracked as a visible gap, not
+shipped silently inside a "complete" count. Adapted from **krishddd/Strive_Engineering** (provenance-bound
+SHA-citation verifier), converging in **grapheneaffiliate/Harness** and **kok1eee/flywheel**.
 
 ---
 
@@ -710,6 +722,9 @@ layer), and credit them here:
 | [**adversarial-review**](https://github.com/alecnielsen/adversarial-review) · [(ng fork)](https://github.com/ng/adversarial-review) | alecnielsen · ng | Consensus-gating — a finding needs corroboration to count, a solo pass ≠ confirmed; the corroborated-vs-uncorroborated merge-gating PASS (v0.30.0) |
 | [**adversarial-review**](https://github.com/robertoecf/adversarial-review) | robertoecf | Provenance tags (`[pass-N / model]` — agreement as N traceable data points, not headcount) and graceful-degradation-loud (a missing corroborator fails loud, never silently treated as corroborated) (v0.30.0) |
 | [**adversarial-review**](https://github.com/dementev-dev/adversarial-review) | dementev-dev | The read-only-reviewer integrity guard (`scripts/reviewer-guard.sh`) — `git status --porcelain` + content-digest snapshot before/after a spawned review pass, hard-stop-loud on any mutation, proving the reviewer was truly read-only (v0.32.0) |
+| [**Strive_Engineering**](https://github.com/krishddd/Strive_Engineering) | krishddd | Provenance-binding of cited git artifacts — re-checking a finding's cited commit/tag/blob against the object store (`git cat-file -e <sha>^{object}`, read-only) and tagging `[SHA_CONFIRMED]`/`[SHA_MISSING]` so a citation that names a non-existent object is rejected, not trusted (v0.33.0, claim #6) |
+| [**Harness / "The RIG"**](https://github.com/grapheneaffiliate/Harness) | grapheneaffiliate | Convergent prior art for the provenance-binding tier — a model-agnostic self-verifying harness whose deterministic verification gates ground the same "re-check the cited artifact, don't trust the assertion" discipline (v0.33.0) |
+| [**flywheel**](https://github.com/kok1eee/flywheel) | kok1eee | Convergent prior art for the provenance-binding tier — a sensors-first / harness-driven loop engine where checks read ground truth rather than a prior step's claim (v0.33.0) |
 | [**spec-kit**](https://github.com/github/spec-kit) | GitHub | The standing project constitution (`.claudewarp/constitution.md`, v0.17.0); plan-vs-actual reconciliation (`/converge`, v0.19.0) |
 
 Beyond the projects above, the command-verification discipline (v0.32.0) draws research grounding from
