@@ -7,6 +7,27 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-06-29
+
+### Added
+- **Verdict-oscillation guard in the harness coding loop.** When a blocking QA finding reverts a
+  task to `pending`, the evaluator now records an oscillation signal (`revert_count` + a stable
+  `last_blocker` signature). Once the **same blocker** reverts the **same task**
+  `CLAUDEWARP_REPEAT_THRESHOLD` times (default **2**), the runner stops re-attempting it and flips
+  the task to **`needs_context`** with an oscillation `concern` — escalating to a human via the
+  existing Surface logic instead of burning iterations up to `MAX_ITER` (50) on the same wall. A
+  *different* blocker resets the streak, so genuine progress is never penalised
+  (`skills/claude-warp-new-harness/SKILL.md`). Sourced from the ClaudeLoops `2.4.x` sync
+  (verdict-stability guidance).
+- **Retry-with-backoff + safe-to-retry guard in the headless runner** (`run-headless.sh.tpl`).
+  Each `claude -p` attempt is wrapped in a bounded retry loop (`--max-retries`, default **2**,
+  exponential backoff 30s→60s→…). A retry fires **only when the failed attempt is safe to retry** —
+  it left no durable trace: the working tree is clean **and** `HEAD` is unchanged from before the
+  attempt. A failure that committed or dirtied the tree is **not** retried (a re-run could
+  double-apply it) — the runner writes a loud `NOTIFY` line and exits non-zero so cron/launchd
+  surfaces it; a `timeout` is a wall-clock cap, never retried. Sourced from the ClaudeLoops `2.4.4`
+  sync (doc-09, transient-failure handling).
+
 ## [0.33.0] — 2026-06-29
 
 ### Added
