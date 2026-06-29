@@ -7,6 +7,35 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.3] — 2026-06-29
+
+### Changed
+- **Documentation restructured along the Diátaxis model** (Daniele Procida, https://diataxis.fr) to
+  serve beginners and experts on separate paths. The two monolith docs are split into a nested tree:
+  - **NEW `docs/quickstart.md`** — a 10-minute beginner tutorial assuming zero prior loop /
+    Claude-Code-lifecycle knowledge: a plain-English primer (what an autonomous task is + the
+    `claude -p` → runner → schedule lifecycle), then Part 1 a one-shot **goal** (instant win, no
+    scheduling) and Part 2 graduating to a recurring **loop** (with scheduling), one happy path.
+  - **`docs/loop-harness.md` (758L) split** into `docs/reference/`: `skills.md` (all 15 per-skill
+    sections), `templates.md`, `architecture.md` (core model + native-vs-harness + loop anatomy +
+    the reviewer system & behavioural-claim backlog), `developing.md` (`dev.sh` + `verifier-lib` +
+    prior art & acknowledgements).
+  - **`docs/usage.md` (264L) split** into `docs/guides/`: `scaffolding.md`, `scheduling.md`,
+    `deployment.md`, `monitoring.md`, `iterating.md` (how-to).
+  - **`README.md` rewritten** as a slim launcher: plain-English what/why, two prominent audience
+    paths (🐣 beginner→quickstart, 🚀 expert→reference), condensed install, the Skills table (kept),
+    a docs map. The Design essay and Plan-vs-Shape teaser are reduced to one-line pointers
+    (canonical homes: `reference/architecture.md` and `concepts.md`).
+  - **`docs/concepts.md`** gains a plain-English on-ramp; **`docs/install.md`** gains a quickstart
+    next-step pointer. All live cross-links repointed (README, docs, skills, `templates/CLAUDE.md.tpl`);
+    nothing live points at the removed files. (CHANGELOG/RETRO keep their historical references.)
+
+### Fixed
+- **`scripts/dev.sh` checks 5 and 7 repointed** for the split. Check 5 (docs coherence) now greps
+  `docs/reference/skills.md`; check 7 (behavioural-claim count) now asserts the `M/N` literal in
+  `docs/reference/architecture.md`. Both keep their self-host `[ -f … ]` guards. Without this the two
+  coupled checks would have broken when `docs/loop-harness.md` was removed.
+
 ## [0.34.2] — 2026-06-29
 
 ### Added

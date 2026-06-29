@@ -360,7 +360,7 @@ If the only FAILs are **minor/recommendation**: record them in `qa_feedback`, se
 `"qa_status": "approved_with_notes"`, and let the task proceed.
 If all criteria PASS: write `"qa_status": "approved"` on the task. Stop.
 
-These riders adapt external prior art (credited in `docs/loop-harness.md` + CHANGELOG): **CCH TeamAgent
+These riders adapt external prior art (credited in `docs/reference/developing.md` + CHANGELOG): **CCH TeamAgent
 Debate** (Chachamaru127) — severity→verdict gating; **idea-to-ship-skills** (nelsonwerd) — confidence
 cap; **Karpathy LLM Council** → **/council** — anonymized-author; **brandonsimpson/devils-advocate**
 (MIT) — anti-fabrication + "Unverified" set. The **red-team / Skeptic charter** above likewise adapts:
@@ -418,7 +418,7 @@ real-independence proxy: a finding only counts if it **reproduces**, and a merge
   routes to `needs_context`/`blocked` and is **Surfaced** — it is **never** silently downgraded to `minor`
   by the reproduction rule. Reproduction filters *unconfirmed* findings, not *human-gated* ones.
 
-This corroboration discipline adapts external prior art (credited in `docs/loop-harness.md` + CHANGELOG):
+This corroboration discipline adapts external prior art (credited in `docs/reference/developing.md` + CHANGELOG):
 **/ultrareview** (Anthropic — `/code-review ultra`) — reproduction-required ("a finding counts only if a
 second agent reproduces it"); **alecnielsen/ng adversarial-review** — consensus-gating (a finding needs
 corroboration to count; solo ≠ confirmed); **robertoecf/adversarial-review** — provenance tags +

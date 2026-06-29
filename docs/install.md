@@ -151,3 +151,10 @@ rm -rf .claude/skills/claude-warp-*
 rm harness-manifest.json
 # optionally remove the ClaudeWarp section from CLAUDE.md
 ```
+
+---
+
+## Next step
+
+Installed? Run your first autonomous task — **[Quick start](quickstart.md)** (10 minutes, no prior
+knowledge needed).

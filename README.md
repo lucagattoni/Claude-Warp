@@ -1,26 +1,26 @@
 # ClaudeWarp
 
-> The loop harness for Claude Code. Scaffold, guard, and schedule autonomous loops in any project.
+> The loop harness for Claude Code. Scaffold, guard, and schedule autonomous tasks in any project.
 
 [![verify](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg)](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml)
 
+ClaudeWarp installs the infrastructure layer Claude Code doesn't provide natively — loop scaffolding,
+scheduling guards, headless runners, readiness gates, and a self-pruning mechanism that retires
+components as Claude Code absorbs them. You describe *what you want and how to know it's done*; it
+scaffolds the right thing to run it — once, on a schedule, or as a large multi-stage job — and stops
+when it should.
+
+It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code
+review, scheduling runtime — is referenced, not reimplemented.
+
 ---
 
-## What it is
+## Pick your path
 
-ClaudeWarp installs the infrastructure layer that Claude Code does not provide natively: loop scaffolding, scheduling guards, headless runners, and a self-pruning mechanism that retires harness components as Claude Code absorbs them.
-
-It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code review, scheduling runtime — is documented and referenced, not reimplemented.
-
-### One model: Plan vs Shape
-
-A **plan** is *what* you want done, specified well enough to verify (any size). A **shape** is *how* it runs:
-
-- **single-shot** (goal) — runs once, stops at a verifiable criterion (a *small* plan)
-- **loop** — recurs on a trigger (a *recurring* plan)
-- **harness** — decomposed into subplans, each its own unit of work (a *big* plan)
-
-"A goal" isn't the opposite of "a plan" — a goal is a small, single-shot plan. You write the plan with `/claude-warp-contract`; it classifies the shape for you. → [full model & aims](docs/concepts.md)
+| | Start here |
+|---|---|
+| 🐣 **New to this?** | **[Quick start](docs/quickstart.md)** — run your first autonomous task in 10 minutes, zero prior knowledge assumed. Then [Concepts](docs/concepts.md) for the "why". |
+| 🚀 **Claude Code veteran?** | Skip the intro → **[Skills reference](docs/reference/skills.md)** (all 15, in depth) · [Architecture](docs/reference/architecture.md) · [Developing](docs/reference/developing.md). The function table below is your map. |
 
 ---
 
@@ -34,7 +34,8 @@ A **plan** is *what* you want done, specified well enough to verify (any size). 
 bash <(curl -fsSL https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/install.sh)
 ```
 
-This runs `/claude-warp-setup` autonomously: detects your project type, fills `CLAUDE.md` and `harness-manifest.json`, installs all skills under `.claude/skills/`, and commits everything in one go.
+Runs `/claude-warp-setup` autonomously: detects your project type, fills `CLAUDE.md` and
+`harness-manifest.json`, installs all skills under `.claude/skills/`, and commits.
 
 **Option B — Claude Code plugin** (skills available everywhere, namespaced):
 
@@ -43,36 +44,15 @@ This runs `/claude-warp-setup` autonomously: detects your project type, fills `C
 /plugin install claude-warp@claude-warp
 ```
 
-Skills install under the `claude-warp` namespace (`/claude-warp:claude-warp-contract`, etc.). Then run `/claude-warp:claude-warp-setup` in a project to materialise `CLAUDE.md` + `harness-manifest.json`.
-
-→ Full installation guide: [docs/install.md](docs/install.md)
-
----
-
-## Quick start
-
-```bash
-# Scaffold a daily loop from a one-line goal
-claude -p '/claude-warp-new-loop "summarise new GitHub Issues every morning"'
-
-# Test it before scheduling
-bash scripts/run-<slug>.sh
-
-# Schedule it — cloud-hosted (preferred)
-claude -p "/schedule"
-
-# Or wire to local cron (paste the generated snippet)
-crontab -e
-
-# Keep skills up to date
-claude -p "/claude-warp-update"
-```
-
-→ Full usage guide: [docs/usage.md](docs/usage.md)
+Then run `/claude-warp:claude-warp-setup` in a project to materialise `CLAUDE.md` +
+`harness-manifest.json`. → Full guide: **[docs/install.md](docs/install.md)**
 
 ---
 
 ## Skills
+
+`/claude-warp-contract` is the one door — describe anything and it routes to the right scaffold. The
+rest you can also invoke directly.
 
 | Skill | What it does |
 |---|---|
@@ -98,40 +78,29 @@ claude -p "/claude-warp-update"
 
 | Document | Contents |
 |---|---|
-| [docs/concepts.md](docs/concepts.md) | **Read first** — plans, shapes (goal/loop/harness), and `/claude-warp-contract`: what they are and their aims |
+| [docs/quickstart.md](docs/quickstart.md) | **🐣 Start here** — your first autonomous task in 10 minutes (goal, then loop) |
+| [docs/concepts.md](docs/concepts.md) | The model — plans, shapes (goal/loop/harness), and `/claude-warp-contract` |
 | [docs/install.md](docs/install.md) | Prerequisites, install command, verification, update, uninstall |
-| [docs/usage.md](docs/usage.md) | Loop types, scheduling, iterating, keeping the harness current |
-| [docs/loop-harness.md](docs/loop-harness.md) | Architecture: native vs harness boundary, skills in depth, templates reference |
-| [docs/goal-readiness.md](docs/goal-readiness.md) | G0–G3 readiness scale — how to specify goals so agents know when they are done |
+| [docs/goal-readiness.md](docs/goal-readiness.md) | G0–G3 readiness scale — how to specify goals so agents know when they're done |
+| **How-to guides** | [scaffolding](docs/guides/scaffolding.md) · [scheduling](docs/guides/scheduling.md) · [deployment posture](docs/guides/deployment.md) · [monitoring](docs/guides/monitoring.md) · [iterating](docs/guides/iterating.md) |
+| **Reference** (🚀) | [skills](docs/reference/skills.md) · [templates](docs/reference/templates.md) · [architecture](docs/reference/architecture.md) · [developing](docs/reference/developing.md) |
 
 ---
 
 ## Companion
 
-[ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is the knowledge base behind ClaudeWarp — loop engineering patterns, failure modes, and building blocks.
+[ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is the knowledge base behind ClaudeWarp —
+loop engineering patterns, failure modes, and building blocks.
 
 ---
 
-## Design
+## Notes
 
-ClaudeWarp separates two kinds of thing, and they move in opposite directions:
-
-- **Native-replaceable components** (skill distribution, scheduling guards, cross-run state) are *meant to shrink*. Each tracks a `native_since` field in `harness-manifest.json`; when `/claude-warp-sync` confirms Claude Code covers it natively, the component is marked superseded and retired.
-- **Loop-engineering workflow skills** (scaffolding, the contract negotiator, checkers, hooks, retrospectives) are the durable value. These track the *practice* of loop engineering, not gaps in Claude Code — as the discipline matures ("the harness now matters more than the model"), this layer grows.
-
-So the harness as plumbing shrinks toward zero, while the harness as method deepens. Conflating the two is the easy mistake; `/claude-warp-sync` only ever retires the former.
-
----
-
-## Developing
-
-Working on ClaudeWarp itself? `scripts/dev.sh` self-hosts the skills (symlinks them so they run as live `/claude-warp-*` commands in this repo) and verifies source integrity:
-
-```bash
-scripts/dev.sh selfhost   # symlink skills into .claude/skills/ (single source of truth)
-scripts/dev.sh verify     # deterministic checks: integrity, install copy contract, docs coherence
-```
-
-Per-PR verifiers (in `working/`) source `scripts/verifier-lib.sh` — a shared, markdown-aware matcher (`md_has` strips `**bold**`/`` `code` `` decoration and joins soft-wrapped lines before grepping) with its own `--self-test`. It retires a false-negative that bit four consecutive PRs' raw-grep asserts.
-
-See the [Developing ClaudeWarp](docs/loop-harness.md#developing-claudewarp) section for the full command reference and what `verify` does (and doesn't) cover.
+- **One model, three shapes.** A *plan* is what you want done; *goal* / *loop* / *harness* are the
+  shapes it can take (small / recurring / big). You don't pick by hand — `/claude-warp-contract` does.
+  → [the full model](docs/concepts.md).
+- **The harness shrinks; the method deepens.** Native-replaceable plumbing is *meant* to retire as
+  Claude Code absorbs it, while the loop-engineering workflow skills are the durable value.
+  → [the two directions](docs/reference/architecture.md#native-vs-harness).
+- **Working on ClaudeWarp itself?** `scripts/dev.sh selfhost` symlinks the skills as live commands and
+  `scripts/dev.sh verify` runs the deterministic CI checks. → [Developing](docs/reference/developing.md).

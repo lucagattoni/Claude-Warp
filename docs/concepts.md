@@ -3,6 +3,12 @@
 The one page that explains *what* ClaudeWarp is built around and *why*. If "goal" vs "plan"
 vs "loop" ever feels confusing, read this first.
 
+> **New here?** In one breath: you tell ClaudeWarp *what you want and how to know it's done*; it
+> figures out whether that's a one-shot **goal**, a recurring **loop**, or a big multi-stage
+> **harness**, and scaffolds the right thing. If you just want to *do* something, the
+> [Quick start](quickstart.md) walks one example end to end — this page is the "why it's shaped this
+> way" behind it.
+
 > **External references.** Throughout the docs, `doc-NN` points to the
 > [Claude-Loops knowledge base](https://github.com/lucagattoni/Claude-Loops) — the external
 > companion repo that holds the loop-engineering theory ClaudeWarp implements. For example
@@ -96,5 +102,7 @@ One door (`/claude-warp-contract`), one concept (a **plan**), three shapes it ca
 
 - Ready to specify safely? See [Goal Readiness — G0–G3](goal-readiness.md) for the scale the
   contract gates on.
-- Want the per-skill reference and architecture? See [Loop Harness Reference](loop-harness.md).
-- Just want to run something? See [Usage](usage.md).
+- Want the per-skill reference and architecture? See the [Reference — Skills](reference/skills.md)
+  and [Reference — Architecture](reference/architecture.md).
+- Just want to run something? Start with the [Quick start](quickstart.md), or the
+  [how-to guides](guides/scaffolding.md).
