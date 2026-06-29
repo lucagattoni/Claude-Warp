@@ -1,0 +1,67 @@
+# contract.yaml — approved
+kind: goal
+name: Restructure docs along the Diátaxis model (beginner + expert paths)
+slug: docs-restructure
+risk: R1                      # docs + 2 dev-tooling check repoints; no skill logic, no install/CLI change
+autonomy: L2
+
+scope:
+  may_touch:
+    - README.md
+    - docs/quickstart.md
+    - docs/concepts.md
+    - docs/guides/            # NEW: scheduling.md, monitoring.md, iterating.md, deployment.md
+    - docs/reference/         # NEW: skills.md, templates.md, architecture.md, developing.md
+    - docs/install.md         # link fixes only
+    - docs/goal-readiness.md  # link fixes only
+    - docs/loop-harness.md    # split → removed
+    - docs/usage.md           # split → removed
+    - scripts/dev.sh          # repoint check 5 → reference/skills.md; check 7 → reference/architecture.md
+    - skills/*/SKILL.md        # cross-link repoint only (no behaviour change)
+    - templates/CLAUDE.md.tpl  # cross-link repoint only
+    - CHANGELOG.md
+    - VERSION
+    - .claude-plugin/plugin.json   # bump to match VERSION (check 8)
+  must_not_touch:
+    - RETRO.md                # append-only history
+    - BEHAVIOURAL-CLAIMS.md   # content unchanged (link fixes none needed)
+    - .claudewarp/            # constitution, ledger
+    - "skill behaviour / phase logic"   # only doc-link prose inside skills
+    - "install.sh / CLI commands"
+
+action: >
+  Split the two monolith docs (loop-harness.md 758L, usage.md 264L) into a nested Diátaxis tree
+  (docs/reference/ + docs/guides/), add a zero-prerequisites docs/quickstart.md (goal-then-loop),
+  rewrite README.md as a slim launcher, fold the Plan-vs-Shape teaser + Design essay into docs,
+  repoint the two coupled dev.sh checks and all live cross-links, and cut a PATCH release.
+
+budget:
+  loop_max_usd: 0
+  step_max_budget_usd: 0
+  max_turns: 0   # interactive session, not a headless loop
+
+stop:
+  verdict: PASS
+  evidence: required
+  check: "bash scripts/verify-docs-restructure.sh"   # see GOAL.md done-conditions
+
+verifier:
+  independent: true
+  mechanism: "scripts/dev.sh verify (8/8) + a goal verifier script asserting link integrity, no live orphan refs, all 15 skills present, quickstart arc present"
+
+surface_conditions:
+  - "If splitting loop-harness.md would orphan content not assigned to any target file — Surface, don't drop it"
+
+decision_log:
+  - "kind: goal not harness — one doc-set deliverable with one verifiable done-condition; all pieces are the same kind of work (markdown), executable in one pass, not multi-context-window subplans."
+  - "Reviewer-design narrative (honesty riders, red-team charter, reproduction, behavioural-claim backlog) moves to reference/architecture.md as cross-cutting design (spans contract + new-harness), keeping skills.md per-skill sections functional. check 7's M/N string rehomes there."
+  - "'Zero references' verifier scoped to LIVE docs+cross-links only; CHANGELOG/RETRO/plans/archive keep their historical references (rewriting release history would violate P6 honesty + out-of-scope)."
+  - "Diátaxis framework credited to Daniele Procida (https://diataxis.fr) in reference/developing.md + CHANGELOG; adapted critically — a small CLI tool does not need every quadrant heavily populated."
+
+constitution_check:
+  - "P1 STOP is a command: stop.check is scripts/verify-docs-restructure.sh + dev.sh verify."
+  - "P2 independent verifier is R2+-only; this is R1 (reversible doc writes) — CI dev.sh verify still gates."
+  - "P4 self-host safety preserved: repointed checks keep their '[ -f ... ]' guards and skip-when-absent."
+  - "P8 docs-are-done: this is the docs change itself; CHANGELOG + VERSION updated in the same batch."
+
+_phase: 9
