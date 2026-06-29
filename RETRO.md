@@ -4,6 +4,29 @@ Produced by `/claude-warp-retro`. Read-only analysis — findings here are not a
 
 ---
 
+## Retro: docs-restructure (goal) — 2026-06-29
+
+**Outcome:** ✅ COMPLETE — 11/11 done conditions met; one-shot verifier RESULT PASS, `dev.sh verify` 8/8, residuals R1 clean (HIGH=0). Shipped in **v0.34.3**.
+**Milestones:** 2 execution-log entries (contract+materialise → implement+ship) | rework: none — zero mid-build surprises.
+
+### What worked
+- **Pre-settling the design decisions in the contract prompt eliminated the largest doc-restructure risk: churn.** The three structural choices (nested Diátaxis, slim launcher, goal-then-loop quickstart) were locked with the user *before* a single file moved, so the split ran once and stayed put — no "actually move it back" oscillation across an 18-file change.
+- **Repointing the two coupled `dev.sh` checks was identified at contract time, not discovered at verify time.** Checks 5 and 7 grep specific doc paths; the contract named both and the split moved their literals deliberately (skills headings → `skills.md`, `5/6` → `architecture.md`). The build never hit a red verify caused by a forgotten coupling.
+- **A bespoke one-shot verifier caught the class of error a generic gate can't.** `dev.sh verify` proves coherence but not *completeness* of a restructure; the goal-specific verifier asserted "monoliths gone, all 15 skills relocated, no live orphan refs, every relative link resolves" — exactly the things a split silently gets wrong. It passed first run because each assertion mapped to a done-condition.
+- **Scoping the orphan-ref check to LIVE surfaces (excluding CHANGELOG/RETRO) honored P6.** Rewriting historical logs to point at the new paths would have falsified release history; leaving them and narrowing the check kept both the gate green and the history truthful.
+
+### What failed / friction
+- **The split surfaced an orphaned-content trap that wasn't in the original contract** (one-off): `usage.md`'s per-scaffold how-tos had no home in the four planned guides. Resolved by adding a 5th guide (`scaffolding.md`) rather than dropping content — but it was an obvious-call judgment made mid-build, not a pre-planned destination. A pre-split content inventory (every H2 → its target file) would have caught it at contract time.
+- **The relative-link verifier is structurally weak** (structural — same verifier-ceiling class as prior retros): it resolves `](path.md)` targets to real files but does **not** validate `#anchor` fragments, so a link to a *correct file* with a *stale heading anchor* passes green. The README/notes pointers into `architecture.md#native-vs-harness` are asserted to reach the file, not the section. Accept as a named limitation or add anchor-existence checking.
+- **Archiving the goal in the same PR that created it means the retro runs against an already-moved file** (process friction): the retro skill's Phase 1 `ls *-GOAL.md` greps root and finds nothing, because the artifact was filed into `archive/GOALS/` in the shipping commit. It worked here because the analysis was run by hand against the archived path, but the skill-driven path would have reported "no state file found." Either archive in a follow-up step, or teach the retro to look under `archive/GOALS/`.
+
+### Top 3 improvements
+1. **`/claude-warp-contract` (Phase 2, restructure/split plans) — add a pre-split content inventory step** — when the scope removes a file by splitting it, require an H2/H3 → destination-file map in the contract so no section is orphaned mid-build (would have pre-placed `scaffolding.md`).
+2. **`/claude-warp-retro` (Phase 1) — also search `archive/GOALS/` and `archive/CONTRACTS/`** — so a goal archived in its own shipping PR is still retro-able by slug without a manual path; falls back to root as today.
+3. **Doc-link verification (verifier-lib or dev.sh) — add optional `#anchor` existence checking** — resolve the fragment to a real heading in the target file, closing the "right file, stale anchor" false-green that the current relative-link check can't see.
+
+---
+
 ## Retro: honesty-riders (goal) — 2026-06-28
 
 **Outcome:** ✅ COMPLETE — 9/9 done conditions met; verifier 24/24, `dev.sh verify` 6/6, residuals R2 clean (HIGH=0).
