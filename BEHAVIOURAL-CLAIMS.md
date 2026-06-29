@@ -7,10 +7,13 @@ This backlog is the standing ledger of that gap. Every instruction-only reviewer
 here with the **behavioural claim** it makes, the **catch it predicts** on a deliberately-planted
 defect, and a **status** that says how far the claim has been validated.
 
-It exists so the gap stays **visible** instead of accumulating silently: five reviewer features
-(v0.28.0 → v0.32.0) each asserted behaviour that only live use can confirm — and all five have now been
-flipped by a live spawned independent pass. The backlog stands at **5/5 `verified-live`** (claim #5,
-command-verification, flipped by Dogfood D5 on 2026-06-29). The reproducible procedure
+It exists so the gap stays **visible** instead of accumulating silently: the first five reviewer features
+(v0.28.0 → v0.32.0) each asserted behaviour that only live use can confirm — and all five were flipped by a
+live spawned independent pass (the 5/5 milestone reached at v0.32.2, Dogfood D5). A sixth feature —
+**provenance-binding** (v0.33.0, claim #6) — has since been registered and is **`unverified` pending a live
+dogfood (D6)**, so the backlog now stands at **5/6 `verified-live`** (5 flipped, 1 newly registered). That
+re-opening is the backlog working as intended: a new instruction-only reviewer rule is tracked as a visible
+gap, not shipped silently inside a "complete" count. The reproducible procedure
 that moves a claim from *present* to *fires* is [`tests/dogfood/RUNBOOK.md`](tests/dogfood/RUNBOOK.md),
 run against the tracked fixture [`tests/dogfood/trivially-passing-contract.yaml`](tests/dogfood/trivially-passing-contract.yaml).
 Future `/claude-warp-retro` runs append dogfood results here.
@@ -171,6 +174,25 @@ framing of the /ultrareview ecosystem, with research grounding in **NABAOS / too
   integrity-clean. Adapted from **agent-review-panel** (wan-huiyan). The deterministic
   `scripts/reviewer-guard.sh` read-only guard (from **dementev-dev/adversarial-review**) is mechanical
   (self-tested), so it carries no behavioural claim of its own — but D5 is the first run to exercise it live.
+
+### 6. Provenance-binding of cited git artifacts — v0.33.0 — STATUS: `unverified`
+
+- **Behavioural claim:** in the reproduction pass, a finding that **cites a git object** — "fixed in
+  commit `<sha>`", "the value lives at blob `<path>@<sha>`", "tag `<name>` exists" — must have the citation
+  re-checked against the **object store** with read-only plumbing (`git cat-file -e <sha>^{object}`,
+  `git rev-parse --verify`) and tagged `[SHA_CONFIRMED]` or `[SHA_MISSING]`; a `[SHA_MISSING]` citation is
+  **rejected** (demoted exactly as `[CMD_CONTRADICTED]`) — it cannot gate **or** clear a merge.
+- **Predicted catch:** feed a reproduction agent a pass-1 list with a confident blocker (or a *"this is
+  already fixed"* dismissal) that **cites a non-existent commit** (e.g. *"resolved in `deadbeef`"* when
+  `git cat-file -e deadbeef^{object}` fails). An agent following the charter runs the plumbing, tags the
+  citation `[SHA_MISSING]`, and **refuses to accept it** — rather than trusting the SHA on its face. The
+  symmetric case (a real, matching commit) must tag `[SHA_CONFIRMED]` and stand.
+- **Why still unverified:** no live spawned independent pass has yet produced this catch. It enters the
+  backlog `unverified` exactly as command-verification (#5) did at v0.32.0 — the live flip is **Dogfood D6**
+  (pending): a fixture pairing a cited-but-missing git object against a cited-and-present one, run by a
+  reasoning-blind agent on a different in-house model, wrapped by `scripts/reviewer-guard.sh`. Adapted from
+  **krishddd/Strive_Engineering** (provenance-bound SHA-citation verifier), converging with
+  **grapheneaffiliate/Harness** and **kok1eee/flywheel**.
 
 ## Dogfood log
 

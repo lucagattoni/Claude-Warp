@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-06-29
+
+### Added
+- **Provenance-binding of cited git artifacts — a sixth reviewer rule, registered as behavioural
+  claim #6 (`unverified`); the backlog re-opens 5/5 → 5/6.** The QA reproduction pass
+  (`skills/claude-warp-new-harness/SKILL.md`) gains an object-store predicate: when a pass-1
+  finding **cites a git object** — "fixed in commit `<sha>`", "the blob at `<path>@<sha>`", "tag
+  `<name>` exists" — the citation is re-checked against the object store with **read-only**
+  plumbing (`git cat-file -e <sha>^{object}` / `git rev-parse --verify`) and tagged
+  `[SHA_CONFIRMED]` or `[SHA_MISSING]`. A `[SHA_MISSING]` citation is **rejected** (it cannot gate
+  **or** clear a merge), demoted exactly like `[CMD_CONTRADICTED]` — advisory and never a `git`
+  write. Closes the "I verified commit `abc123` fixes this" assertion when `abc123` does not exist
+  or does not touch the cited path. Registered `unverified` (the static check proves the charter
+  text is present, not that a live agent runs `cat-file` under independence) — the live flip is
+  **Dogfood D6** (pending). Sourced from the ClaudeLoops sync (`2.4.1 → 2.4.5`, HIGH gap). Adapted
+  from **krishddd/Strive_Engineering** (provenance-bound SHA-citation verifier), converging in
+  **grapheneaffiliate/Harness** ("The RIG") and **kok1eee/flywheel**.
+
 ## [0.32.3] — 2026-06-29
 
 ### Fixed
