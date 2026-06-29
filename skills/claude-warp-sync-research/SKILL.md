@@ -13,23 +13,49 @@ If claude-warp-sync fails, note the failure, record `CC_VERSION` as "unknown", a
 
 ## Phase 1 — Get current state
 
+**Completeness rule (the point of this skill).** Every run must account for *every*
+Claude-Loops change since the last recorded sync — never just the latest run(s). The last
+sync's commit SHA is the lower bound, the current `main` HEAD is the upper bound, and the
+GitHub compare between them is the authoritative change set. Scoping by "the last few run
+blocks" is a defect: a multi-day gap spans several runs and several doc edits, and any one
+of them can carry a Tier-1 finding.
+
 1. Get the exact local time:
    ```bash
    date '+%Y-%m-%d %H:%M %Z'
    ```
    Record as `RUN_TS`.
 
-2. Fetch the latest Claude-Loops commit SHA to record what version was checked:
+2. **Establish the last-sync baseline.** Read `CLAUDE_WARP_UPDATE_LOG.md` (gitignored, repo
+   root). Find the **most recent prior run block** — the one with the latest timestamp,
+   which may *not* be the topmost entry (the log is appended but not strictly sorted, so
+   scan every `## <timestamp>` header and pick the newest date). From its
+   `### Claude-Loops last updated` line take the short SHA → `LAST_SYNCED_SHA`, and the
+   block's timestamp → `LAST_SYNC_TS`. If the log is absent or has no prior run block,
+   leave `LAST_SYNCED_SHA` empty (first-ever sync → full index scan) and note it.
+
+3. Fetch the current Claude-Loops HEAD to set the upper bound:
    ```
    WebFetch https://api.github.com/repos/lucagattoni/Claude-Loops/commits/main?per_page=1
    ```
    Record the `sha` (short: first 7 chars) and `commit.author.date` as `LOOPS_COMMIT`.
 
-3. Fetch the most recent news digest:
+4. **Enumerate the full delta since the last sync — the authoritative change set.** If
+   `LAST_SYNCED_SHA` is set, fetch the compare:
+   ```
+   WebFetch https://api.github.com/repos/lucagattoni/Claude-Loops/compare/<LAST_SYNCED_SHA>...<LOOPS_COMMIT>
+   ```
+   Record **every** commit subject and **every** file under `docs/` added or modified across
+   the range. This list — not a count of recent runs — is what Phases 2–4 must cover. If
+   `LAST_SYNCED_SHA` is empty (first run), skip the compare and treat the whole index as the
+   change set.
+
+5. Fetch the news digest:
    ```
    WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Loops/main/LOOP_ENGINEERING_NEWS.md
    ```
-   Read the last 2–3 run blocks to understand the most recent findings.
+   Read **every** run block dated after `LAST_SYNC_TS` (not a fixed number of blocks), and
+   cross-check them against the Phase-1 compare commit list so no run in the window is missed.
 
 ## Phase 2 — Read Claude-Loops index
 
@@ -39,7 +65,8 @@ WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Loops/main/LOOP_EN
 ```
 Build a complete list of all documented topics and their doc file paths.
 
-For any topics that look new or substantively relevant, fetch the corresponding doc:
+Fetch **every** `docs/` file flagged added or modified in the Phase-1 compare delta, plus
+any index topic that looks new or substantively relevant:
 ```
 WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Loops/main/docs/<file>.md
 ```
@@ -70,6 +97,9 @@ Build a picture of what ClaudeWarp currently provides by fetching from GitHub:
    ```
 
 ## Phase 4 — Gap analysis
+
+Your input set is the **full delta from Phase 1** — every doc changed and every news run
+block since `LAST_SYNCED_SHA` / `LAST_SYNC_TS`, not just the latest run. Work the whole set.
 
 Compare the Claude-Loops topic list against the ClaudeWarp inventory.
 
@@ -105,6 +135,10 @@ Write findings to `CLAUDE_WARP_UPDATE_LOG.md` in the ClaudeWarp root (append; do
 
 ### claude-warp-sync output
 <paste the claude-warp-sync summary — CC_VERSION, components checked, superseded>
+
+### Sync window
+<LAST_SYNCED_SHA>..<LOOPS_COMMIT short sha> — <N> commits, <M> docs changed
+(first-ever sync: full index scan, no prior baseline)
 
 ### Claude-Loops last updated
 <LOOPS_COMMIT sha> (<date>)

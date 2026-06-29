@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.32.3] — 2026-06-29
+
+### Fixed
+- **`/claude-warp-sync-research` now always covers the full delta since the last sync — never
+  just the latest run(s).** The skill previously read "the last 2–3 run blocks" of the news
+  digest, so a multi-day gap (e.g. ClaudeLoops `2.4.0` → `2.4.5`, five commits across three
+  days) could silently drop Tier-1 findings that landed in an intermediate run. Phase 1 now
+  (1) reads the last recorded `Claude-Loops last updated` SHA from `CLAUDE_WARP_UPDATE_LOG.md`
+  as a baseline, (2) fetches the GitHub **compare** between that baseline and current HEAD as
+  the authoritative change set (every commit + every changed `docs/` file), and (3) reads
+  **every** news run block since the last sync's timestamp, cross-checked against the compare.
+  Phase 2 binds doc-fetching to the compare's changed-file list; Phase 5 records a new
+  `### Sync window` line (`<from>..<to> — N commits, M docs`) so each run's baseline is
+  explicit and auditable for the next. Also corrects a stale `docs/loop-harness.md` line that
+  claimed the skill "does not implement anything" (it has implemented High/Medium gaps in
+  Phase 7 since the autonomous-update workflow landed).
+
 ## [0.32.2] — 2026-06-29
 
 ### Added

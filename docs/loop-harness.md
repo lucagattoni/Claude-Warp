@@ -533,12 +533,16 @@ on GitHub for patterns not yet implemented in ClaudeWarp. Run from the ClaudeWar
 source repo, not from installed projects.
 
 1. Runs `/claude-warp-sync` as a preliminary step
-2. Fetches the ClaudeLoops topic index and latest news digest from GitHub
+2. Reads the last recorded sync in `CLAUDE_WARP_UPDATE_LOG.md`, then fetches the **full
+   GitHub compare delta** (every commit and every changed doc) from that baseline to the
+   current ClaudeLoops HEAD — plus every news run block since the last sync, so a multi-day
+   gap is never reduced to "the latest run"
 3. Fetches the ClaudeWarp skills and templates inventory from GitHub
 4. Rates each gap High / Medium / Low
 5. Appends findings to `CLAUDE_WARP_UPDATE_LOG.md` and prints a summary
 
-Does not implement anything — surfaces findings only.
+Then implements the High and Medium gaps autonomously (Phase 7, pre→implement→post review
+per gap), cutting a release; Low-priority items are surfaced for the user to decide.
 
 Install path: `skills/claude-warp-sync-research/SKILL.md`
 
