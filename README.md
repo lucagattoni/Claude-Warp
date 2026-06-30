@@ -1,8 +1,16 @@
-# ClaudeWarp
+<p align="center">
+  <img src="assets/claude-warp-header.png" alt="Claude-Warp — a loop harness for Claude Code" width="820">
+</p>
 
-> The loop harness for Claude Code. Scaffold, guard, and schedule autonomous tasks in any project.
+<h1 align="center">ClaudeWarp</h1>
 
-[![verify](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg)](https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml)
+<p align="center">
+  <em>The loop harness for Claude Code. Scaffold, guard, and schedule autonomous tasks in any project.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml"><img src="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg" alt="verify"></a>
+</p>
 
 ClaudeWarp installs the infrastructure layer Claude Code doesn't provide natively — loop scaffolding,
 scheduling guards, headless runners, readiness gates, and a self-pruning mechanism that retires
