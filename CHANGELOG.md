@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.4] — 2026-06-30
+
+### Added
+- **Brand assets + README header banner.** Added `assets/claude-warp-header.png` (wide banner) and
+  `assets/claude-warp-logo-512.png` (square logo). The README now opens with the centered header
+  banner above the title/tagline. The square logo is intended for the GitHub repository social-preview
+  image (Settings → Social preview), which is a manual upload — not settable via git or the CLI.
+
 ## [0.34.3] — 2026-06-29
 
 ### Changed
