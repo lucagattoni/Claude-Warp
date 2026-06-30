@@ -7,6 +7,33 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-06-30
+
+### Changed
+- **`/claude-warp-sync` now scans every release in a tracked version window — not just the latest
+  changelog entry.** Previously the skill keyword-grepped "the fetched changelog" and recorded
+  `last_sync` as a bare *timestamp*, so it never enforced reading the releases between checks and
+  could miss a supersession that landed in an intermediate version. Now:
+  - Phase 1 establishes a **scan window** `(LAST_SCANNED, CC_VERSION]` from a tracked
+    **`claude_code.last_sync_version`** (installs) or the *Native vs harness* provenance line in
+    `docs/reference/architecture.md` (the self-hosted source repo).
+  - Phase 3 reads the **full notes of every release in the window** (the changelog skips version
+    numbers, so it scans the versions that exist), applying the supersession checklist to each — a
+    close-but-not-native case is *surfaced*, never auto-cut.
+  - Phase 5 **records the new baseline** (`last_sync_version` / the provenance line) so the next
+    window starts where this one ended.
+  - The self-hosted branch no longer hard-stops: with no manifest it still runs the scan against the
+    *Native vs harness* table and records the result in the docs.
+- **`harness-manifest.json` gains `claude_code.last_sync_version`** (template + setup preserve-on-
+  reinstall), single-sourcing the sync baseline.
+
+### Added
+- **Boundary verification record.** `docs/reference/architecture.md` now carries a dated
+  "last verified against Claude Code v…" line. **Verified against v2.1.196 (2026-06-30):** the full
+  window **v2.1.184 → v2.1.196** was scanned — no Harness row is yet natively superseded; the window
+  only reinforced already-native rows. *External trigger* (crontab + headless `claude -p`) is flagged
+  as closest-to-parity with native cloud routines / background agents, kept for daemon-free scheduling.
+
 ## [0.34.5] — 2026-06-30
 
 ### Added
