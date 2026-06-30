@@ -7,7 +7,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
-## [0.35.0] — 2026-06-30
+## [0.36.0] — 2026-06-30
+
+### Added
+- **Published documentation site (3-column, Milvus-style) on GitHub Pages.** The existing `docs/*.md`
+  now also build into a searchable site with the standard docs layout — **collapsible left nav ·
+  content · right "on this page" TOC** (hamburger + collapsed TOC on mobile) — via **MkDocs +
+  Material**:
+  - `mkdocs.yml` — site config + the left-nav tree (Diátaxis order: quickstart → concepts → install →
+    guides → reference), light/dark toggle, search, and link/anchor validation.
+  - `docs/index.md` — a site landing page (the README stays the GitHub repo landing and links to the
+    site; additive, nothing removed).
+  - `requirements-docs.txt` (`mkdocs-material`) and `.github/workflows/docs.yml` — builds with **uv**
+    (`uv run --with-requirements … mkdocs build --strict`) on every PR (broken links/anchors fail the
+    check) and deploys to GitHub Pages on merge to `main`. Site URL:
+    **https://lucagattoni.github.io/Claude-Warp/**.
+  - MkDocs was chosen over VitePress/Docusaurus because it renders our `<NAME>`/`<slug>` placeholder
+    markdown literally (Vue/MDX would parse those as components), reuses the pages unchanged, and is
+    the lightest toolchain. Credit: [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
+    (Martin Donath / squidfunk).
+
+### Fixed
+- **Cross-renderer link hygiene for the docs site.** Converted the three `docs/` links that escaped
+  the docs root (`BEHAVIOURAL-CLAIMS.md`, `tests/dogfood/RUNBOOK.md`, the dogfood contract) to
+  absolute GitHub URLs, and renamed *Developing → "Prior art & acknowledgements"* to *"…and
+  acknowledgements"* so its anchor resolves identically on GitHub and in the built site (the `&`
+  slugified differently across the two).
 
 ### Changed
 - **`/claude-warp-sync` now scans every release in a tracked version window — not just the latest

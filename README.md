@@ -12,6 +12,10 @@
   <a href="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml"><img src="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg" alt="verify"></a>
 </p>
 
+<p align="center">
+  📖 <strong><a href="https://lucagattoni.github.io/Claude-Warp/">Read the docs</a></strong> — the same pages, as a searchable 3-column site.
+</p>
+
 ClaudeWarp installs the infrastructure layer Claude Code doesn't provide natively — loop scaffolding,
 scheduling guards, headless runners, readiness gates, and a self-pruning mechanism that retires
 components as Claude Code absorbs them. You describe *what you want and how to know it's done*; it

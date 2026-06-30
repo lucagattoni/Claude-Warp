@@ -104,7 +104,7 @@ known-gap pair asserting both matchers miss an `_italic_`-split phrase.
 
 ---
 
-## Prior art & acknowledgements
+## Prior art and acknowledgements
 
 Several of ClaudeWarp's design decisions were sharpened by studying mature open-source projects that
 tackle the same problem — turning a fuzzy intent into a verifiable, closed loop. We adapt their ideas
