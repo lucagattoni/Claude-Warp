@@ -1,0 +1,105 @@
+site_name: ClaudeWarp
+site_description: The loop harness for Claude Code — scaffold, guard, and schedule autonomous tasks in any project.
+site_url: https://lucagattoni.github.io/Claude-Warp/
+site_author: Luca Gattoni
+copyright: ClaudeWarp — the loop harness for Claude Code
+
+repo_url: https://github.com/lucagattoni/Claude-Warp
+repo_name: lucagattoni/Claude-Warp
+edit_uri: edit/main/docs/
+
+# docs/ is the source; the README stays the GitHub repo landing and links here.
+docs_dir: docs
+
+# Make broken internal links/anchors fail the build (with --strict in CI).
+# Absolute links (intentional github.com refs to repo files) are left alone.
+validation:
+  omitted_files: warn
+  absolute_links: ignore
+  unrecognized_links: warn
+  links:
+    anchors: warn
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    # Light
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    # Left column — collapsible nav
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    # Right column — on-this-page TOC (kept separate, NOT integrated, so it stays a 3rd column)
+    - toc.follow
+    # Search + code ergonomics
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+# Left navigation tree — Diátaxis order: tutorial → explanation → how-to → reference.
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts: concepts.md
+  - Install: install.md
+  - Goal readiness: goal-readiness.md
+  - Guides:
+      - Scaffolding: guides/scaffolding.md
+      - Scheduling: guides/scheduling.md
+      - Deployment: guides/deployment.md
+      - Monitoring: guides/monitoring.md
+      - Iterating: guides/iterating.md
+  - Reference:
+      - Skills: reference/skills.md
+      - Templates: reference/templates.md
+      - Architecture: reference/architecture.md
+      - Developing: reference/developing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lucagattoni/Claude-Warp

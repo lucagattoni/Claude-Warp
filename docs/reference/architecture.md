@@ -107,7 +107,7 @@ verdict (Phase 1.5), and the harness QA evaluator (`new-harness` Phase 5b) — c
 honesty disciplines so a review can't become *verifier theater*. The design spans more than one skill
 (it binds `/claude-warp-contract` and `/claude-warp-new-harness`), so it is documented here as
 cross-cutting architecture rather than under any single skill. The external prior art behind each
-element is credited in [Developing → Prior art & acknowledgements](developing.md#prior-art--acknowledgements).
+element is credited in [Developing → Prior art and acknowledgements](developing.md#prior-art-and-acknowledgements).
 
 ### Honesty riders (verdict outputs, v0.28.0)
 
@@ -173,7 +173,7 @@ downgrades a human-gated decision.
 
 The reviewer features above are all **instruction-only** — a static `working/` verifier proves the
 charter *text is present*, never that the charter *fires* on a real defect.
-[`BEHAVIOURAL-CLAIMS.md`](../../BEHAVIOURAL-CLAIMS.md) is the standing registry that keeps that gap
+[`BEHAVIOURAL-CLAIMS.md`](https://github.com/lucagattoni/Claude-Warp/blob/main/BEHAVIOURAL-CLAIMS.md) is the standing registry that keeps that gap
 visible: each feature is logged with the **behavioural claim** it makes, the **catch it predicts** on
 a planted defect, and a **status** from a controlled vocabulary that never conflates two strengths of
 evidence —
@@ -184,9 +184,9 @@ evidence —
 | `verified-on-fixture <date>` | an **in-context** reviewer pass applied the charter to the tracked fixture and the catch fired — proves *the instructions cause the catch* | medium |
 | `verified-live <date>` | a **real spawned independent agent** (`claude -p`, different in-house model, reasoning-blind) produced the catch — proves it *survives independence* | strong |
 
-The reproducible procedure is [`tests/dogfood/RUNBOOK.md`](../../tests/dogfood/RUNBOOK.md) run against
+The reproducible procedure is [`tests/dogfood/RUNBOOK.md`](https://github.com/lucagattoni/Claude-Warp/blob/main/tests/dogfood/RUNBOOK.md) run against
 the tracked fixture
-[`tests/dogfood/trivially-passing-contract.yaml`](../../tests/dogfood/trivially-passing-contract.yaml)
+[`tests/dogfood/trivially-passing-contract.yaml`](https://github.com/lucagattoni/Claude-Warp/blob/main/tests/dogfood/trivially-passing-contract.yaml)
 — a deliberately broken contract whose every planted defect is tagged `# PLANT[<row>]`. The honesty
 crux is the vocabulary itself: **a fixture pass is strictly weaker than a live pass and is never
 relabelled as one** (P6 applied to our own claims).

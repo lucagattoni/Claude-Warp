@@ -8,3 +8,5 @@ CLAUDE_WARP_UPDATE_LOG.md
 working/
 # Cross-session closure ledger: local runtime data (per-checkout persistence), like a log
 .claudewarp/ledger.jsonl
+# MkDocs build output (the published site is built in CI, never committed)
+site/
