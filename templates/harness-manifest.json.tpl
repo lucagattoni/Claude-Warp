@@ -10,7 +10,8 @@
   },
   "claude_code": {
     "version_at_install": "{{CC_VERSION}}",
-    "last_sync": null
+    "last_sync": null,
+    "last_sync_version": "{{CC_VERSION}}"
   },
   "components": [
     {

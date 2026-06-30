@@ -113,7 +113,8 @@ everything else:
 
 - Preserve: `loops[]` (registered by `/claude-warp-new-loop`), any `harnesses[]`, the
   `components[]` array and each component's `status` (set by `/claude-warp-sync`),
-  `claude_code.last_sync`, `last_update`, and the original `installed_at`.
+  `claude_code.last_sync`, `claude_code.last_sync_version` (the sync scan baseline — do not reset it,
+  or the next sync re-scans from scratch), `last_update`, and the original `installed_at`.
 - Update: `version` → `HARNESS_VERSION`; `claude_code.version_at_install` → Claude Code version
   from Phase 1; add `reinstalled_at` → local time from Phase 1.
 
