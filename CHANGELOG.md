@@ -18,9 +18,10 @@ Versioning follows [Semantic Versioning](https://semver.org/):
     guides → reference), light/dark toggle, search, and link/anchor validation.
   - `docs/index.md` — a site landing page (the README stays the GitHub repo landing and links to the
     site; additive, nothing removed).
-  - `requirements-docs.txt` (`mkdocs-material`) and `.github/workflows/docs.yml` — builds
-    `mkdocs build --strict` on every PR (broken links/anchors fail the check) and deploys to GitHub
-    Pages on merge to `main`. Site URL: **https://lucagattoni.github.io/Claude-Warp/**.
+  - `requirements-docs.txt` (`mkdocs-material`) and `.github/workflows/docs.yml` — builds with **uv**
+    (`uv run --with-requirements … mkdocs build --strict`) on every PR (broken links/anchors fail the
+    check) and deploys to GitHub Pages on merge to `main`. Site URL:
+    **https://lucagattoni.github.io/Claude-Warp/**.
   - MkDocs was chosen over VitePress/Docusaurus because it renders our `<NAME>`/`<slug>` placeholder
     markdown literally (Vue/MDX would parse those as components), reuses the pages unchanged, and is
     the lightest toolchain. Credit: [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
