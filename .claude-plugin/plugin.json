@@ -1,7 +1,7 @@
 {
   "name": "claude-warp",
   "description": "Loop harness for Claude Code — installs skills to scaffold and run goals, loops, harnesses, agents, and hooks with built-in contract negotiation and readiness gates.",
-  "version": "0.34.4",
+  "version": "0.34.5",
   "author": {
     "name": "Luca Gattoni"
   },

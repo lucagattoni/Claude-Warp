@@ -7,6 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.34.5] — 2026-06-30
+
+### Added
+- **Full brand-asset kit + catalog.** Expanded `assets/` from two PNGs into a complete kit with SVG
+  vector masters and raster exports, documented in a new [`assets/README.md`](assets/README.md):
+  - `claude-warp-logo.png` (1024×1024) + `claude-warp-logo.svg` — primary square logo.
+  - **`claude-warp-social-preview.jpg` (2560×1280, ≈220 KB) + `.png` + `.svg`** — a dedicated GitHub
+    social-preview card at GitHub's recommended 2:1 size. Upload the **JPG** (the PNG is over GitHub's
+    1 MB upload limit). This supersedes the v0.34.4 note that suggested manually uploading the square
+    logo: upload this purpose-built card instead (Settings → Social preview).
+  - `claude-warp-header.svg` — vector master for the README banner.
+
+### Changed
+- **README header banner refreshed** — `claude-warp-header.png` re-exported at higher resolution
+  (2560×800) with a serif wordmark treatment. Same path, so the README reference is unchanged.
+
 ## [0.34.4] — 2026-06-30
 
 ### Added
