@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.38.4] — 2026-07-01
+
+### Added
+- **Chapter/section numbering across all three docs-site columns**, matching the companion
+  Claude-Loops site. The left nav is grouped into three numbered chapters — **1. Getting Started**
+  (quickstart, concepts, install, goal readiness — previously four standalone top-level pages),
+  **2. Guides**, **3. Reference** — with each page numbered `X.Y` in `mkdocs.yml`'s `nav:` tree. A new
+  `docs/javascripts/section-numbering.js` (adapted from the same mechanism in
+  [Claude-Loops](https://github.com/lucagattoni/Claude-Loops)) derives each page's number from its
+  active nav entry and, at runtime, prefixes the page's H1 and every H2/H3 (`1.1`, `1.1.1`, `1.1.1.1`,
+  …) while keeping the right-hand "on this page" TOC in sync with the same numbers. Done entirely in
+  JS — the Markdown source, heading `id` anchors, and GitHub's own rendering stay untouched, so no
+  existing cross-link or bookmark breaks; page URL paths are unchanged (nav regrouping only relabels
+  the sidebar, mkdocs derives routes from file paths). The Home page stays unnumbered, as in
+  Claude-Loops. **Verified live in a browser**: nav grouping, H1/H2/H3 numbering, and TOC sync all
+  confirmed correct on multiple pages/chapters, heading anchor IDs unchanged, external-link icons
+  (v0.38.3) still work alongside it, zero console errors.
+
 ## [0.38.3] — 2026-07-01
 
 ### Changed
