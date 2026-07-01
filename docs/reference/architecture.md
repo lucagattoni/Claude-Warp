@@ -208,3 +208,27 @@ inside a "complete" count.
 
 > The `dev.sh verify` check-7 single-sources this `5/6` literal: it is computed from the claim
 > headings in `BEHAVIOURAL-CLAIMS.md` and asserted identical here, so a count update can't half-land.
+
+### Enforcing a verdict — the `review-gate` hook (`review-result.v1`)
+
+The riders above govern how a review *reports*; they do not, on their own, *stop* a loop that ignores a
+bad verdict. The **`review-gate`** hook pattern (`/claude-warp-new-hook`) closes that gap: a review
+surface writes a machine-readable verdict to `.claudewarp/review-result.json`, and a `Stop` hook reads
+it and **blocks turn end** until it is `APPROVE` with zero open critical/major findings.
+
+```json
+{ "schema": "review-result.v1",
+  "verdict": "APPROVE | REQUEST_CHANGES | decision_needed",
+  "findings": [ { "severity": "critical|major|minor|recommendation", "note": "<what>" } ] }
+```
+
+Two properties keep it honest rather than theatre. It **fails closed** — a missing or unparseable
+verdict blocks, because *no review* must count as *not approved* (P6 applied to the gate itself). And it
+**separates review from enforcement**: the surface that *produces* the verdict (the contract Phase 6
+critical pass, the QA evaluator, `/converge`, or a manual pass) is never the code that *enforces* it, so
+a loop cannot grade-and-pass itself in one move. Only `critical`/`major` gate (mirroring the
+severity→verdict rider); `minor`/`recommendation` are recorded, never blocking. Because the hook is
+deterministic shell, its logic is covered by a direct exit-code test — so, unlike the instruction-only
+riders above, it needs no behavioural-claim dogfood. Adapts **claude-code-harness**'s `review-result.v1`
+verdict + commit guard (Chachamaru127) — critically: ClaudeWarp gates the `Stop` event (the loop's own
+done-signal), not only `git commit`, and reuses the existing severity vocabulary instead of a parallel one.

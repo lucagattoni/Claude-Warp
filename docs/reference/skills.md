@@ -260,7 +260,7 @@ Scaffolds a deterministic hook script and wires it into `.claude/settings.json`.
 Hooks run shell scripts at defined lifecycle points — they are hard gates, not
 LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 
-**Four named patterns:**
+**Nine named patterns:**
 
 | Pattern | Event | Behaviour |
 |---|---|---|
@@ -268,6 +268,11 @@ LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 | `destructive-block` | `PreToolUse` | Denies Bash commands matching a regex pattern |
 | `audit-log` | `PostToolUse` | Appends all tool calls to `logs/audit.log` asynchronously |
 | `subagent-chain` | `SubagentStop` | Triggers follow-on work when a background agent finishes |
+| `security-scan` | `PostToolUse` | Flags secrets / git-safety bypasses / broad destructive patterns to `logs/security-scan.log` (async) |
+| `evidence-gate` | `PreToolUse` | Blocks a `Write`/`Edit` to a state file when no prior `Read` of it was recorded |
+| `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings (fail-closed: missing/unparseable verdict blocks). Separates *review* (produces the verdict) from *enforcement* (this hook) |
+| `kill-switch` | `PreToolUse` | Blocks all tool calls while an `AGENT_STOP` file exists — operator mid-run halt |
+| `steer` | `UserPromptSubmit` | Injects `STEER.md` once as context, then clears the file |
 
 **Files created:**
 

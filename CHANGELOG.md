@@ -7,7 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
-## [0.37.0] — 2026-07-01
+## [0.38.0] — 2026-07-01
+
+### Added
+- **`review-gate` — a 9th `/claude-warp-new-hook` pattern that enforces a review verdict.** A review
+  surface writes a machine-readable verdict to `.claudewarp/review-result.json` (`review-result.v1`:
+  `verdict` = `APPROVE`/`REQUEST_CHANGES`/`decision_needed` + `findings[]` with severities), and a
+  `Stop` hook reads it and **blocks turn end** until the verdict is `APPROVE` with zero open
+  critical/major findings. Two honesty properties: it **fails closed** (a missing/unparseable verdict
+  blocks — no review counts as *not approved*) and it **separates review from enforcement** (the
+  surface that produces the verdict — contract Phase 6, the QA evaluator, `/converge`, or a manual
+  pass — is never the code that enforces it). Only critical/major gate; minor/recommendation are
+  recorded, never blocking. Because it's a deterministic shell hook, its logic is covered by a direct
+  exit-code test (6 cases: fail-closed on missing/malformed, block on non-APPROVE and on open
+  critical/major, allow on APPROVE with only minor) — no behavioural-claim dogfood needed. This is
+  **item A** from the claude-code-harness review (opt-in: scaffolded per project, not on by default).
+  Adapts **claude-code-harness**'s `review-result.v1` + commit guard
+  ([Chachamaru127](https://github.com/Chachamaru127/claude-code-harness)) — critically: gates the
+  `Stop` event (the loop's own done-signal), not only `git commit`, and reuses the existing severity
+  vocabulary. The verdict schema + gate are documented in
+  [Architecture → The reviewer system](docs/reference/architecture.md#the-reviewer-system).
+
+### Fixed
+- **`docs/reference/skills.md` new-hook table was stale** (listed "Four named patterns" / only 4 rows
+  while the skill shipped 8). Now lists all **nine** patterns, including `review-gate`.
 
 ### Added
 - **Plan-validation lenses in `/claude-warp-contract` (Phase 6).** The critical pass now also records a
