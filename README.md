@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml"><img src="https://github.com/lucagattoni/Claude-Warp/actions/workflows/verify.yml/badge.svg" alt="verify"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/lucagattoni/Claude-Warp"><img src="https://api.scorecard.dev/projects/github.com/lucagattoni/Claude-Warp/badge" alt="OpenSSF Scorecard"></a>
 </p>
 
 <p align="center">
