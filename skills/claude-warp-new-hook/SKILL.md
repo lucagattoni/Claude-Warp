@@ -1,6 +1,6 @@
 ---
 name: claude-warp-new-hook
-description: Scaffold a Claude Code hook — 8 named patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, kill-switch, steer; writes script and wires into .claude/settings.json
+description: Scaffold a Claude Code hook — 9 named patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, review-gate, kill-switch, steer; writes script and wires into .claude/settings.json
 ---
 
 Scaffold a hook for: `$ARGUMENTS`
@@ -13,6 +13,7 @@ Examples:
 - `"audit log: record all Bash tool calls to logs/audit.log"`
 - `"security scan: check for hardcoded secrets and --no-verify bypasses"`
 - `"evidence gate: block state file writes unless a matching Read happened first"`
+- `"review gate: block turn end until the review verdict is APPROVE with no open critical/major"`
 - `"kill switch: block all tool calls when AGENT_STOP file exists"`
 - `"steer: inject STEER.md content as context once, then clear it"`
 
@@ -32,11 +33,12 @@ Parse `$ARGUMENTS` and determine which named pattern applies:
 | **subagent-chain** | `SubagentStop` | Never (async) | Trigger follow-on work when a background agent finishes |
 | **security-scan** | `PostToolUse` | Never (async) | Detect hardcoded secrets, `--no-verify` bypasses, broad `rm -rf` |
 | **evidence-gate** | `PreToolUse` | Write/Edit to state file if no prior Read | Prevent false-positive completions: agent cannot write results it hasn't read |
+| **review-gate** | `Stop` | Turn end until a persisted review verdict is APPROVE with 0 open critical/major | Enforce that an independent review actually passed before the loop can declare done — separates *review* (produces the verdict) from *enforcement* (this hook) |
 | **kill-switch** | `PreToolUse` | All tool calls when `AGENT_STOP` file exists | Operator mid-run halt without killing the process |
 | **steer** | `UserPromptSubmit` | Never (context injection) | Mid-run redirection: surfaces `STEER.md` once as context, then clears file |
 
 Derive:
-- `HOOK_PATTERN` — one of the eight above
+- `HOOK_PATTERN` — one of the nine above
 - `HOOK_SLUG` — kebab-case name (e.g. `verify-npm-test`, `block-destructive`, `audit-bash`)
 - `CHECK_CMD` — the shell command to run (verify-before-stop and destructive-block only)
 - `LOOP_SLUG` — the loop this hook belongs to (if scoped; blank = project-wide)
@@ -199,6 +201,68 @@ fi
 exit 0
 ```
 
+### review-gate
+
+Enforces that an **independent review actually passed** before the loop can stop. It does not
+*perform* the review — it reads a verdict another surface produced (the contract Phase 6 critical
+pass, the QA evaluator, `/claude-warp-converge`, or a manual review), so *review* and *enforcement*
+stay separated. The verdict is `.claudewarp/review-result.json` (`review-result.v1` schema):
+
+```json
+{
+  "schema": "review-result.v1",
+  "verdict": "APPROVE | REQUEST_CHANGES | decision_needed",
+  "findings": [ { "severity": "critical|major|minor|recommendation", "note": "<what>" } ]
+}
+```
+
+**Fail-closed:** a missing or unparseable verdict blocks (no review == not approved). Only
+`critical`/`major` findings gate — `minor`/`recommendation` never block (mirrors the contract's
+severity→verdict rider). To pass, produce/refresh an `APPROVE` verdict with zero open critical/major.
+
+```bash
+#!/usr/bin/env bash
+# Hook: review-gate for <HOOK_SLUG>
+# Event: Stop — blocks turn end (exit 2) until .claudewarp/review-result.json is APPROVE
+# with zero open critical/major findings. Fail-closed: missing/unparseable verdict blocks.
+# asyncRewake: true — Claude re-enters with the blocking reason as context.
+set -euo pipefail
+
+VERDICT_FILE=".claudewarp/review-result.json"
+
+block() {
+  cat <<JSON
+{
+  "continue": true,
+  "hookSpecificOutput": {
+    "hookEventName": "Stop",
+    "additionalContext": "Review gate blocked stop: $1\nProduce an APPROVE verdict in ${VERDICT_FILE} (re-run the review) before stopping."
+  }
+}
+JSON
+  exit 2
+}
+
+[ -f "$VERDICT_FILE" ] || block "no review verdict at ${VERDICT_FILE} (run the review first)"
+
+READ=$(python3 - "$VERDICT_FILE" <<'PY' 2>/dev/null || echo "PARSE_ERROR")
+import json,sys
+d=json.load(open(sys.argv[1]))
+verdict=str(d.get("verdict",""))
+blocking=sum(1 for f in d.get("findings",[])
+             if str(f.get("severity","")).lower() in ("critical","major"))
+print(f"{verdict}\t{blocking}")
+PY
+
+[ "$READ" = "PARSE_ERROR" ] && block "review verdict at ${VERDICT_FILE} is unparseable"
+VERDICT=$(printf '%s' "$READ" | cut -f1)
+BLOCKING=$(printf '%s' "$READ" | cut -f2)
+
+[ "$VERDICT" = "APPROVE" ] || block "verdict is '${VERDICT}', not APPROVE"
+[ "${BLOCKING:-0}" -gt 0 ] && block "${BLOCKING} open critical/major finding(s) unresolved"
+exit 0
+```
+
 ### kill-switch
 
 ```bash
@@ -341,6 +405,22 @@ security-scan patterns. Use `asyncRewake: true` only for verify-before-stop.
 }
 ```
 
+**review-gate:** (a `Stop` hook, like verify-before-stop — re-enters on block)
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "bash hooks/<HOOK_SLUG>.sh",
+        "async": false,
+        "asyncRewake": true
+      }
+    ]
+  }
+}
+```
+
 **steer:**
 ```json
 {
@@ -384,6 +464,10 @@ Hook scaffolded ✓
   destructive-block: matched commands will be denied before execution —
     adjust the BLOCK_PATTERN regex in the script as needed.
   audit-log: all tool calls appended to logs/audit.log asynchronously.
+  review-gate: the loop cannot stop until .claudewarp/review-result.json is
+    APPROVE with 0 open critical/major. Fail-closed — no verdict = blocked. A
+    separate review surface (contract critical pass, QA evaluator, converge, or
+    a manual pass) must write the verdict; this hook only enforces it.
 
 Safety note: exit code 2 = blocking deny. An unhandled exception that exits 1
 accidentally permits the denied action. Wrap deny logic in try/catch or set -e.
