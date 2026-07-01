@@ -9,7 +9,7 @@ If `$ARGUMENTS` is empty, stop and print:
 `Usage: /claude-warp-contract "describe what you want to automate" [--no-scaffold]`
 
 This is an **interview**, not a form. The spine is the Job-Description framing
-(Claude-Loops doc-27): you are onboarding an employee. Draft a concrete contract,
+(Claude-Loops §2.1): you are onboarding an employee. Draft a concrete contract,
 then argue against it critically — scaling rigor with risk — until no gaps,
 ambiguities, or contradictions remain. Default ends by handing the contract to a
 scaffolder; `--no-scaffold` stops at the approved contract.
@@ -32,9 +32,9 @@ Otherwise **classify the execution shape** — this is the router (folded in fro
    └─ Yes → kind: loop      six-property Loop Contract (recurring)
 2. One-shot, but large / multi-stage — several interdependent pieces that each
    need their own work and span more than one context window?
-   └─ Yes → kind: harness   decomposed into subplans = task units (doc-26 factory model)
+   └─ Yes → kind: harness   decomposed into subplans = task units (§1.2 factory model)
 3. Otherwise: one-shot, fits a single context, one verifiable criterion
-   └─       kind: goal       four Goal primitives + GOAL.md (doc-30)
+   └─       kind: goal       four Goal primitives + GOAL.md (§2.2)
 ```
 
 **Plan-vs-Shape.** The thing you are specifying is a **plan**; `loop` / `goal` / `harness`
@@ -137,7 +137,7 @@ scope:
 
 action: <one sentence: what it does each run>
 
-budget:                               # doc-27 2-layer ceiling
+budget:                               # §2.1 2-layer ceiling
   loop_max_usd: <N>
   step_max_budget_usd: <N>
   max_turns: <N>
@@ -163,7 +163,7 @@ validation:                           # plan-quality lenses — scaled by risk (
     security_fit: ok                  # no secret / permission / supply-chain exposure
     works_in_practice: ok             # DoD carries its own test / CI / review gate
 
-surface_conditions:                   # Type B human gates (doc-04) — NOT escalation
+surface_conditions:                   # Type B human gates (§5.1) — NOT escalation
   - "<judgment call that must Surface, not auto-resolve>"
 
 escalation:
@@ -185,7 +185,7 @@ decision_log:                         # anti intent-debt
 ```
 
 For `kind: goal`, drop `trigger`/`report`; the state file materialised in Phase 9 is
-`GOAL.md` (doc-30 schema), not the loop anchor files.
+`GOAL.md` (§2.2 schema), not the loop anchor files.
 
 The `worth_it` block is **optional and absent by default** — only a plan that entered Phase 1.5
 (a fuzzy/greenfield request) carries it. A concrete change has no `worth_it` block, exactly as
@@ -195,7 +195,7 @@ before this gate existed (backwards-compatible).
 
 ## Phase 3 — Risk classify
 
-Score the draft R0–R5 from its `scope` + `action` (doc-04):
+Score the draft R0–R5 from its `scope` + `action` (§5.1):
 
 | Level | Risk | What it implies |
 |---|---|---|
@@ -391,7 +391,7 @@ checkable condition. The primary, general path:
    selects from — they react to specifics rather than re-explaining the vibe. Done = every
    selected item implemented AND an automated check (tests / `verify` script / exit code) passes.
 
-2. **Special case — design/UX goals** ("improve the UI"): use doc-04's four-dimension gradable
+2. **Special case — design/UX goals** ("improve the UI"): use §5.1's four-dimension gradable
    conversion (Quality / Originality / Craft / Functionality) to turn aesthetics into measurable
    criteria.
 
@@ -403,7 +403,7 @@ them before approving — a contract cannot pass the readiness gate on a vibe.
 
 ## Phase 7 — Readiness gate
 
-**Goal branch — G0–G3** (doc-30): objective clarity, verifier independence, state file,
+**Goal branch — G0–G3** (§2.2): objective clarity, verifier independence, state file,
 budget. Gate: **G2+** (G3 for R3+).
 
 **Loop branch — Loop Contract Readiness (LCR), 6 points:**
@@ -444,7 +444,7 @@ no-op.
 ## Phase 8 — Approve
 
 Print the final contract in full and require explicit user approval before writing
-anything permanent (doc-27 Gate 2). If the user requests changes, return to Phase 4.
+anything permanent (§2.1 Gate 2). If the user requests changes, return to Phase 4.
 
 ---
 
@@ -460,7 +460,7 @@ the two kinds differ only in what else they project from it:
    - **`kind: loop`** → anchor files: `VISION.md` (objective/name), `CLAUDE.md` additions
      (guardrails = `must_not_touch` + `surface_conditions`), `AGENTS.md` (roles — only if
      multi-agent), `PROMPT.md` (first task).
-   - **`kind: goal`** → `<slug>-GOAL.md` (doc-30 schema: objective, done conditions, guardrails,
+   - **`kind: goal`** → `<slug>-GOAL.md` (§2.2 schema: objective, done conditions, guardrails,
      verifier, execution log). No loop anchor files.
    - **`kind: harness`** → the decomposition into **subplans** is the harness's task queue, which
      `/claude-warp-new-harness` already produces (its initializer agent). Do **not** decompose here —

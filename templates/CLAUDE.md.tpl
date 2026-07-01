@@ -14,7 +14,7 @@ This project uses Claude Code loop engineering patterns. Key principle: you writ
 that prompt Claude autonomously — not one-shot prompts.
 
 The conceptual foundation — paradigms, building blocks, failure modes, verification
-patterns — is documented in [Claude-Loops](https://github.com/lucagattoni/Claude-Loops).
+patterns — is documented in [Claude-Loops](https://lucagattoni.github.io/Claude-Loops/).
 When designing a new loop, consult `docs/failure-patterns.md` and `docs/building-blocks.md`
 there before writing the SKILL.md.
 

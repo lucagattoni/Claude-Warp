@@ -85,5 +85,5 @@ thing. One door — `/claude-warp-contract` — classifies the shape for you.
 
 ## Companion
 
-[ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is the knowledge base behind ClaudeWarp —
+[ClaudeLoops](https://lucagattoni.github.io/Claude-Loops/) is the knowledge base behind ClaudeWarp —
 loop-engineering patterns, failure modes, and building blocks.

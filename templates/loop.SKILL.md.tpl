@@ -47,7 +47,7 @@ item to work on, read the `<!-- state:` header of *every* sibling `*_LOG.md` in 
 another loop's `acting_on` already names the branch/PR/item you were about to take, **skip it**
 and move to the next candidate — one owner per item. Write your own `acting_on: <item>` before
 starting work and reset it to `null` when the item is done. This prevents two loops fixing the
-same PR in the same window. Source: Claude-Loops [doc-34 Multi-Loop STATE.md](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/34-loop-patterns.md).
+same PR in the same window. Source: Claude-Loops [§2.4 Multi-Loop STATE.md](https://lucagattoni.github.io/Claude-Loops/34-loop-patterns/).
 3. If `last_verdict` is `IN_PROGRESS`, treat that task as incomplete and restart it
    from the beginning before doing anything else.
 4. Record `today` from:
@@ -110,7 +110,7 @@ src/api/                    → (none)   ← coverage gap
 If any scope item has no covering check: add one this run if cheap, otherwise write
 `handoff` with note "self-coverage gap: <item> has no verification artifact" — do **not**
 report `pass`. A loop that ships unverified scope is the *trust-then-verify gap*
-(Claude-Loops [doc-04 Self-Coverage Gate](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/04-verification.md)).
+(Claude-Loops [§5.1 Self-Coverage Gate](https://lucagattoni.github.io/Claude-Loops/04-verification/)).
 
 Once every scope item is covered, run the checks and compute a weighted pass score.
 
