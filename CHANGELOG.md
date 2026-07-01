@@ -7,6 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.38.3] — 2026-07-01
+
+### Changed
+- **Cleaned up the `§X.Y` citation format** — removed the stray `=` between the section number and
+  the linked title (e.g. `` `§2.1` = [The Loop Contract] `` → `` `§2.1` [The Loop Contract] ``) in the
+  three explainer blocks (`concepts.md`, `reference/architecture.md`, `reference/skills.md`).
+- **All external links on the published docs site now open in a new tab and carry a small ↗ icon.**
+  Implemented as a site-wide mechanism (`docs/javascripts/external-links.js` +
+  `docs/stylesheets/external-links.css`, wired via `mkdocs.yml`'s `extra_javascript`/`extra_css`) so
+  every current and future external link — Claude-Loops citations, GitHub, Diátaxis, the edit-this-page
+  link, etc. — gets the treatment automatically, with no per-link markup to maintain. Runs on Material's
+  `document$` observable (fires on every "instant navigation" page swap, not just the first load).
+  Classification compares the resolved URL against the site's own deployed base
+  (`https://lucagattoni.github.io/Claude-Warp/`), not a same-origin check — GitHub Pages project sites
+  share one hostname, so a same-origin check alone would have wrongly treated the companion
+  **Claude-Loops** docs (a different project on the same `github.io` host) as internal.
+  **Verified live in a browser** (not just a static build check, since the effect is a client-side DOM
+  mutation): served the built site locally, confirmed internal nav/permalinks are left untouched, all
+  9 external links on a sample page get `target="_blank"` + the icon, a real click opens a new tab
+  without navigating the original page, and there are no console errors.
+  **Scope note:** this only affects the published MkDocs site — GitHub's own markdown renderer (README
+  and `docs/*.md` viewed directly on github.com) sanitizes out `target`/script behavior, so raw
+  in-repo viewing is unaffected; the built site is the intended primary consumption surface for `docs/`.
+
 ## [0.38.2] — 2026-07-01
 
 ### Changed

@@ -6,7 +6,7 @@ verdicts honest. For the per-skill reference see [Skills](skills.md); for dev to
 credits see [Developing](developing.md).
 
 > **External references.** `§X.Y` points to a section of the
-> [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) — e.g. `§2.1` =
+> [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) — e.g. `§2.1`
 > [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 
 ---

@@ -80,6 +80,12 @@ markdown_extensions:
 plugins:
   - search
 
+extra_css:
+  - stylesheets/external-links.css
+
+extra_javascript:
+  - javascripts/external-links.js
+
 # Left navigation tree — Diátaxis order: tutorial → explanation → how-to → reference.
 nav:
   - Home: index.md

@@ -7,7 +7,7 @@ reviewer charters and the behavioural-claim backlog, see
 
 > **External references.** `§X.Y` throughout the reference points to a section of the
 > [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) (the external
-> companion) — e.g. `§2.1` =
+> companion) — e.g. `§2.1`
 > [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 
 ---
