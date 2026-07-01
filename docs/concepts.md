@@ -12,7 +12,7 @@ vs "loop" ever feels confusing, read this first.
 > **External references.** Throughout the docs, `§X.Y` points to a section of the
 > [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) — the external
 > companion that holds the loop-engineering theory ClaudeWarp implements. For example
-> `§2.1` = [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
+> `§2.1` [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 > ClaudeWarp links to it rather than copying it, so the theory stays in one place.
 
 ---
