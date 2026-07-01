@@ -34,8 +34,9 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 3. **Risk classify** R0–R5 (doc-04) → sets interview rigor
 4. **Interview** — dynamic, depth scales with risk *and* shape (a goal in ≤3 Qs, a harness more)
 5. **Re-classify** risk against the refined contract (bounded to 2 cycles)
-6. **Critical pass** — 10 checks mapped to named failure patterns (doc-17); R3+ uses an
-   independent cross-model checker, not self-review
+6. **Critical pass** — 10 checks mapped to named failure patterns (doc-17), plus **5 plan-validation
+   lenses** (spec-alignment, memory-reuse, product-fit, security-fit, works-in-practice) recorded as
+   `validation.mode` and scaled by risk; R3+ uses an independent cross-model checker, not self-review
 7. **Readiness gate** — LCR ≥ 5/6 (6/6 for R3+) for loops; G2+ (G3 for R3+) for goals
 8. **Approve** — explicit user sign-off (doc-27 Gate 2)
 9. **Materialise** `contract.yaml` (all kinds) + kind-specific projection — anchor files (loop),

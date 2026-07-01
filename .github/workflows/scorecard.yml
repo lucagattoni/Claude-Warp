@@ -1,0 +1,47 @@
+name: scorecard
+
+# OpenSSF Scorecard — supply-chain / security posture for this public repo.
+# Runs on the default branch + weekly; publishes to the public Scorecard dashboard.
+# Advisory only: it surfaces hardening suggestions (pinned actions, token scopes,
+# branch protection) — it does not gate PRs.
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "23 6 * * 1"
+  push:
+    branches: [main]
+
+# Read-only by default; the analysis job elevates only what it needs.
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # upload SARIF to code scanning
+      id-token: write          # publish results to the OpenSSF API
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

@@ -154,6 +154,15 @@ verifier:
   independent: true | false           # must be true for R2+
   mechanism: "<test cmd | checker agent | CI>"
 
+validation:                           # plan-quality lenses — scaled by risk (Phase 6)
+  mode: not_required_lightweight | native | subagent | manual-pass | unavailable
+  lenses:                             # each: ok | "gap: <what>"
+    spec_alignment: ok                # action+scope actually serve the stated objective
+    memory_reuse: ok                  # not re-solving prior work (ledger / RETRO.md / archive checked)
+    product_fit: ok                   # in the project's purpose; no scope-creep
+    security_fit: ok                  # no secret / permission / supply-chain exposure
+    works_in_practice: ok             # DoD carries its own test / CI / review gate
+
 surface_conditions:                   # Type B human gates (doc-04) — NOT escalation
   - "<judgment call that must Surface, not auto-resolve>"
 
@@ -337,6 +346,31 @@ Adapt critically: severity gating must still route Type-B judgment calls to Surf
 a `minor` that is actually a hidden judgment call); anonymized-author is same-model here, so it
 neutralizes author-bias, not a shared-family blind spot.
 
+**Plan-validation lenses (record `validation.mode`).** Beyond breaking the `stop.check`, validate the
+plan is *well-formed* through five fixed lenses, recording the result in the contract's `validation`
+block. Pick the **mode** by risk (don't tax small plans): a trivial R0 change is
+`not_required_lightweight` (skip the lenses); R1 is `native` (solo, in-conversation); **R2+ is
+`subagent`** (an independent perspective — the same independence P2 already wants); R3+ may require
+`manual-pass` (a human signs off). If no valid mode is reachable on a plan that needs one, the mode is
+`unavailable` and planning **stops** — do not proceed on Required (R1+) planning without a mode.
+
+Run each lens and tag it `ok` or `gap: <what>`:
+
+| Lens | Passes when | How to check it here |
+|---|---|---|
+| **spec_alignment** | `action` + `scope` actually serve the stated objective (not a near-miss) | compare the draft against the objective |
+| **memory_reuse** | this isn't re-solving work already shipped or parked | grep the ledger (`scripts/ledger.sh query`), `RETRO.md`, `archive/` for the slug/topic |
+| **product_fit** | it fits the project's purpose; no scope-creep bolted on | weigh against README / constitution scope |
+| **security_fit** | no secret / permission / supply-chain / public-repo exposure introduced | tie to the R5 SECURITY gate + `check-ai-residuals` |
+| **works_in_practice** | the Definition of Done carries its own test / CI / review gate | `stop.check` is a real command **and** `verifier` is set |
+
+A `gap:` on a load-bearing lens returns to Phase 4 (same as a critical/major finding). `memory_reuse`
+and `product_fit` are the two lenses the earlier checks don't already cover — a plan can be internally
+consistent yet still duplicate shipped work or quietly widen scope. Adapts **claude-code-harness**'s
+`team_validation_mode` (Chachamaru127) — critically: ClaudeWarp scales the mode by its existing R0–R5
+risk class rather than a separate trigger, and folds the lenses into the one critical pass instead of a
+standalone gate.
+
 **Constitution alignment.** If `.claudewarp/constitution.md` exists **and is filled** (any
 principle row is no longer the `# UNFILLED` skeleton), validate the contract against every
 **MUST** principle. A MUST violation is **non-dilutable** — you may not reinterpret a principle
@@ -392,6 +426,11 @@ it cannot reach Approve unless `success_metric` and `kill_criterion` are both no
 `worth_it.verdict == go`. A `park` or `iterate` verdict fails the readiness gate — a parked plan is
 reported and **not scaffolded** (unless the user explicitly overrode the park; see Phase 1.5). Plans
 that never entered the gate have no `worth_it` block and this point is a no-op for them.
+
+**Validation-mode gate.** A plan whose risk required the lenses (R1+) cannot Approve with
+`validation.mode: unavailable`, nor with a `gap:` still open on a load-bearing lens — an unreachable
+validation mode is itself a blocker. Resolve a mode and close the gaps, or Surface to the user. R0
+`not_required_lightweight` plans are a no-op here.
 
 **Constitution gate (both branches, non-dilutable).** If a filled `.claudewarp/constitution.md`
 exists, a contract that violates any **MUST** principle **fails the readiness gate regardless of

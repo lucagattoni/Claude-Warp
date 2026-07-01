@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-07-01
+
+### Added
+- **Plan-validation lenses in `/claude-warp-contract` (Phase 6).** The critical pass now also records a
+  `validation.mode` (`not_required_lightweight` / `native` / `subagent` / `manual-pass` / `unavailable`,
+  scaled by the R0–R5 risk class) and runs five fixed lenses — **spec-alignment, memory-reuse,
+  product-fit, security-fit, works-in-practice**. The two that the existing checks didn't cover are
+  **memory-reuse** (grep the ledger / `RETRO.md` / `archive/` so a plan doesn't re-solve shipped or
+  parked work) and **product-fit** (guard against scope-creep vs the project's purpose). A `gap:` on a
+  load-bearing lens returns to Phase 4; Phase 7 refuses to Approve a Required (R1+) plan whose
+  `validation.mode` is `unavailable`. Adapts **claude-code-harness**'s `team_validation_mode`
+  ([Chachamaru127](https://github.com/Chachamaru127/claude-code-harness)) — critically: scaled by
+  ClaudeWarp's own risk class and folded into the single critical pass, not a standalone gate.
+- **OpenSSF Scorecard + `SECURITY.md`.** `.github/workflows/scorecard.yml` publishes the repo's
+  supply-chain / security posture (advisory — surfaces pinned-action / token-scope / branch-protection
+  findings; it does not gate PRs), with a Scorecard badge in the README. `SECURITY.md` documents
+  private vulnerability reporting via GitHub Security Advisories, supported-version policy, and scope.
+  Adapts **claude-code-harness**'s `scorecard.yml` (Chachamaru127).
+
 ## [0.36.0] — 2026-06-30
 
 ### Added
