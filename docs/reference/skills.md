@@ -5,10 +5,10 @@ reviewer charters and the behavioural-claim backlog, see
 [Architecture](architecture.md); for the dev tooling and prior-art credits, see
 [Developing](developing.md).
 
-> **External references.** `doc-NN` throughout the reference points to the
-> [Claude-Loops knowledge base](https://github.com/lucagattoni/Claude-Loops) (the external
-> companion repo) — e.g. `doc-27` =
-> [`docs/27-loop-contract.md`](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md).
+> **External references.** `§X.Y` throughout the reference points to a section of the
+> [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) (the external
+> companion) — e.g. `§2.1` =
+> [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 
 ---
 
@@ -31,14 +31,14 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 1. **Branch (classify the shape)** — single-shot `goal` / `loop` / `harness` from recurrence +
    stage count + scope size (the router, folded in); resume an existing draft if present
 2. **Draft-first** — a complete best-guess contract, persisted to `contract.draft.yaml`
-3. **Risk classify** R0–R5 (doc-04) → sets interview rigor
+3. **Risk classify** R0–R5 (§5.1) → sets interview rigor
 4. **Interview** — dynamic, depth scales with risk *and* shape (a goal in ≤3 Qs, a harness more)
 5. **Re-classify** risk against the refined contract (bounded to 2 cycles)
-6. **Critical pass** — 10 checks mapped to named failure patterns (doc-17), plus **5 plan-validation
+6. **Critical pass** — 10 checks mapped to named failure patterns (§5.2), plus **5 plan-validation
    lenses** (spec-alignment, memory-reuse, product-fit, security-fit, works-in-practice) recorded as
    `validation.mode` and scaled by risk; R3+ uses an independent cross-model checker, not self-review
 7. **Readiness gate** — LCR ≥ 5/6 (6/6 for R3+) for loops; G2+ (G3 for R3+) for goals
-8. **Approve** — explicit user sign-off (doc-27 Gate 2)
+8. **Approve** — explicit user sign-off (§2.1 Gate 2)
 9. **Materialise** `contract.yaml` (all kinds) + kind-specific projection — anchor files (loop),
    `GOAL.md` (goal), or the subplan decomposition (harness); `--no-scaffold` stops here
 10. **Handoff** via `--contract` → `/claude-warp-new-loop`, `/claude-warp-new-goal`, or
@@ -46,7 +46,7 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 
 Adaptive rigor: an R0 read-only loop clears in ≤3 questions; an R3 prod-adjacent loop is
 challenged on every property and forced to define an escalation gate + independent verifier.
-Sources: Claude-Loops doc-04, doc-14, doc-17, doc-24, doc-26, doc-27, doc-30.
+Sources: Claude-Loops §5.1, §5.3, §5.2, §2.3, §1.2, §2.1, §2.2.
 
 The contract's verdict-emitting surfaces (the Phase 6 critical pass, the Phase 1.5 worth-it gate)
 carry honesty riders and a red-team charter so a review can't become verifier theater — see
@@ -108,7 +108,7 @@ dirtied the tree (a partial write that a re-run could double-apply), the runner 
 writes a loud `NOTIFY` line and exits non-zero so cron/launchd surfaces the failure. A `timeout` (the
 `--max-minutes` wall-clock cap) is treated as a cap, **not** a transient drop, and is never retried. This
 distinguishes a recoverable API/network blip from a real failure without ever silently re-running work that
-already half-landed. Sourced from the ClaudeLoops `2.4.4` sync (doc-09, transient-failure handling).
+already half-landed. Sourced from the ClaudeLoops `2.4.4` sync (§3.6, transient-failure handling).
 
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
@@ -314,7 +314,7 @@ Install path: `skills/claude-warp-inventory/SKILL.md`
 Retrospective over a loop, goal, or harness (or all). Reads state files and git history —
 does not modify any loop/goal files (RETRO.md is the only output).
 
-1. Detects each state file's schema (loop `<!-- state:` header / doc-30 `GOAL.md` / harness
+1. Detects each state file's schema (loop `<!-- state:` header / §2.2 `GOAL.md` / harness
    `features.json`) and reads it accordingly — for a goal it analyses completion + rework,
    not a run series
 2. Reads git log for run commits and fix commits in the past 30 days
@@ -393,7 +393,7 @@ Install path: `skills/claude-warp-update/SKILL.md`
 
 ### `/claude-warp-sync-research`
 
-Developer-facing tool — scans [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops)
+Developer-facing tool — scans [ClaudeLoops](https://lucagattoni.github.io/Claude-Loops/)
 on GitHub for patterns not yet implemented in ClaudeWarp. Run from the ClaudeWarp
 source repo, not from installed projects.
 

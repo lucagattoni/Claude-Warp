@@ -91,7 +91,7 @@ Flag `⚠ missing script` if the hook references a file that doesn't exist.
 ls *_LOG.md *-GOAL.md *-features.json 2>/dev/null || echo "none"
 ```
 
-Detect each file's schema first — don't assume the loop shape (a doc-30 `GOAL.md` has no
+Detect each file's schema first — don't assume the loop shape (a §2.2 `GOAL.md` has no
 `<!-- state:` header):
 
 - **Loop state log** (has `<!-- state:` header): report `last_run`, `last_verdict`,

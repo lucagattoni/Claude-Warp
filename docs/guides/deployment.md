@@ -14,7 +14,7 @@ map to three deployment patterns:
 Two control layers enforce this: **in-process** controls (hooks, `--permission-mode`,
 allowed-tools — see [`/claude-warp-new-hook`](../reference/skills.md)) and **out-of-process** controls
 (the OS user, container, or network boundary the loop runs inside). L3 loops need both. Full detail:
-Claude-Loops [doc-24 Harness vs Environment Engineering](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/24-harness-patterns.md).
+Claude-Loops [§2.3 Harness vs Environment Engineering](https://lucagattoni.github.io/Claude-Loops/24-harness-patterns/).
 
 ---
 

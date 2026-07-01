@@ -7,7 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
-## [0.38.1] — 2026-07-01
+## [0.38.2] — 2026-07-01
+
+### Changed
+- **Repointed all Claude-Loops citations to the new documentation site + adopted its section
+  numbering.** References now link to `https://lucagattoni.github.io/Claude-Loops/<slug>/` instead of
+  the old GitHub `blob/main/docs/*.md` files, and the in-text shorthand switched from the old file
+  numbers (`doc-NN`) to the site's hierarchical section numbers (`§X.Y`) — e.g. `doc-27` →
+  `§2.1` (The Loop Contract), `doc-04` → `§5.1`, `doc-30` → `§2.2`. Updated across README, `docs/`
+  (concepts, goal-readiness, guides, reference, index), the `contract` / `inventory` / `retro` skills,
+  and the `CLAUDE.md` / loop / run-headless templates; the "knowledge base" companion links now point
+  at the docs site too. The `sync-research` skill keeps its `raw.githubusercontent`/API **fetch** URLs
+  (operational, not human-facing links), and the historical logs (CHANGELOG/RETRO/archive/plans) keep
+  their point-in-time references.
 
 ### Fixed
 - **Restored two CHANGELOG entries silently dropped by earlier releases.** The `[0.37.0]` and

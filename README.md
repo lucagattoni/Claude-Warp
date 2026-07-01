@@ -102,7 +102,7 @@ rest you can also invoke directly.
 
 ## Companion
 
-[ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) is the knowledge base behind ClaudeWarp —
+[ClaudeLoops](https://lucagattoni.github.io/Claude-Loops/) is the knowledge base behind ClaudeWarp —
 loop engineering patterns, failure modes, and building blocks.
 
 ---

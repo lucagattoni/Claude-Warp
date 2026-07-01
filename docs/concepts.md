@@ -9,10 +9,10 @@ vs "loop" ever feels confusing, read this first.
 > [Quick start](quickstart.md) walks one example end to end — this page is the "why it's shaped this
 > way" behind it.
 
-> **External references.** Throughout the docs, `doc-NN` points to the
-> [Claude-Loops knowledge base](https://github.com/lucagattoni/Claude-Loops) — the external
-> companion repo that holds the loop-engineering theory ClaudeWarp implements. For example
-> `doc-27` = [`docs/27-loop-contract.md`](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md).
+> **External references.** Throughout the docs, `§X.Y` points to a section of the
+> [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) — the external
+> companion that holds the loop-engineering theory ClaudeWarp implements. For example
+> `§2.1` = [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 > ClaudeWarp links to it rather than copying it, so the theory stays in one place.
 
 ---
@@ -35,9 +35,9 @@ alternatives. **They are not.** There is one model:
 
 | Shape | What it is | Its aim | When the plan is… | Artifact |
 |---|---|---|---|---|
-| **goal** (single-shot) | Runs **once** and stops at a verifiable criterion | Finish a bounded task, verifiably, then stop — no runaway | small, one-and-done | `GOAL.md` ([doc-30](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/30-goal-engineering.md)) |
-| **loop** | **Recurs** on a schedule or event | Keep doing recurring work autonomously without you in the loop | recurring | loop skill + state ([doc-27](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md)) |
-| **harness** | **Decomposed** into subplans (task units), each its own unit of work | Tackle work too big for one context window by breaking it into subplans | big / multi-stage | `features.json` task queue ([doc-26](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/26-factory-model.md)) |
+| **goal** (single-shot) | Runs **once** and stops at a verifiable criterion | Finish a bounded task, verifiably, then stop — no runaway | small, one-and-done | `GOAL.md` ([§2.2](https://lucagattoni.github.io/Claude-Loops/30-goal-engineering/)) |
+| **loop** | **Recurs** on a schedule or event | Keep doing recurring work autonomously without you in the loop | recurring | loop skill + state ([§2.1](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/)) |
+| **harness** | **Decomposed** into subplans (task units), each its own unit of work | Tackle work too big for one context window by breaking it into subplans | big / multi-stage | `features.json` task queue ([§1.2](https://lucagattoni.github.io/Claude-Loops/26-factory-model/)) |
 
 The size and recurrence of the plan **pick the shape** — they are not separate kinds of input:
 
@@ -56,7 +56,7 @@ intention into a complete, verifiable **plan**, then hands that plan to the righ
 
 **Why it exists (its aims):** the single largest cause of autonomous-loop failure is not a weak
 model — it's an **underspecified plan** (no stopping condition, undocumented intent, scope that
-contradicts the action; see [doc-17](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/17-failure-patterns.md)).
+contradicts the action; see [§5.2](https://lucagattoni.github.io/Claude-Loops/17-failure-patterns/)).
 So the contract front-loads the rigor *before* any work runs. Its aims, concretely:
 
 1. **Make "done" checkable.** It refuses a vibe ("improve X") and converts it into a `stop.check`
@@ -65,7 +65,7 @@ So the contract front-loads the rigor *before* any work runs. Its aims, concrete
    routes the plan to goal / loop / harness — you don't need to know the difference.
 3. **Scale rigor to risk.** A read-only plan clears in ≤3 questions; a prod-adjacent or
    irreversible one is challenged on every property and gated by human approval
-   ([doc-04 risk model](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/04-verification.md)).
+   ([§5.1 risk model](https://lucagattoni.github.io/Claude-Loops/04-verification/)).
 4. **Critically review the plan** against named failure patterns (over-reach, cost runaway,
    dark factory, …) before approving it.
 5. **Decompose what's too big.** A plan that doesn't fit one shape becomes a harness, broken
@@ -77,7 +77,7 @@ So the contract front-loads the rigor *before* any work runs. Its aims, concrete
    scaffolded** — but the user keeps the last word and may override. A **concrete change skips the
    gate entirely**; its `worth_it` block is simply absent, exactly as before.
 
-**The framing** (from [doc-27](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md)):
+**The framing** (from [§2.1](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/)):
 specifying a plan is like writing a **job description** — title and scope, deliverables, working
 hours, escalation path, performance standard, spending authority. An agent that has those can act
 autonomously without constant supervision.

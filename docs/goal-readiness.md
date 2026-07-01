@@ -88,4 +88,4 @@ G3 goals are designed to make both failure modes structurally harder. The verifi
 - [Addy Osmani — AI-assisted development](https://addyosmani.com/blog/ai-assisted-development/) — the L1/L2/L3 phased rollout discipline that the readiness scale is partially inspired by
 
 **Loop engineering context (ClaudeLoops companion):**
-- [ClaudeLoops](https://github.com/lucagattoni/Claude-Loops) — the knowledge base behind ClaudeWarp; goal engineering patterns are documented in `docs/doc-30-goal-engineering.md`
+- [ClaudeLoops](https://lucagattoni.github.io/Claude-Loops/) — the knowledge base behind ClaudeWarp; goal engineering patterns are documented in [§2.2 Goal Engineering](https://lucagattoni.github.io/Claude-Loops/30-goal-engineering/)

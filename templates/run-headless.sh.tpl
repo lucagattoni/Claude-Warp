@@ -9,7 +9,7 @@
 #                    backoff (default: 2) — but ONLY when the failed attempt is
 #                    safe to retry (see below). A timeout is never retried.
 #
-# Safe-to-retry guard (doc-09): a transient drop (API hiccup, network blip) should
+# Safe-to-retry guard (§3.6): a transient drop (API hiccup, network blip) should
 # be retried, but a retry is only SAFE if the failed attempt left NO durable trace —
 # the working tree is clean AND HEAD is unchanged from before the attempt. If the
 # attempt committed or dirtied the tree, retrying could double-apply work, so the

@@ -22,7 +22,7 @@ If no state file found: print "No state file found for <slug> — has this loop 
 | File looks like | Detect by | Kind | Read |
 |---|---|---|---|
 | Loop state log | has a `<!-- state:` header | **loop** | `runs_total`, `consecutive_fails`, `consecutive_stagnation`, `last_verdict`, `last_run` |
-| doc-30 goal | `*-GOAL.md` with `## Done conditions` + `## Execution log`, no `<!-- state:` header | **goal** | done-conditions (checked vs total), execution-log milestones |
+| §2.2 goal | `*-GOAL.md` with `## Done conditions` + `## Execution log`, no `<!-- state:` header | **goal** | done-conditions (checked vs total), execution-log milestones |
 | Harness | `*-features.json` | **harness** | task statuses (done/pending/failed), waves |
 
 Branch the rest of the retro on the detected kind. A one-shot **goal** has no per-run

@@ -5,9 +5,9 @@ natively, the anatomy of a running loop/harness, and the design of the reviewer 
 verdicts honest. For the per-skill reference see [Skills](skills.md); for dev tooling and prior-art
 credits see [Developing](developing.md).
 
-> **External references.** `doc-NN` points to the
-> [Claude-Loops knowledge base](https://github.com/lucagattoni/Claude-Loops) — e.g. `doc-27` =
-> [`docs/27-loop-contract.md`](https://github.com/lucagattoni/Claude-Loops/blob/main/docs/27-loop-contract.md).
+> **External references.** `§X.Y` points to a section of the
+> [Claude-Loops documentation](https://lucagattoni.github.io/Claude-Loops/) — e.g. `§2.1` =
+> [The Loop Contract](https://lucagattoni.github.io/Claude-Loops/27-loop-contract/).
 
 ---
 
