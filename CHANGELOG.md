@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.38.1] — 2026-07-01
+
+### Fixed
+- **Restored two CHANGELOG entries silently dropped by earlier releases.** The `[0.37.0]` and
+  `[0.35.0]` sections were removed when the `[0.38.0]` and `[0.36.0]` entries were added — a
+  large-block CHANGELOG edit on each feature branch *replaced* the previous version heading instead of
+  inserting above it, and no CI check guards CHANGELOG↔release continuity, so it slipped through twice.
+  Both entries are restored **verbatim from their release tags** (`v0.37.0`, `v0.35.0`); no released
+  content was ever lost — the tags and GitHub releases were always complete, only the running
+  `CHANGELOG.md` on `main` had the gap.
+
 ## [0.38.0] — 2026-07-01
 
 ### Added
@@ -31,6 +42,25 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ### Fixed
 - **`docs/reference/skills.md` new-hook table was stale** (listed "Four named patterns" / only 4 rows
   while the skill shipped 8). Now lists all **nine** patterns, including `review-gate`.
+
+### Added
+- **Plan-validation lenses in `/claude-warp-contract` (Phase 6).** The critical pass now also records a
+  `validation.mode` (`not_required_lightweight` / `native` / `subagent` / `manual-pass` / `unavailable`,
+  scaled by the R0–R5 risk class) and runs five fixed lenses — **spec-alignment, memory-reuse,
+  product-fit, security-fit, works-in-practice**. The two that the existing checks didn't cover are
+  **memory-reuse** (grep the ledger / `RETRO.md` / `archive/` so a plan doesn't re-solve shipped or
+  parked work) and **product-fit** (guard against scope-creep vs the project's purpose). A `gap:` on a
+  load-bearing lens returns to Phase 4; Phase 7 refuses to Approve a Required (R1+) plan whose
+  `validation.mode` is `unavailable`. Adapts **claude-code-harness**'s `team_validation_mode`
+  ([Chachamaru127](https://github.com/Chachamaru127/claude-code-harness)) — critically: scaled by
+  ClaudeWarp's own risk class and folded into the single critical pass, not a standalone gate.
+- **OpenSSF Scorecard + `SECURITY.md`.** `.github/workflows/scorecard.yml` publishes the repo's
+  supply-chain / security posture (advisory — surfaces pinned-action / token-scope / branch-protection
+  findings; it does not gate PRs), with a Scorecard badge in the README. `SECURITY.md` documents
+  private vulnerability reporting via GitHub Security Advisories, supported-version policy, and scope.
+  Adapts **claude-code-harness**'s `scorecard.yml` (Chachamaru127).
+
+## [0.37.0] — 2026-07-01
 
 ### Added
 - **Plan-validation lenses in `/claude-warp-contract` (Phase 6).** The critical pass now also records a
@@ -75,6 +105,33 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   absolute GitHub URLs, and renamed *Developing → "Prior art & acknowledgements"* to *"…and
   acknowledgements"* so its anchor resolves identically on GitHub and in the built site (the `&`
   slugified differently across the two).
+
+### Changed
+- **`/claude-warp-sync` now scans every release in a tracked version window — not just the latest
+  changelog entry.** Previously the skill keyword-grepped "the fetched changelog" and recorded
+  `last_sync` as a bare *timestamp*, so it never enforced reading the releases between checks and
+  could miss a supersession that landed in an intermediate version. Now:
+  - Phase 1 establishes a **scan window** `(LAST_SCANNED, CC_VERSION]` from a tracked
+    **`claude_code.last_sync_version`** (installs) or the *Native vs harness* provenance line in
+    `docs/reference/architecture.md` (the self-hosted source repo).
+  - Phase 3 reads the **full notes of every release in the window** (the changelog skips version
+    numbers, so it scans the versions that exist), applying the supersession checklist to each — a
+    close-but-not-native case is *surfaced*, never auto-cut.
+  - Phase 5 **records the new baseline** (`last_sync_version` / the provenance line) so the next
+    window starts where this one ended.
+  - The self-hosted branch no longer hard-stops: with no manifest it still runs the scan against the
+    *Native vs harness* table and records the result in the docs.
+- **`harness-manifest.json` gains `claude_code.last_sync_version`** (template + setup preserve-on-
+  reinstall), single-sourcing the sync baseline.
+
+### Added
+- **Boundary verification record.** `docs/reference/architecture.md` now carries a dated
+  "last verified against Claude Code v…" line. **Verified against v2.1.196 (2026-06-30):** the full
+  window **v2.1.184 → v2.1.196** was scanned — no Harness row is yet natively superseded; the window
+  only reinforced already-native rows. *External trigger* (crontab + headless `claude -p`) is flagged
+  as closest-to-parity with native cloud routines / background agents, kept for daemon-free scheduling.
+
+## [0.35.0] — 2026-06-30
 
 ### Changed
 - **`/claude-warp-sync` now scans every release in a tracked version window — not just the latest
