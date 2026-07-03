@@ -127,6 +127,22 @@ instead of hardcoding it. A 90-run study found raising effort `high`→`xhigh` l
 reach for `xhigh` before an extra checker pass when a loop's failures are reasoning-driven. Sourced from
 the ClaudeLoops `2.6.0` sync (arXiv 2607.02436).
 
+**Two-stage search→integrate pipeline / "KB Tracker" pattern (v0.39.0).** For a loop whose work
+splits into a noisy retrieval stage and a sequential reasoning/write stage that should not share
+context, `claude-warp-new-loop` scaffolds **two** skills (`<slug>-search`, `<slug>-integrate`)
+instead of one, plus `run-two-stage.sh.tpl` — a worktree-isolated runner that invokes both `claude
+-p` sessions in sequence inside one throwaway worktree, handing off through a gitignored artifact
+that survives the per-attempt `git reset`/`clean` (no `-x`, so ignored paths are untouched).
+**Simplification vs. the source pattern:** both stages retry as one unit rather than
+independently — a cheap whole-pipeline retry depends on the search skill itself skipping
+re-search when the artifact is already fresh/complete, which is the search skill's job, not the
+runner's. Always `AUTONOMY_LEVEL` L3 (the integrate stage publishes unattended). Verified against
+4 scripted scenarios (full success + push, stage-A failure, stage-B failure with the artifact
+surviving retry, and a direct reset/clean-survival check) in a throwaway git remote with a
+stubbed `claude` binary. Sourced from the ClaudeLoops `2.6.0` sync (§3.6.1 / Loop Patterns
+Catalog — "Knowledge-Base Tracker Loop", the pattern documenting Claude-Loops' own
+`fetch-loop-news`/`integrate-loop-news` pipeline).
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---

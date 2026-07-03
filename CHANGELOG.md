@@ -8,6 +8,16 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- **Two-stage search→integrate pipeline runner ("KB Tracker" pattern) for `claude-warp-new-loop`**.
+  New `run-two-stage.sh.tpl` runs a search stage and an integrate stage as two sequential `claude
+  -p` sessions inside one throwaway worktree, handing off through a gitignored artifact that
+  survives the per-attempt reset. `claude-warp-new-loop` now scaffolds this as two skills
+  (`<slug>-search`, `<slug>-integrate`) instead of one when the goal matches the shape, with a new
+  "KB Tracker" row in the Loop Patterns Catalog table. Simplified vs. the source pattern: retries
+  the whole pipeline as one unit rather than independently per stage. Verified against 4 scripted
+  scenarios (full success + push, stage-A failure, stage-B failure, artifact reset-survival) in a
+  throwaway git remote with a stubbed `claude` binary. Adapted from Claude-Loops' own
+  `fetch-loop-news`/`integrate-loop-news` production pipeline (§3.6.1, Claude-Loops 2.6.0).
 - **`intent-gate` hook pattern (10th pattern) for `claude-warp-new-hook`**. A `PreToolUse` hook
   that denies a `Write`/`Edit` whose target path matches none of a declared `SCOPE_GLOBS`
   allow-list — default-deny, not trust. Complements `new-harness`'s existing `must_not_change`

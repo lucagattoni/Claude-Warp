@@ -42,6 +42,7 @@ use the pattern's pre-defined parameters as defaults (the user can override).
 | **Changelog Drafter** | Generating changelog from commit history | pre-release | $0.10 | Human review before publish (L1) |
 | **Issue Triage** | Labelling and categorising issues | `0 9 * * *` | $0.10 | L1; escalate auto-close to L2 |
 | **Bug Fix Loop** | Report → Analyze → Fix → Verify cycle for a known class of bugs | `on-demand` | $1.00 | L2; max 3 fix attempts per bug; escalate to handoff on 3rd failure |
+| **KB Tracker** | Growing a knowledge base from external sources daily (search + write) | `0 5 * * *` | $2.00 | L3; two-stage (§2c below) — search stage writes a gitignored artifact and stops, integrate stage consumes it and publishes |
 
 If the goal matches a pattern: note which one and use its parameters as the
 starting point. Also embed the pattern's **Safety rule** as a hard constraint
@@ -147,6 +148,30 @@ read `templates/run-fanout.sh.tpl` instead and fill:
 
 The fan-out runner uses `claude --bg --worktree` — each item runs in a background
 agent with an isolated git worktree; no concurrency cap or manual PID management needed.
+
+If the goal is the **KB Tracker** shape — a noisy **retrieval** stage (external search,
+bulky, parallel-friendly) feeding a sequential **reasoning/write** stage (integrate,
+publish) that should not share the retrieval stage's context — split it into **two
+skills** instead of one, and use the two-stage runner:
+
+1. Scaffold **two** `.claude/skills/<slug>/SKILL.md` files instead of one:
+   `<SKILL_SLUG>-search` (writes a compact, **gitignored** artifact — e.g.
+   `.{{SKILL_SLUG}}/findings.json` — and stops) and `<SKILL_SLUG>-integrate` (reads
+   *only* that artifact, does the reasoning/write work, and publishes). Add the
+   artifact path to `.gitignore`.
+2. Read `templates/run-two-stage.sh.tpl` and fill:
+   `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{STAGE_A_SLUG}}` (`<SKILL_SLUG>-search`),
+   `{{STAGE_B_SLUG}}` (`<SKILL_SLUG>-integrate`), `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`,
+   `{{EFFORT}}`, `{{ALLOWED_TOOLS}}`, `{{ARTIFACT_PATH}}`.
+
+**Simplification vs. the source pattern** (Claude-Loops' own `fetch-loop-news` /
+`integrate-loop-news` pipeline, §3.6.1): this shares one retry loop across both stages
+rather than retrying each stage independently. A whole-pipeline retry still skips
+redoing the search cheaply *only if* the search skill itself checks for a
+fresh/complete artifact before re-searching — write that check into the search skill's
+Phase 1, it is not provided by the runner. Always AUTONOMY_LEVEL **L3** (the integrate
+stage publishes unattended) — the runner always runs in a worktree, unlike
+`run-headless.sh.tpl` where `--worktree` is opt-in.
 
 Make executable:
 ```bash
