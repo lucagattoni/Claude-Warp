@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-07-03
+
 ### Added
 - **Two-stage search→integrate pipeline runner ("KB Tracker" pattern) for `claude-warp-new-loop`**.
   New `run-two-stage.sh.tpl` runs a search stage and an integrate stage as two sequential `claude
