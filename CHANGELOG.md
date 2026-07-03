@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Added
+- **Worktree isolation + origin-advanced retry guard for `run-headless.sh.tpl`**. A new
+  `--worktree` flag runs the headless session in a throwaway `git worktree` branched off
+  `origin/<default-branch>` instead of the primary checkout, and retargets the safe-to-retry
+  guard from "local HEAD unchanged" to "`origin/<default-branch>` has not advanced past the
+  base SHA" — the worktree is reset to `origin` before every retry attempt (so a failed
+  attempt's leftover local commit never contaminates the next one), while a completed `git
+  push` outlives the disposable worktree and is what a blind retry could double-apply. On
+  success, the primary checkout fast-forwards if it's on the default branch (best-effort).
+  Intended for `AUTONOMY_LEVEL` L3 loops (writes to production paths or pushes unattended).
+  `claude-warp-new-loop` now tells the scaffolder to append `--worktree` to the generated
+  cron/launchd line for L3 loops. Verified against 6 scripted scenarios (success + push,
+  clean transient failure + retry, dirty/unpushed failure across two attempts, and a
+  push-then-fail race) in a throwaway git remote with a stubbed `claude` binary. Adapted from
+  Claude-Loops' own `fetch-loop-news`/`integrate-loop-news` production shape (§3.6.1,
+  Claude-Loops 2.5.0–2.6.0).
+- **Configurable reasoning effort in `run-headless.sh.tpl`**. `{{EFFORT}}` replaces the
+  hardcoded `--effort high`, with a doc note on when to raise it to `xhigh` instead of adding
+  a checker pass — a 90-run study found effort `high`→`xhigh` lifts first-try-perfect
+  28%→89% for +9–29% cost, while a bolted-on testing tool added 42–68% cost with no
+  reliability gain (arXiv 2607.02436, via Claude-Loops 2.6.0).
+
 ## [0.38.4] — 2026-07-01
 
 ### Added

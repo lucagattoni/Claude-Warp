@@ -110,6 +110,23 @@ writes a loud `NOTIFY` line and exits non-zero so cron/launchd surfaces the fail
 distinguishes a recoverable API/network blip from a real failure without ever silently re-running work that
 already half-landed. Sourced from the ClaudeLoops `2.4.4` sync (§3.6, transient-failure handling).
 
+**Worktree isolation for L3 loops (v0.39.0).** An optional `--worktree` flag runs the session in a
+throwaway `git worktree` branched off `origin/<default-branch>` instead of the primary checkout, and
+retargets the safe-to-retry guard from "local HEAD unchanged" to "`origin/<default-branch>` has not
+advanced past the base SHA" — the worktree's local HEAD is disposable per attempt (reset to `origin`
+before every retry), but a completed `git push` outlives it, so that push is what a blind retry could
+double-apply. On success, if the primary checkout is on the default branch, it fast-forwards
+(`git pull --ff-only`, best-effort). Intended for `AUTONOMY_LEVEL` **L3** loops (writes to production
+paths or pushes unattended), keeping the cron/launchd run off the primary checkout's branch/dirty state.
+Sourced from the ClaudeLoops `2.5.0`–`2.6.0` sync (§3.6.1, the `fetch-loop-news`/`integrate-loop-news`
+worktree-isolated production shape).
+
+**Configurable reasoning effort (v0.39.0).** `run-headless.sh.tpl` exposes `{{EFFORT}}` (default `high`)
+instead of hardcoding it. A 90-run study found raising effort `high`→`xhigh` lifts first-try-perfect
+28%→89% for +9–29% cost, while a bolted-on testing tool added 42–68% cost with no reliability gain —
+reach for `xhigh` before an extra checker pass when a loop's failures are reasoning-driven. Sourced from
+the ClaudeLoops `2.6.0` sync (arXiv 2607.02436).
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---

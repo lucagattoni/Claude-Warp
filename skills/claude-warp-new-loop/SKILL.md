@@ -134,6 +134,9 @@ chmod +x scripts/guard-<SKILL_SLUG>.sh
 If the goal processes a **single context per run** (the common case):
 read `templates/run-headless.sh.tpl` and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+- `{{EFFORT}}` — default `high`; use `xhigh` for a loop whose failures are reasoning-driven
+  (wrong fix, missed edge case) rather than scope-driven — raising effort is the cheaper
+  reliability lever, before reaching for an extra checker pass
 
 If the goal processes **many independent items in parallel** (batch migrations,
 multi-file ops, fan-out analyses):
@@ -165,6 +168,11 @@ Append-only run log. Updated by `/<SKILL_SLUG>` each run.
 
 Read `templates/trigger.crontab.tpl` and fill:
 - `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{CRON_SCHEDULE}}`, `{{REPO_ROOT}}`
+
+For an **L3** loop (writes to production paths or pushes unattended), append `--worktree`
+to the generated cron/launchd command line — it runs the session off the primary checkout
+and retargets the retry-safety guard to origin advancement instead of local HEAD (see
+`run-headless.sh.tpl`'s header comment for why this matters at L3).
 
 (File is not installed — it is a reference snippet the user pastes into crontab.)
 
