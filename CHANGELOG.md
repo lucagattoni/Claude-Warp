@@ -8,6 +8,19 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- **`intent-gate` hook pattern (10th pattern) for `claude-warp-new-hook`**. A `PreToolUse` hook
+  that denies a `Write`/`Edit` whose target path matches none of a declared `SCOPE_GLOBS`
+  allow-list — default-deny, not trust. Complements `new-harness`'s existing `must_not_change`
+  negative-scope check, which is **detective** (a `git diff` after the write already happened);
+  this hook is **preventive** (the write is blocked before it runs). `new-harness`'s
+  `must_not_change` docs now point to it for harnesses that want mechanical enforcement instead
+  of relying solely on the coding/QA agent's self-attestation. Verified against 5 scripted
+  input cases (in-scope Write, out-of-scope Write, Read on an out-of-scope path, a second
+  allow-glob, malformed JSON input). Sourced from the ClaudeLoops `2.4.7` sync (Runtime Policy
+  Gating — `blast_radius`/`intent_gate`, omnigent-ai/omnigent), adapted critically: the source
+  pattern is a general-purpose policy engine; this is scoped to file-write default-deny only,
+  matching the existing `evidence-gate`/`destructive-block` pattern shape rather than a new
+  policy subsystem.
 - **Worktree isolation + origin-advanced retry guard for `run-headless.sh.tpl`**. A new
   `--worktree` flag runs the headless session in a throwaway `git worktree` branched off
   `origin/<default-branch>` instead of the primary checkout, and retargets the safe-to-retry

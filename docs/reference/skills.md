@@ -277,7 +277,7 @@ Scaffolds a deterministic hook script and wires it into `.claude/settings.json`.
 Hooks run shell scripts at defined lifecycle points — they are hard gates, not
 LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 
-**Nine named patterns:**
+**Ten named patterns:**
 
 | Pattern | Event | Behaviour |
 |---|---|---|
@@ -290,6 +290,7 @@ LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 | `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings (fail-closed: missing/unparseable verdict blocks). Separates *review* (produces the verdict) from *enforcement* (this hook) |
 | `kill-switch` | `PreToolUse` | Blocks all tool calls while an `AGENT_STOP` file exists — operator mid-run halt |
 | `steer` | `UserPromptSubmit` | Injects `STEER.md` once as context, then clears the file |
+| `intent-gate` (v0.39.0) | `PreToolUse` | Denies a `Write`/`Edit` whose target path matches none of the declared `SCOPE_GLOBS` — default-deny, mechanically enforcing a harness task's negative scope (`must_not_change`) *before* the write happens, rather than only detecting it after via `git diff` |
 
 **Files created:**
 

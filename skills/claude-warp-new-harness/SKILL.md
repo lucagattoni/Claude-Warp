@@ -137,7 +137,10 @@ migration needed for existing feature lists):
   `git diff --name-only`. **Behavioural entries** (e.g. "public signature of formatAmount()")
   cannot be diffed; the worker must **attest with evidence** that it did not violate them, and QA
   re-checks the attestation. (Negative scope complements `files_in_scope`, which is the positive
-  allow-list.)
+  allow-list.) This `git diff` check is **detective** — it catches a violation after the write
+  already happened. For **preventive**, default-deny enforcement (the write is blocked before it
+  runs), pair the harness with a `/claude-warp-new-hook "intent gate: deny writes outside the
+  task's declared file scope"` PreToolUse hook.
 
 **Convergence provenance (all OPTIONAL — backwards-compatible).** Three fields make a task's
 *origin* traceable so the `/claude-warp-converge` closure step (Phase 6 `--converge` tail) can

@@ -1,6 +1,6 @@
 ---
 name: claude-warp-new-hook
-description: Scaffold a Claude Code hook — 9 named patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, review-gate, kill-switch, steer; writes script and wires into .claude/settings.json
+description: Scaffold a Claude Code hook — 10 named patterns: verify-before-stop, destructive-block, audit-log, subagent-chain, security-scan, evidence-gate, review-gate, kill-switch, steer, intent-gate; writes script and wires into .claude/settings.json
 ---
 
 Scaffold a hook for: `$ARGUMENTS`
@@ -16,6 +16,7 @@ Examples:
 - `"review gate: block turn end until the review verdict is APPROVE with no open critical/major"`
 - `"kill switch: block all tool calls when AGENT_STOP file exists"`
 - `"steer: inject STEER.md content as context once, then clear it"`
+- `"intent gate: deny writes outside the task's declared file scope"`
 
 Hooks run deterministic shell scripts at defined lifecycle points — they are
 not LLM judgments. Use them when a loop needs hard guarantees, not best-effort
@@ -36,12 +37,15 @@ Parse `$ARGUMENTS` and determine which named pattern applies:
 | **review-gate** | `Stop` | Turn end until a persisted review verdict is APPROVE with 0 open critical/major | Enforce that an independent review actually passed before the loop can declare done — separates *review* (produces the verdict) from *enforcement* (this hook) |
 | **kill-switch** | `PreToolUse` | All tool calls when `AGENT_STOP` file exists | Operator mid-run halt without killing the process |
 | **steer** | `UserPromptSubmit` | Never (context injection) | Mid-run redirection: surfaces `STEER.md` once as context, then clears file |
+| **intent-gate** | `PreToolUse` | Write/Edit outside the declared scope glob list | Mechanically enforce a task's negative scope (`must_not_change`/`files_in_scope`) instead of relying on agent self-attestation — default-deny, not trust |
 
 Derive:
-- `HOOK_PATTERN` — one of the nine above
+- `HOOK_PATTERN` — one of the ten above
 - `HOOK_SLUG` — kebab-case name (e.g. `verify-npm-test`, `block-destructive`, `audit-bash`)
 - `CHECK_CMD` — the shell command to run (verify-before-stop and destructive-block only)
 - `LOOP_SLUG` — the loop this hook belongs to (if scoped; blank = project-wide)
+- `SCOPE_GLOBS` — the allow-list of path globs the current work may touch (intent-gate only;
+  derive from a harness task's `files_in_scope`, or ask the operator for a static list)
 
 ## Phase 2 — Write the hook script
 
@@ -315,6 +319,48 @@ fi
 exit 0
 ```
 
+### intent-gate
+
+```bash
+#!/usr/bin/env bash
+# Hook: intent-gate for <HOOK_SLUG>
+# Event: PreToolUse — denies Write/Edit (exit 2) whose target path falls outside
+# the declared scope. Default-deny: a path that matches none of the allowed globs
+# is blocked, not waved through. Mechanically enforces negative scope
+# (must_not_change / files_in_scope) instead of relying on agent self-attestation.
+# CRITICAL: exit 2 = deny. exit 1 = warn only (accidentally permits).
+set -euo pipefail
+
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
+TARGET=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+
+# Only gate file-mutating tools; anything else (Read, Bash, ...) is out of scope for this hook
+[[ "$TOOL" =~ ^(Write|Edit)$ ]] || exit 0
+[ -n "$TARGET" ] || exit 0
+
+# Allowed-scope globs — fill from <SCOPE_GLOBS> (a task's files_in_scope, or a static list)
+ALLOW_GLOBS=(<SCOPE_GLOBS>)
+
+for glob in "${ALLOW_GLOBS[@]}"; do
+  # shellcheck disable=SC2053  # intentional unquoted glob match
+  if [[ "$TARGET" == $glob ]]; then
+    exit 0
+  fi
+done
+
+cat <<JSON
+{
+  "continue": false,
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny"
+  }
+}
+JSON
+exit 2
+```
+
 Create the directory and make executable:
 ```bash
 mkdir -p hooks
@@ -390,7 +436,7 @@ security-scan patterns. Use `asyncRewake: true` only for verify-before-stop.
 }
 ```
 
-**evidence-gate / kill-switch:**
+**evidence-gate / kill-switch / intent-gate:**
 ```json
 {
   "hooks": {
@@ -468,6 +514,9 @@ Hook scaffolded ✓
     APPROVE with 0 open critical/major. Fail-closed — no verdict = blocked. A
     separate review surface (contract critical pass, QA evaluator, converge, or
     a manual pass) must write the verdict; this hook only enforces it.
+  intent-gate: a Write/Edit to a path outside SCOPE_GLOBS is denied before it
+    runs — default-deny, not an after-the-fact grading check. Update
+    SCOPE_GLOBS in the script when the task's declared scope changes.
 
 Safety note: exit code 2 = blocking deny. An unhandled exception that exits 1
 accidentally permits the denied action. Wrap deny logic in try/catch or set -e.
