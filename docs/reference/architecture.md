@@ -44,15 +44,17 @@ When a harness row becomes native, `/claude-warp-sync` marks it `superseded`,
 logs a migration note in `HARNESS_SYNC_LOG.md`, and adds a deprecation notice
 to the affected skill.
 
-**Boundary last verified against Claude Code v2.1.196 (2026-06-30).** `/claude-warp-sync` read every
-release in the window **v2.1.184 → v2.1.196** (full notes, not a keyword grep). No Harness row has
-become fully native; the window only reinforced already-native rows (skills, subagents/agents,
-worktree isolation, `/code-review`, scheduling). *External trigger* is the closest to parity — native
-cloud routines (`/schedule`, `CronCreate`, `RemoteTrigger`) and background agents (`claude --bg`,
-`claude agents`) now cover most scheduled-execution needs; ClaudeWarp keeps the crontab + headless
-`claude -p` runner only for **daemon-free, OS-level** scheduling, and flags it for review as the
-native surface absorbs it. This line is the source-repo record of the last-scanned version (the
-install equivalent is `claude_code.last_sync_version` in `harness-manifest.json`).
+**Boundary last verified against Claude Code v2.1.199 (2026-07-03).** `/claude-warp-sync` read every
+release in the window **v2.1.196 → v2.1.199** (full notes, not a keyword grep). No Harness row has
+become fully native; the window mainly deepened background-agent/subagent maturity (subagents now
+background by default, background agents auto-commit/push/open a draft PR from a worktree, agent
+notifications on completion/needs-input) — reinforcing the already-native *Scheduling runtime* and
+*Subagent fan-out* rows without closing *External trigger* (still no daemon-free, OS-level guard
+primitive). One item cuts the other way: v2.1.198 **removed** the native `/agents` wizard ("ask
+Claude to create or manage subagents, or edit `.claude/agents/` directly"), which if anything
+reinforces the case for keeping **Agent scaffolder** (`/claude-warp-new-agent`) as a Harness row
+rather than a candidate for supersession. This line is the source-repo record of the last-scanned
+version (the install equivalent is `claude_code.last_sync_version` in `harness-manifest.json`).
 
 **The two directions.** ClaudeWarp separates two kinds of thing, and they move in opposite directions:
 
