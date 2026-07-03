@@ -110,6 +110,39 @@ writes a loud `NOTIFY` line and exits non-zero so cron/launchd surfaces the fail
 distinguishes a recoverable API/network blip from a real failure without ever silently re-running work that
 already half-landed. Sourced from the ClaudeLoops `2.4.4` sync (§3.6, transient-failure handling).
 
+**Worktree isolation for L3 loops (v0.39.0).** An optional `--worktree` flag runs the session in a
+throwaway `git worktree` branched off `origin/<default-branch>` instead of the primary checkout, and
+retargets the safe-to-retry guard from "local HEAD unchanged" to "`origin/<default-branch>` has not
+advanced past the base SHA" — the worktree's local HEAD is disposable per attempt (reset to `origin`
+before every retry), but a completed `git push` outlives it, so that push is what a blind retry could
+double-apply. On success, if the primary checkout is on the default branch, it fast-forwards
+(`git pull --ff-only`, best-effort). Intended for `AUTONOMY_LEVEL` **L3** loops (writes to production
+paths or pushes unattended), keeping the cron/launchd run off the primary checkout's branch/dirty state.
+Sourced from the ClaudeLoops `2.5.0`–`2.6.0` sync (§3.6.1, the `fetch-loop-news`/`integrate-loop-news`
+worktree-isolated production shape).
+
+**Configurable reasoning effort (v0.39.0).** `run-headless.sh.tpl` exposes `{{EFFORT}}` (default `high`)
+instead of hardcoding it. A 90-run study found raising effort `high`→`xhigh` lifts first-try-perfect
+28%→89% for +9–29% cost, while a bolted-on testing tool added 42–68% cost with no reliability gain —
+reach for `xhigh` before an extra checker pass when a loop's failures are reasoning-driven. Sourced from
+the ClaudeLoops `2.6.0` sync (arXiv 2607.02436).
+
+**Two-stage search→integrate pipeline / "KB Tracker" pattern (v0.39.0).** For a loop whose work
+splits into a noisy retrieval stage and a sequential reasoning/write stage that should not share
+context, `claude-warp-new-loop` scaffolds **two** skills (`<slug>-search`, `<slug>-integrate`)
+instead of one, plus `run-two-stage.sh.tpl` — a worktree-isolated runner that invokes both `claude
+-p` sessions in sequence inside one throwaway worktree, handing off through a gitignored artifact
+that survives the per-attempt `git reset`/`clean` (no `-x`, so ignored paths are untouched).
+**Simplification vs. the source pattern:** both stages retry as one unit rather than
+independently — a cheap whole-pipeline retry depends on the search skill itself skipping
+re-search when the artifact is already fresh/complete, which is the search skill's job, not the
+runner's. Always `AUTONOMY_LEVEL` L3 (the integrate stage publishes unattended). Verified against
+4 scripted scenarios (full success + push, stage-A failure, stage-B failure with the artifact
+surviving retry, and a direct reset/clean-survival check) in a throwaway git remote with a
+stubbed `claude` binary. Sourced from the ClaudeLoops `2.6.0` sync (§3.6.1 / Loop Patterns
+Catalog — "Knowledge-Base Tracker Loop", the pattern documenting Claude-Loops' own
+`fetch-loop-news`/`integrate-loop-news` pipeline).
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---
@@ -260,7 +293,7 @@ Scaffolds a deterministic hook script and wires it into `.claude/settings.json`.
 Hooks run shell scripts at defined lifecycle points — they are hard gates, not
 LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 
-**Nine named patterns:**
+**Ten named patterns:**
 
 | Pattern | Event | Behaviour |
 |---|---|---|
@@ -273,6 +306,7 @@ LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
 | `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings (fail-closed: missing/unparseable verdict blocks). Separates *review* (produces the verdict) from *enforcement* (this hook) |
 | `kill-switch` | `PreToolUse` | Blocks all tool calls while an `AGENT_STOP` file exists — operator mid-run halt |
 | `steer` | `UserPromptSubmit` | Injects `STEER.md` once as context, then clears the file |
+| `intent-gate` (v0.39.0) | `PreToolUse` | Denies a `Write`/`Edit` whose target path matches none of the declared `SCOPE_GLOBS` — default-deny, mechanically enforcing a harness task's negative scope (`must_not_change`) *before* the write happens, rather than only detecting it after via `git diff` |
 
 **Files created:**
 

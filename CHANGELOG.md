@@ -7,6 +7,53 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-07-03
+
+### Added
+- **Two-stage search→integrate pipeline runner ("KB Tracker" pattern) for `claude-warp-new-loop`**.
+  New `run-two-stage.sh.tpl` runs a search stage and an integrate stage as two sequential `claude
+  -p` sessions inside one throwaway worktree, handing off through a gitignored artifact that
+  survives the per-attempt reset. `claude-warp-new-loop` now scaffolds this as two skills
+  (`<slug>-search`, `<slug>-integrate`) instead of one when the goal matches the shape, with a new
+  "KB Tracker" row in the Loop Patterns Catalog table. Simplified vs. the source pattern: retries
+  the whole pipeline as one unit rather than independently per stage. Verified against 4 scripted
+  scenarios (full success + push, stage-A failure, stage-B failure, artifact reset-survival) in a
+  throwaway git remote with a stubbed `claude` binary. Adapted from Claude-Loops' own
+  `fetch-loop-news`/`integrate-loop-news` production pipeline (§3.6.1, Claude-Loops 2.6.0).
+- **`intent-gate` hook pattern (10th pattern) for `claude-warp-new-hook`**. A `PreToolUse` hook
+  that denies a `Write`/`Edit` whose target path matches none of a declared `SCOPE_GLOBS`
+  allow-list — default-deny, not trust. Complements `new-harness`'s existing `must_not_change`
+  negative-scope check, which is **detective** (a `git diff` after the write already happened);
+  this hook is **preventive** (the write is blocked before it runs). `new-harness`'s
+  `must_not_change` docs now point to it for harnesses that want mechanical enforcement instead
+  of relying solely on the coding/QA agent's self-attestation. Verified against 5 scripted
+  input cases (in-scope Write, out-of-scope Write, Read on an out-of-scope path, a second
+  allow-glob, malformed JSON input). Sourced from the ClaudeLoops `2.4.7` sync (Runtime Policy
+  Gating — `blast_radius`/`intent_gate`, omnigent-ai/omnigent), adapted critically: the source
+  pattern is a general-purpose policy engine; this is scoped to file-write default-deny only,
+  matching the existing `evidence-gate`/`destructive-block` pattern shape rather than a new
+  policy subsystem.
+- **Worktree isolation + origin-advanced retry guard for `run-headless.sh.tpl`**. A new
+  `--worktree` flag runs the headless session in a throwaway `git worktree` branched off
+  `origin/<default-branch>` instead of the primary checkout, and retargets the safe-to-retry
+  guard from "local HEAD unchanged" to "`origin/<default-branch>` has not advanced past the
+  base SHA" — the worktree is reset to `origin` before every retry attempt (so a failed
+  attempt's leftover local commit never contaminates the next one), while a completed `git
+  push` outlives the disposable worktree and is what a blind retry could double-apply. On
+  success, the primary checkout fast-forwards if it's on the default branch (best-effort).
+  Intended for `AUTONOMY_LEVEL` L3 loops (writes to production paths or pushes unattended).
+  `claude-warp-new-loop` now tells the scaffolder to append `--worktree` to the generated
+  cron/launchd line for L3 loops. Verified against 6 scripted scenarios (success + push,
+  clean transient failure + retry, dirty/unpushed failure across two attempts, and a
+  push-then-fail race) in a throwaway git remote with a stubbed `claude` binary. Adapted from
+  Claude-Loops' own `fetch-loop-news`/`integrate-loop-news` production shape (§3.6.1,
+  Claude-Loops 2.5.0–2.6.0).
+- **Configurable reasoning effort in `run-headless.sh.tpl`**. `{{EFFORT}}` replaces the
+  hardcoded `--effort high`, with a doc note on when to raise it to `xhigh` instead of adding
+  a checker pass — a 90-run study found effort `high`→`xhigh` lifts first-try-perfect
+  28%→89% for +9–29% cost, while a bolted-on testing tool added 42–68% cost with no
+  reliability gain (arXiv 2607.02436, via Claude-Loops 2.6.0).
+
 ## [0.38.4] — 2026-07-01
 
 ### Added
