@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.41.3] — 2026-07-07
+
+### Changed
+- **README reconstructed around a marketing-oriented, evidence-first opening.** New strapline
+  ("Outlives the session. Answers with evidence."), a problem-led hook naming the two failure
+  modes of autonomous agents (they stop when you leave; they say "done" when it isn't), two proof
+  paragraphs grounded in the native-comparison work, a "From contractor to employee" section
+  walking the five things ClaudeWarp adds (job description / spending limit / manager who checks /
+  honest statuses / role designed to shrink), and a compact 4-row "What you get over native"
+  table linking to `docs/reference/comparison.md`. The duplicate "harness shrinks" Notes bullet
+  folded into the employee section. `docs/index.md`'s opening and `mkdocs.yml`'s site description
+  synced to the same framing. All claims kept factual: routing-to-native-first and the
+  self-pruning mechanism stay front and center.
+
 ## [0.41.2] — 2026-07-07
 
 ### Added

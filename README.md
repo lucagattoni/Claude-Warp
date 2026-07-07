@@ -5,7 +5,8 @@
 <h1 align="center">ClaudeWarp</h1>
 
 <p align="center">
-  <em>The loop harness for Claude Code. Scaffold, guard, and schedule autonomous tasks in any project.</em>
+  <em><b>Outlives the session. Answers with evidence.</b></em><br>
+  <em>The loop harness for Claude Code — scaffold, guard, and schedule autonomous tasks in any project.</em>
 </p>
 
 <p align="center">
@@ -17,14 +18,60 @@
   📖 <strong><a href="https://lucagattoni.github.io/Claude-Warp/">Read the docs</a></strong> — the same pages, as a searchable 3-column site.
 </p>
 
-ClaudeWarp installs the infrastructure layer Claude Code doesn't provide natively — loop scaffolding,
-scheduling guards, headless runners, readiness gates, and a self-pruning mechanism that retires
-components as Claude Code absorbs them. You describe *what you want and how to know it's done*; it
-scaffolds the right thing to run it — once, on a schedule, or as a large multi-stage job — and stops
-when it should.
+**Autonomous agents fail in two ways: they stop when you leave, and they say "done" when it**
+isn't.  
+** ClaudeWarp fixes both, on top of Claude Code.**
 
-It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code
-review, scheduling runtime — is referenced, not reimplemented.
+**Work that outlives the session.** Native `/goal` dies with the terminal, `/loop` expires after
+seven days, a dynamic workflow restarts from zero if the session exits. ClaudeWarp keeps state in
+git — goals, loops, and multi-stage task queues that survive a crash, a reboot, or a different
+machine picking up where the last one stopped — and runs them from plain cron: no open session,
+no daemon, no cloud required.
+
+**"Done" that comes with evidence.** Merge-gated work is graded by an independent checker — a
+different model at higher risk tiers. An unrun check is reported `not run`, never green. A
+blocking finding must reproduce before it blocks, and a lone green is labeled `uncorroborated`,
+not trusted. When the agent is unsure, it says `done_with_concerns` — a status, not a rounding-up.
+
+Every scaffold carries a hard budget and turn cap. And the harness is built to disappear:
+`/claude-warp-sync` reads every Claude Code release and retires each component the moment it
+ships natively.
+
+---
+
+## From contractor to employee
+
+Claude Code gives you a brilliant contractor — superb while engaged, gone when the session ends.
+ClaudeWarp is the paperwork that turns that contractor into staff:
+
+- **A job description.** [`/claude-warp-contract`](docs/concepts.md) turns "improve X" into a
+  verifiable spec — scope, trigger, budget, and a stopping condition that is a command, not a
+  vibe. An underspecified goal is stopped at the [G0–G3 gate](docs/goal-readiness.md) before it
+  burns a token.
+- **A spending limit.** Hard `$` and turn caps on every scaffold, and risk-scaled autonomy —
+  report-only until a loop has earned the right to write.
+- **A manager who checks the work.** Independent, skeptical review: cross-model checkers,
+  corroboration before a pass counts, and every verdict names what it did **not** verify.
+  → [the reviewer system](docs/reference/architecture.md#the-reviewer-system)
+- **Honest status reports.** `done_with_concerns` / `needs_context` / `blocked` instead of
+  rounding "unsure" up to done — plus a queryable cross-session ledger and retrospectives.
+- **A role designed to shrink.** [`/claude-warp-sync`](docs/reference/skills.md) retires whatever
+  Claude Code absorbs. The plumbing shrinks; the method deepens.
+  → [the two directions](docs/reference/architecture.md#native-vs-harness)
+
+## What you get over native
+
+| You want | Native Claude Code gets you | ClaudeWarp adds |
+|---|---|---|
+| Run until done | `/goal` — independent per-turn evaluator, but it dies with the session and has no cap of its own | durable `GOAL.md` state, the G0–G3 readiness gate, hard `$`/turn caps — and the runner still delegates to `/goal` |
+| Recur unattended | `/loop` — needs an open session, expires after 7 days | crontab/launchd triggers, duplicate-run guards, cross-run state with dedup |
+| Big multi-stage jobs | `/batch` / dynamic workflows — restart fresh if the session exits | git-recoverable task queue, dependency waves, mandatory QA gates on merge-gated work |
+| Trust the verdict | `/code-review` on a diff | cross-model checkers, reproduction-required corroboration, honest statuses, a release-readiness gate |
+
+→ Full skill-by-skill comparison: **[ClaudeWarp vs Native Claude Code](docs/reference/comparison.md)**
+
+ClaudeWarp is intentionally thin: every scaffolder routes to the native feature first — and says
+so and stops when native alone is enough.
 
 ---
 
@@ -112,8 +159,5 @@ loop engineering patterns, failure modes, and building blocks.
 - **One model, three shapes.** A *plan* is what you want done; *goal* / *loop* / *harness* are the
   shapes it can take (small / recurring / big). You don't pick by hand — `/claude-warp-contract` does.
   → [the full model](docs/concepts.md).
-- **The harness shrinks; the method deepens.** Native-replaceable plumbing is *meant* to retire as
-  Claude Code absorbs it, while the loop-engineering workflow skills are the durable value.
-  → [the two directions](docs/reference/architecture.md#native-vs-harness).
 - **Working on ClaudeWarp itself?** `scripts/dev.sh selfhost` symlinks the skills as live commands and
   `scripts/dev.sh verify` runs the deterministic CI checks. → [Developing](docs/reference/developing.md).

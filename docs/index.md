@@ -10,14 +10,19 @@ hide:
 
 # ClaudeWarp
 
-**The loop harness for Claude Code.** ClaudeWarp installs the infrastructure layer Claude Code
-doesn't provide natively — loop scaffolding, scheduling guards, headless runners, readiness gates,
-and a self-pruning mechanism that retires components as Claude Code absorbs them. You describe *what
-you want and how to know it's done*; it scaffolds the right thing to run it — once, on a schedule, or
-as a large multi-stage job — and stops when it should.
+***Outlives the session. Answers with evidence.***
+
+**Autonomous agents fail in two ways: they stop when you leave, and they say "done" when it
+isn't.** ClaudeWarp — the loop harness for Claude Code — fixes both. It keeps state in git so
+goals, loops, and multi-stage task queues survive crashes, reboots, and closed sessions, and runs
+them from plain cron with hard budget caps. And its verdicts come with evidence: independent
+cross-model checkers, corroborated passes, and honest statuses instead of a rounded-up "done".
+→ [What it adds over native Claude Code](reference/comparison.md)
 
 It is intentionally thin. Anything Claude Code already handles — subagents, worktrees, memory, code
-review, scheduling runtime — is referenced, not reimplemented.
+review, scheduling runtime — is referenced, not reimplemented; every scaffolder routes to the
+native feature first and stops when that's enough. And it's built to disappear:
+`/claude-warp-sync` retires each component the moment Claude Code ships it natively.
 
 <div class="grid cards" markdown>
 
