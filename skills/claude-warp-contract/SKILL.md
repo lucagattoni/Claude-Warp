@@ -42,6 +42,13 @@ are the **shapes** it can take. A *small* plan is a goal; a *big* plan with subp
 harness; a *recurring* plan is a loop. Size and recurrence pick the shape — they are not
 separate kinds of input.
 
+**Contract vs native plan mode.** If the request is a one-off change the user will *watch and
+steer interactively* — no unattended execution, no recurrence, no need for a machine-readable
+spec another run can consume — native plan mode (`/plan`) already covers it: research, a
+reviewed plan, and approval into execution. Say so and stop instead of negotiating a contract.
+A contract earns its ceremony when the plan must run **without the user**: risk class, budgets,
+`stop.check`, and the `--contract` handoff exist so a headless scaffold can act on it.
+
 Do not classify on recurrence alone: a large non-recurring plan is a **harness**, not a goal.
 If genuinely unclear between goal and harness, ask: *"Is this one focused change with a single
 done-condition, or several interdependent pieces that each need their own work?"*

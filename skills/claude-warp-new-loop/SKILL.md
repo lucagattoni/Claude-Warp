@@ -5,6 +5,16 @@ description: Scaffold a new loop from a one-line goal — creates SKILL.md, guar
 
 Scaffold a new Claude Code loop for the goal: `$ARGUMENTS`
 
+**Route to native `/loop` first when it fits.** Claude Code's
+[`/loop`](https://code.claude.com/docs/en/scheduled-tasks) already runs a prompt on a fixed or
+self-paced interval inside an open session — and `.claude/loop.md` defines a project's default
+maintenance prompt for a bare `/loop`. If the need is quick in-session polling or PR-babysitting
+(session stays open or is backgrounded, ≤ 7 days — native tasks expire after that, no cross-run
+state or guard needed), tell the user to run native `/loop` and stop — no scaffold. Scaffold a
+ClaudeWarp loop when the work must run **unattended without any session** (crontab/launchd/CI),
+survive indefinitely, carry a duplicate-run **guard** and **cross-run state file**, or gate at
+L2/L3 (checker agent, budget caps, worktree isolation).
+
 ## Phase 0 — Contract input (optional)
 
 If `$ARGUMENTS` contains `--contract <file>`, read that `loop-contract.yaml`
