@@ -83,6 +83,23 @@ Also note releases that merely **reinforce** an already-native row (more agent/w
 code-review/scheduling maturity) — these don't supersede anything but belong in the report so the
 boundary stays honestly dated.
 
+**Delegation/routing boundaries (v0.40.0–v0.41.0).** These aren't Harness-status components to
+prune — they're routing decisions inside still-active skills, resting on a specific native
+limitation. A release that closes the limitation doesn't retire the skill, but does need the
+routing note updated. Check each against the window the same way:
+
+| Boundary | Rests on… | Would need updating if a release adds… |
+|---|---|---|
+| `new-goal`'s `/goal` delegation | `/goal` needs Claude Code ≥ v2.1.139 + hooks enabled | `/goal` working below that version, or a hooks-free mode |
+| `new-harness` routing to `/batch`/workflows | workflows restart fresh on session exit; no dependency-wave schema | cross-session-durable workflow state, or a native wave/`depends_on` primitive |
+| `new-loop` routing to `/autofix-pr` | GitHub-only, requires cloud access + `gh` | a non-GitHub remote, or an offline/local equivalent |
+| `new-hook` routing to prompt-based Stop hooks | `type: "prompt"` hooks can't guarantee exact/zero-cost matching | a native deterministic hook variant for pattern-matching (no LLM call) |
+| External-trigger routing to Desktop scheduled tasks | Desktop-app only, not CLI | CLI-native local unattended scheduling with no open session |
+| Contract's Channels mention | research preview, MCP-plugin setup weight | Channels moving to GA with lighter setup |
+
+Record a hit as a note in the sync report (not an auto-cut — these are prose in SKILL.md/docs, not
+`components[]` entries) and, if a boundary closed, edit the relevant skill/doc in the same commit.
+
 A component is **superseded** only when a release in the window provides a genuine native equivalent.
 Record the exact version that introduced it as `native_since`. A close-but-not-equal case (e.g.
 native scheduling that still needs the daemon, where the harness runs daemon-free) is **not** an

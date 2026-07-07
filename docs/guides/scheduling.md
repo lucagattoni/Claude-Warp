@@ -34,9 +34,18 @@ Routines support three trigger types:
 
 Permission prompts during a Routine run are routed to your main session asynchronously rather than blocking execution.
 
+## Desktop scheduled tasks — local, no session, Desktop app only
+
+If you run [Claude Code Desktop](https://code.claude.com/docs/en/desktop-scheduled-tasks), its
+**Routines** page schedules a **local** task that fires without any open session, keeps 1-minute
+granularity, runs against your real files, and persists across app restarts (with a catch-up run
+for anything missed in the last 7 days). This covers the same "unattended, local filesystem"
+need as crontab/launchd below, with a UI instead of an editable script — but only when the
+Desktop app (not the bare CLI) is how you run Claude Code.
+
 ## Local scheduling (crontab / launchd)
 
-Use this when you need sub-hourly intervals, access to the local filesystem at runtime, or are self-hosted.
+Use this when you're CLI-only/headless (no Desktop app), need sub-hourly intervals, or are self-hosted.
 
 **crontab:**
 ```bash

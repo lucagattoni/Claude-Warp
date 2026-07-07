@@ -311,7 +311,7 @@ reasoning-blind neutralises author-bias, not a shared model-family blind spot (t
 | Load-bearing claim verified, not assumed? *(red-team)* | Unproven assumption gates the merge | "Which claim the contract leans on was assumed from memory, not checked against the repo? Verify it against the source, or move it to the `Unverified` set." |
 | Independent verifier (R2+)? | Reviewer bias | "The loop can't grade its own work for merge-gated changes." |
 | Escalation gate defined (R3+)? | Dark factory | "No human checkpoint on a prod-adjacent loop. Add a Surface condition." |
-| TRIGGER has work to do? | Polling loop | "Cron every 5 min with usually nothing to do burns tokens — event trigger?" |
+| TRIGGER has work to do? | Polling loop | "Cron every 5 min with usually nothing to do burns tokens — event trigger? GitHub Actions `on:` events or a webhook-fed issue/PR comment are the common event triggers; native [Channels](https://code.claude.com/docs/en/channels) (research preview) can push a CI/webhook event into an *already-open* session if one exists — heavier to set up (an MCP channel plugin + allowlist) but worth it for a loop that's mostly idle." |
 | Type B work routed to human? | Verifier theater | "This decision is a judgment call — it must Surface, not auto-resolve." |
 | REPORT only on delta? | Notification fatigue | "Reporting every run trains the team to ignore it. Notify on change only." |
 | Attempt cap on failure? | Infinite fix loop | "No cap means it retries forever. Cap at N then handoff." |

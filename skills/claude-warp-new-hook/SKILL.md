@@ -22,7 +22,17 @@ Hooks run deterministic shell scripts at defined lifecycle points — they are
 not LLM judgments. Use them when a loop needs hard guarantees, not best-effort
 behaviour. Phase 3b (Verify) uses LLM reasoning; a Stop hook uses exit codes.
 
-## Phase 1 — Identify hook pattern
+**Route to a native prompt-based Stop hook first when `verify-before-stop`'s check is
+judgment, not a command.** Claude Code's `type: "prompt"` hook (what `/goal` itself is
+built on) sends the condition and the transcript to a small model — no shell script to
+write, no wiring into `settings.json` by hand. Use it when there is no real
+`CHECK_CMD`, only "is this actually done". Scaffold the script-based hook below when
+there **is** a real command (a deterministic exit code is strictly stronger than a
+model's yes/no) or the pattern needs exact, zero-cost matching a prompt call would make
+probabilistic and slower — `destructive-block` and `intent-gate` deny by literal
+command/path-glob match, `audit-log`/`security-scan` must run on every event with no
+LLM round-trip, and `review-gate` must read a persisted verdict file and fail closed on
+anything unparseable, which a model call cannot guarantee.
 
 Parse `$ARGUMENTS` and determine which named pattern applies:
 

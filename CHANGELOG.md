@@ -7,6 +7,46 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.41.0] — 2026-07-07
+
+Second alignment pass — sweeps the rest of the native command surface (`/batch`, dynamic
+workflows, `/autofix-pr`, prompt-based hooks, Desktop scheduled tasks, Channels, bare `/loop`'s
+maintenance prompt) for overlap with ClaudeWarp components, following the same pattern as
+v0.40.0's `/plan`/`/goal`/`/loop` pass.
+
+### Changed
+- **`claude-warp-new-harness` routes to native `/batch` / dynamic workflows first** when the
+  decomposition is independent units and one session is enough. Documents the load-bearing
+  reason the harness isn't superseded: a dynamic workflow's state lives in the runtime and
+  restarts fresh if the session exits mid-run, while `features.json` + git-based recovery are
+  durable specifically because they're a file a fresh agent re-reads.
+- **`claude-warp-new-loop`'s pattern catalog routes two patterns away**: PR Babysitter → native
+  `/autofix-pr` on a GitHub PR with cloud access; CI Sweeper / Post-Merge Cleanup → a bare native
+  `/loop` (or `.claude/loop.md`) when no unattended cron is needed. (Also fixed a stale "seven
+  named loop patterns" count — the catalog has carried nine rows since Bug Fix Loop/KB Tracker
+  were added.)
+- **`claude-warp-new-hook` routes `verify-before-stop` to a native prompt-based Stop hook first**
+  when the check is judgment rather than a real command — `type: "prompt"` (what `/goal` itself
+  is built on) needs no script or `settings.json` wiring. The scaffolded script-based hook remains
+  the answer whenever a real command exists or the pattern needs exact, zero-cost matching
+  (`destructive-block`, `intent-gate`, `audit-log`, `security-scan`, `review-gate`).
+- **`claude-warp-contract`'s "TRIGGER has work to do?" fix prompt** now names concrete event
+  triggers (GitHub Actions `on:` events, webhook-fed comments) plus native Channels (research
+  preview) for pushing an event into an already-open session.
+- **External-trigger manifest note** now also credits Desktop scheduled tasks (local, no open
+  session, 1-minute granularity) alongside cloud Routines as a native alternative — scoped to the
+  Desktop app; crontab/launchd remain for CLI-only/headless setups.
+
+### Added
+- **Native-vs-harness table**: four new **Native** rows (`/batch` independent-unit fan-out,
+  dynamic workflows, Desktop scheduled tasks, Channels).
+- **Scheduling guide**: new Desktop scheduled tasks section ahead of crontab/launchd.
+- **`claude-warp-sync` gains a delegation/routing-boundary watchlist** — six routing decisions
+  from this pass and v0.40.0 (each resting on a specific native limitation: `/goal`'s CC-version
+  floor, workflows' no-cross-session-durability, `/autofix-pr`'s GitHub-only scope, prompt hooks'
+  no-exact-matching guarantee, Desktop tasks' Desktop-app-only scope, Channels' research-preview
+  weight) are now checked against every future scan window, not just the six `components[]` rows.
+
 ## [0.40.0] — 2026-07-07
 
 Alignment pass against the four existing planning/execution commands — native `/plan`, native

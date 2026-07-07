@@ -33,13 +33,17 @@ is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 | Scheduling runtime | `/loop`, `/schedule`, `CronCreate`, `claude --bg` / `claude agents`, `RemoteTrigger` | **Native** |
 | Until-condition goal runtime | `/goal` — per-turn Stop-hook evaluator on an independent small model | **Native** (v2.1.139) |
 | Interactive planning | `/plan` (plan mode), Ultraplan | **Native** |
+| Independent-unit fan-out with PRs | `/batch` — decompose, approve, one worktree+PR per unit | **Native** |
+| Large-scale scripted orchestration | Dynamic workflows (`ultracode`, `/workflows`) | **Native** (v2.1.154) |
+| Local unattended scheduling (Desktop) | Desktop scheduled tasks | **Native** |
+| Event-pushed-into-session triggers | Channels (research preview) | **Native** |
 | Memory / context | `CLAUDE.md`, `/memory` | **Native** |
 | Code review | `/code-review`, `/simplify` | **Native** |
 | **Scheduling guards** | `scripts/guard-<name>.sh` | **Harness** |
-| **External trigger** | `scripts/run-<name>.sh` + crontab snippet | **Harness** |
+| **External trigger** | `scripts/run-<name>.sh` + crontab snippet | **Harness** — CLI-only/headless; Desktop tasks and Channels above cover it when either applies |
 | **Cross-run structured state** | `<NAME>_LOG.md` + dedup logic | **Harness** |
 | **Changelog monitor / self-pruner** | `/claude-warp-sync` | **Harness** |
-| **Loop scaffolder** | `/claude-warp-new-loop`, `/claude-warp-new-harness` | **Harness** |
+| **Loop scaffolder** | `/claude-warp-new-loop`, `/claude-warp-new-harness` | **Harness** — routes to `/loop`/`/batch`/workflows first when native fits |
 | **Agent scaffolder** | `/claude-warp-new-agent` | **Harness** |
 
 When a harness row becomes native, `/claude-warp-sync` marks it `superseded`,
@@ -49,9 +53,18 @@ to the affected skill.
 The native rows are not just "not reimplemented" — the harness **delegates into them** where it
 can. The goal runner scaffolded by `/claude-warp-new-goal` drives its until-done loop with native
 `/goal` (independent per-turn evaluation for free) instead of a self-judged prompt; the scaffolders
-route users to native `/loop` (in-session recurring, ≤ 7 days) and `/plan` (interactive supervised
-change) outright when no harness value — guards, cross-run state, budgets, readiness gates,
-daemon-free triggers — is needed on top.
+route users to native `/loop` (in-session recurring, ≤ 7 days), `/plan` (interactive supervised
+change), `/batch` (independent-unit fan-out with a PR per unit), and dynamic workflows (scripted
+orchestration up to 1,000 agents) outright when no harness value — guards, cross-run state,
+budgets, readiness gates, daemon-free triggers — is needed on top.
+
+**Why `/claude-warp-new-harness` isn't superseded by dynamic workflows.** They look similar —
+both fan work across many agents — but a workflow's state lives in the runtime process: "if you
+exit Claude Code while a workflow is running, the next session starts the workflow fresh"
+([docs](https://code.claude.com/docs/en/workflows)). The harness's `features.json` + git-based
+recovery is durable specifically *because* it's a file on disk a fresh agent re-reads — a crash,
+a reboot, or a different machine picking up the queue all resume from it. That is the harness's
+reason to exist even as `/batch` and workflows absorb more of the in-session fan-out case.
 
 **Boundary last verified against Claude Code v2.1.199 (2026-07-03).** `/claude-warp-sync` read every
 release in the window **v2.1.196 → v2.1.199** (full notes, not a keyword grep). No Harness row has
