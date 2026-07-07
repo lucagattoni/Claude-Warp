@@ -7,6 +7,26 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.41.1] — 2026-07-07
+
+Documentation alignment audit — a read-only sweep of the entire doc tree found two gaps and one
+stale line beyond what `scripts/dev.sh verify`'s automated coherence checks cover; all three fixed.
+
+### Fixed
+- **`docs/reference/templates.md` was missing 2 of 13 templates** — added rows for
+  `constitution.md.tpl` (used by `claude-warp-setup`) and `honesty-rules.md.tpl` (used by
+  `claude-warp-new-harness`).
+- **`templates/honesty-rules.md.tpl` was orphaned** — nothing read it; the four epistemic-honesty
+  rules were hand-duplicated inline in `claude-warp-new-harness`'s session-init template instead,
+  a driftable second copy of the same rules. Wired the template in: Phase 4 now instructs the
+  scaffolding agent to read and insert the template's body verbatim (filling `{{RISK}}`, added to
+  the template for this) rather than retyping the rules from memory.
+- **Stale provenance framing** — `docs/reference/architecture.md`'s "Boundary last verified
+  against Claude Code v2.1.199" line tracks only `/claude-warp-sync`'s own scan cadence, but the
+  same native-vs-harness table was substantively extended by v0.40.0/v0.41.0's manual doc research
+  (not a sync run). Added a note distinguishing the two so the line isn't misread as stale —
+  the version/date themselves are correct and unchanged; a real sync run is still what advances them.
+
 ## [0.41.0] — 2026-07-07
 
 Second alignment pass — sweeps the rest of the native command surface (`/batch`, dynamic
