@@ -78,6 +78,14 @@ reinforces the case for keeping **Agent scaffolder** (`/claude-warp-new-agent`) 
 rather than a candidate for supersession. This line is the source-repo record of the last-scanned
 version (the install equivalent is `claude_code.last_sync_version` in `harness-manifest.json`).
 
+**This line tracks `/claude-warp-sync`'s own scan cadence only** — it does not move just because
+the table's content changed. v0.40.0/v0.41.0 (2026-07-07) added the `/goal`, `/plan`, `/batch`,
+dynamic-workflows, Desktop-scheduled-tasks, and Channels rows above from direct research against
+live Claude Code docs, not from a `/claude-warp-sync` run — so the boundary line above still
+correctly reads v2.1.199, and the next actual sync run is what will advance it (see
+`claude-warp-sync`'s new delegation/routing-boundary watchlist, which now also re-checks the six
+routing decisions those two releases introduced).
+
 **The two directions.** ClaudeWarp separates two kinds of thing, and they move in opposite directions:
 
 - **Native-replaceable components** (skill distribution, scheduling guards, cross-run state) are

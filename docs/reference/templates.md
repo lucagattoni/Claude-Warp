@@ -14,8 +14,10 @@ file into your project.
 | `run-two-stage.sh.tpl` | `claude-warp-new-loop` | Two-session pipeline runner (KB Tracker shape): a search stage and an integrate stage run sequentially in one throwaway worktree with an artifact handoff |
 | `trigger.crontab.tpl` | `claude-warp-new-loop` | Reference cron entry (not installed — paste into `crontab -e`) |
 | `harness-manifest.json.tpl` | `claude-warp-setup` | Version + components registry |
+| `constitution.md.tpl` | `claude-warp-setup` | Optional project MUST/SHOULD principles the contract's critical pass gates against |
 | `VISION.md.tpl` | `claude-warp-new-harness` | Anchor file: high-level goal and success criteria |
 | `AGENTS.md.tpl` | `claude-warp-new-harness` | Anchor file: agent roles and handoff protocol |
 | `PROMPT.md.tpl` | `claude-warp-new-harness` | Anchor file: current work unit; edit to re-task the loop |
+| `honesty-rules.md.tpl` | `claude-warp-new-harness` | Single source for the four epistemic-honesty rules, inserted verbatim into the generated session-init file |
 
 For how these files behave once running, see [Architecture → Loop anatomy](architecture.md#loop-anatomy).
