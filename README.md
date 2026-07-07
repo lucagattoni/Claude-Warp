@@ -18,24 +18,26 @@
   📖 <strong><a href="https://lucagattoni.github.io/Claude-Warp/">Read the docs</a></strong> — the same pages, as a searchable 3-column site.
 </p>
 
-**Autonomous agents fail in two ways: they stop when you leave, and they say "done" when it**
-isn't.  
-** ClaudeWarp fixes both, on top of Claude Code.**
+**Autonomous agents fail in two ways: they stop when you leave, and they say "done" when it isn't.**  
+**ClaudeWarp fixes both, on top of Claude Code.**
 
-**Work that outlives the session.** Native `/goal` dies with the terminal, `/loop` expires after
-seven days, a dynamic workflow restarts from zero if the session exits. ClaudeWarp keeps state in
+**Work that outlives the session.**  
+Native `/goal` dies with the terminal, `/loop` expires after
+seven days, a dynamic workflow restarts from zero if the session exits.  
+ClaudeWarp keeps state in
 git — goals, loops, and multi-stage task queues that survive a crash, a reboot, or a different
 machine picking up where the last one stopped — and runs them from plain cron: no open session,
 no daemon, no cloud required.
 
-**"Done" that comes with evidence.** Merge-gated work is graded by an independent checker — a
+**"Done" that comes with evidence.**  
+Merge-gated work is graded by an independent checker — a
 different model at higher risk tiers. An unrun check is reported `not run`, never green. A
 blocking finding must reproduce before it blocks, and a lone green is labeled `uncorroborated`,
 not trusted. When the agent is unsure, it says `done_with_concerns` — a status, not a rounding-up.
 
-Every scaffold carries a hard budget and turn cap. And the harness is built to disappear:
-`/claude-warp-sync` reads every Claude Code release and retires each component the moment it
-ships natively.
+Every scaffold carries a hard budget and turn cap.  
+And the harness is built to disappear: `/claude-warp-sync` reads every Claude Code release and
+retires each component the moment it ships natively.
 
 ---
 
