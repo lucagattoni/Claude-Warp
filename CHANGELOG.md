@@ -41,6 +41,11 @@ v0.40.0's `/plan`/`/goal`/`/loop` pass.
 - **Native-vs-harness table**: four new **Native** rows (`/batch` independent-unit fan-out,
   dynamic workflows, Desktop scheduled tasks, Channels).
 - **Scheduling guide**: new Desktop scheduled tasks section ahead of crontab/launchd.
+- **`claude-warp-sync` gains a delegation/routing-boundary watchlist** — six routing decisions
+  from this pass and v0.40.0 (each resting on a specific native limitation: `/goal`'s CC-version
+  floor, workflows' no-cross-session-durability, `/autofix-pr`'s GitHub-only scope, prompt hooks'
+  no-exact-matching guarantee, Desktop tasks' Desktop-app-only scope, Channels' research-preview
+  weight) are now checked against every future scan window, not just the six `components[]` rows.
 
 ## [0.40.0] — 2026-07-07
 
