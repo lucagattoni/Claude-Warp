@@ -39,8 +39,20 @@ the parameters are fixed — and go straight to Phase 2 (Create files). Otherwis
 ## Phase 1 — Match against known patterns
 
 Before deriving parameters from scratch, check whether the goal matches one of
-the seven named loop patterns from the Loop Patterns Catalog. If it matches,
+the nine named loop patterns from the Loop Patterns Catalog. If it matches,
 use the pattern's pre-defined parameters as defaults (the user can override).
+
+**Two patterns below are now partially covered by a native command — check first.**
+For **PR Babysitter**, if the target is a GitHub PR and cloud access is available,
+native [`/autofix-pr`](https://code.claude.com/docs/en/claude-code-on-the-web#auto-fix-pull-requests) spawns
+a Claude Code on the web session that watches the branch's PR and pushes fixes on CI
+failure or review comments — no cron, no local guard script. Scaffold the loop instead
+for a non-GitHub remote, no cloud access, or when the L2 budget/guard/state discipline
+below matters. For **CI Sweeper** and **Post-Merge Cleanup**, if the work only needs to
+happen while a session is open or backgrounded (no unattended cron), a bare native
+`/loop` already runs a built-in maintenance prompt that tends the current branch's PR
+and runs cleanup passes — or point the project's `.claude/loop.md` at the same
+instructions. Scaffold when the loop must run **with no session at all**.
 
 | Pattern | Matches when goal involves… | Schedule | MAX_BUDGET | Safety rule |
 |---|---|---|---|---|

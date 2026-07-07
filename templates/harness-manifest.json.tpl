@@ -32,7 +32,7 @@
       "description": "crontab/launchd snippet to wake claude when daemon is not running",
       "native_since": null,
       "status": "active",
-      "note": "Cloud alternative: Claude Code Routines (/schedule) run on Anthropic infrastructure with no local machine required. crontab/launchd remain the right choice for local or self-hosted setups."
+      "note": "Cloud alternative: Claude Code Routines (/schedule) run on Anthropic infrastructure with no local machine required. Desktop-app alternative: Desktop scheduled tasks run locally with no open session and 1-minute granularity, but require the Desktop app (not the CLI). crontab/launchd remain the right choice for headless/CLI-only local or self-hosted setups."
     },
     {
       "name": "cross-run-state",

@@ -97,6 +97,12 @@ at native [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) (or a proje
 and stops. A ClaudeWarp loop is for work that runs unattended with **no session at all**:
 crontab/launchd/CI trigger, duplicate-run guard, cross-run state file, L2/L3 gating.
 
+Two catalog patterns get the same routing-away treatment: **PR Babysitter** on a GitHub PR with
+cloud access → native `/autofix-pr` already watches the branch's PR and pushes fixes on CI
+failure or review comments; **CI Sweeper** / **Post-Merge Cleanup** with no need for unattended
+cron → a bare native `/loop` (or `.claude/loop.md`) already runs the built-in PR-tending and
+cleanup maintenance prompt in-session.
+
 **Derives from the goal:**
 - `SKILL_SLUG`, `SKILL_NAME`, `SKILL_DESCRIPTION`
 - `STATE_FILE` — append-only tracking file
@@ -167,6 +173,14 @@ Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 Scaffolds a two-part harness for goals too large for a single loop. Based on
 Anthropic Engineering's ["Effective Harnesses for Long-Running Agents"](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
+
+**Routes to native `/batch` or a dynamic workflow first** when the decomposition is
+independent units and one session is enough — `/batch` already does research → decompose
+→ approve → one worktree+PR per unit; a dynamic workflow (`ultracode`) generalises this to
+1,000 agents with scripted dependencies. The harness earns its scaffold when the work needs
+**cross-session durability**: a workflow's state lives in the runtime and restarts fresh if
+the session exits mid-run, while `features.json` + git-based recovery survive a crash, a
+reboot, or a different machine resuming the queue.
 
 **Two roles:**
 - **Initializer agent** — reads the goal and scope; produces a bounded JSON task list; runs once
@@ -308,6 +322,15 @@ Install path: `skills/claude-warp-new-agent/SKILL.md`
 Scaffolds a deterministic hook script and wires it into `.claude/settings.json`.
 Hooks run shell scripts at defined lifecycle points — they are hard gates, not
 LLM judgments. Use when a loop needs a guarantee (not best-effort behaviour).
+
+**Routes to a native prompt-based Stop hook first** for `verify-before-stop` when the
+check is judgment rather than a real command — Claude Code's `type: "prompt"` hook (what
+`/goal` itself is built on) sends the condition to a small model with no script or
+`settings.json` wiring required. The scaffolded script-based hook remains the answer
+whenever a real command exists (a deterministic exit code beats a model's yes/no) or the
+pattern needs exact, zero-cost matching — `destructive-block`/`intent-gate`'s literal
+command/path-glob denial, `audit-log`/`security-scan`'s no-LLM-round-trip requirement, and
+`review-gate`'s fail-closed read of a persisted verdict file.
 
 **Ten named patterns:**
 

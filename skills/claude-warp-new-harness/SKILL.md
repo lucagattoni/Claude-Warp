@@ -9,6 +9,24 @@ Use this skill when a goal is too large or multi-stage for a single loop — it 
 a planner that breaks it down and a worker that executes unit by unit, resuming
 safely after any crash.
 
+**Route to native `/batch` or a dynamic workflow first when the decomposition is
+independent units, one session is enough, and no re-entry is needed.** `/batch` already
+researches the codebase, decomposes into 5–30 independent units, and — once approved —
+spawns one background subagent per unit in its own git worktree, each running tests and
+opening a PR. A dynamic workflow (`ultracode`, or "use a workflow") generalises the same
+idea up to 1,000 agents with dependency-aware JavaScript orchestration, live progress via
+`/workflows`, and pause/resume. Say so and stop when the work fits either shape.
+
+Scaffold a ClaudeWarp harness instead when the work needs what neither gives:
+**cross-session durability** (a workflow's state lives in the runtime and "starts fresh"
+if you exit Claude Code mid-run; `features.json` + git-based recovery survive a crash,
+a reboot, or a different machine picking up the queue), **dependency waves** between
+units (a `/batch` unit must be independent; workflow scripts can express dependencies
+but you write that logic yourself, the harness's wave/`depends_on` schema is built in),
+a **mandatory QA evaluator with corroboration** gating each unit before commit, or a
+**headless cron re-entry point** (`scripts/run-<slug>.sh --retry`) for work that runs
+unattended across many days.
+
 ## Phase 1 — Understand the goal
 
 Parse `$ARGUMENTS` as a plain-English goal.
