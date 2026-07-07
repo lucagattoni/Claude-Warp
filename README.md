@@ -33,7 +33,7 @@ review, scheduling runtime — is referenced, not reimplemented.
 | | Start here |
 |---|---|
 | 🐣 **New to this?** | **[Quick start](docs/quickstart.md)** — run your first autonomous task in 10 minutes, zero prior knowledge assumed. Then [Concepts](docs/concepts.md) for the "why". |
-| 🚀 **Claude Code veteran?** | Skip the intro → **[Skills reference](docs/reference/skills.md)** (all 15, in depth) · [Architecture](docs/reference/architecture.md) · [Developing](docs/reference/developing.md). The function table below is your map. |
+| 🚀 **Claude Code veteran?** | Skip the intro → **[vs native Claude Code](docs/reference/comparison.md)** (what this actually adds) · [Skills reference](docs/reference/skills.md) (all 15, in depth) · [Architecture](docs/reference/architecture.md) · [Developing](docs/reference/developing.md). The function table below is your map. |
 
 ---
 
@@ -96,7 +96,7 @@ rest you can also invoke directly.
 | [docs/install.md](docs/install.md) | Prerequisites, install command, verification, update, uninstall |
 | [docs/goal-readiness.md](docs/goal-readiness.md) | G0–G3 readiness scale — how to specify goals so agents know when they're done |
 | **How-to guides** | [scaffolding](docs/guides/scaffolding.md) · [scheduling](docs/guides/scheduling.md) · [deployment posture](docs/guides/deployment.md) · [monitoring](docs/guides/monitoring.md) · [iterating](docs/guides/iterating.md) |
-| **Reference** (🚀) | [skills](docs/reference/skills.md) · [templates](docs/reference/templates.md) · [architecture](docs/reference/architecture.md) · [developing](docs/reference/developing.md) |
+| **Reference** (🚀) | [vs native Claude Code](docs/reference/comparison.md) · [skills](docs/reference/skills.md) · [templates](docs/reference/templates.md) · [architecture](docs/reference/architecture.md) · [developing](docs/reference/developing.md) |
 
 ---
 

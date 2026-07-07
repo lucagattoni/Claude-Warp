@@ -103,10 +103,11 @@ nav:
       - 2.4 Monitoring: guides/monitoring.md
       - 2.5 Iterating: guides/iterating.md
   - 3. Reference:
-      - 3.1 Skills: reference/skills.md
-      - 3.2 Templates: reference/templates.md
-      - 3.3 Architecture: reference/architecture.md
-      - 3.4 Developing: reference/developing.md
+      - 3.1 ClaudeWarp vs Native: reference/comparison.md
+      - 3.2 Skills: reference/skills.md
+      - 3.3 Templates: reference/templates.md
+      - 3.4 Architecture: reference/architecture.md
+      - 3.5 Developing: reference/developing.md
 
 extra:
   social:

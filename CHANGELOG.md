@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.41.2] — 2026-07-07
+
+### Added
+- **New doc: `docs/reference/comparison.md`** — a side-by-side, per-skill comparison of every
+  ClaudeWarp skill against its closest native Claude Code feature, stating specifically what
+  ClaudeWarp adds on top (durability, unattended headless operation, hard caps, self-pruning) and
+  what it deliberately routes away to when native alone is enough. Wired into `mkdocs.yml` nav
+  (3.1), README's veteran-path line and Docs table, `docs/index.md`'s veteran card, and
+  `docs/concepts.md`'s closing pointers.
+
 ## [0.41.1] — 2026-07-07
 
 Documentation alignment audit — a read-only sweep of the entire doc tree found two gaps and one
