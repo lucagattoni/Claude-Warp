@@ -112,6 +112,8 @@ One door (`/claude-warp-contract`), one concept (a **plan**), three shapes it ca
 
 - Ready to specify safely? See [Goal Readiness — G0–G3](goal-readiness.md) for the scale the
   contract gates on.
+- Wondering what this adds over plain Claude Code? See [Reference — vs Native Claude
+  Code](reference/comparison.md) for the skill-by-skill side-by-side.
 - Want the per-skill reference and architecture? See the [Reference — Skills](reference/skills.md)
   and [Reference — Architecture](reference/architecture.md).
 - Just want to run something? Start with the [Quick start](quickstart.md), or the

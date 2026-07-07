@@ -38,6 +38,7 @@ review, scheduling runtime — is referenced, not reimplemented.
     Skip the intro. Function overview, deep reference, and the harness architecture.
 
     [:octicons-arrow-right-24: Skills reference](reference/skills.md) ·
+    [vs Native Claude Code](reference/comparison.md) ·
     [Architecture](reference/architecture.md)
 
 -   :package:{ .lg .middle } __Install__
