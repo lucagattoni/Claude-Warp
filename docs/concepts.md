@@ -47,6 +47,16 @@ The size and recurrence of the plan **pick the shape** — they are not separate
 
 You do not choose the shape by hand — `/claude-warp-contract` classifies it for you (below).
 
+**Each shape rides a native Claude Code primitive; the scaffold is what wraps it.** The goal
+shape's until-done runtime is native [`/goal`](https://code.claude.com/docs/en/goal) (an
+independent evaluator judges the done-condition after every turn) — `GOAL.md`, the G0–G3 gate,
+and hard budget caps are what ClaudeWarp adds around it. A recurring need that lives inside an
+open session is native [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) — the ClaudeWarp
+loop adds the guard, cross-run state, and daemon-free trigger that let it run with **no** session.
+And a one-off change you'll supervise interactively is native `/plan` (plan mode) — the contract
+below is for plans that must execute *without* you. When the native primitive alone covers the
+need, the skills say so and stop rather than scaffolding.
+
 ---
 
 ## `/claude-warp-contract` — the single entry point

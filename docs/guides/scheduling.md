@@ -1,10 +1,24 @@
 # Guide — Scheduling a loop
 
-Once a loop runs cleanly by hand (see [Choosing & running a scaffold](scaffolding.md)), schedule it
-to run unattended. Pick **cloud-hosted** when you can; fall back to **local** scheduling when you need
-sub-hourly intervals or local-filesystem access at runtime.
+Once a loop runs cleanly by hand (see [Choosing & running a scaffold](scaffolding.md)), schedule it.
+Three tiers, from lightest to most durable: **session-scoped** (`/loop`) while you have a session
+open, **cloud-hosted** (Routines) for unattended runs with no machine, **local** (crontab/launchd)
+for unattended runs that need your filesystem or sub-hourly intervals.
 
-## Cloud-hosted (Routines) — preferred when available
+## Session-scoped (`/loop`) — while a session is open
+
+Claude Code's native [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) re-runs a prompt —
+or a skill, e.g. `/loop 30m /<your-loop-slug>` — on a fixed interval, or self-paced when you omit
+the interval. A bare `/loop` runs a built-in maintenance prompt, which a project can replace with
+its own `.claude/loop.md`.
+
+Use it to *develop and shake down* a scaffolded loop before scheduling it durably, or for polling
+that only matters while you're working anyway. Its bounds are the reason the durable tiers below
+exist: tasks are session-scoped (they fire only while the session is open or
+[backgrounded](https://code.claude.com/docs/en/agent-view)), and recurring tasks expire after
+**7 days**. No guard script or cross-run state is involved — the session's own context is the state.
+
+## Cloud-hosted (Routines) — preferred for unattended runs
 
 Claude Code Routines run on Anthropic infrastructure — no local machine, no daemon required. Set up with the built-in `/schedule` command:
 

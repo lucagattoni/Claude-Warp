@@ -71,6 +71,13 @@ G3 goals are designed to make both failure modes structurally harder. The verifi
 - G1/G2 → proceeds but writes a `⚠ Warning` block at the top of `GOAL.md` listing what is missing
 - G3 → proceeds cleanly
 
+Its runner then executes the goal through Claude Code's native
+[`/goal`](https://code.claude.com/docs/en/goal), whose independent per-turn evaluator is a direct
+counter to **hallucinated completion** (below): a fresh small model, not the working agent, judges
+the done-condition after every turn. The evaluator only reads the transcript, though — the
+programmatic verifier this scale insists on is still what puts checkable evidence *into* that
+transcript.
+
 **`/claude-warp-contract`** — interactive contract negotiation. Drafts a complete, risk-classified Loop Contract (or Goal), then critically reviews it against known failure patterns and a readiness gate (LCR for loops, G0–G3 for goals) before handing off to a scaffolder. Run this first when a goal is vague or high-risk. Produces `loop-contract.yaml` + anchor files as the handoff artifact.
 
 **`/claude-warp-new-loop` (L1/L2/L3)** — the loop autonomy level is derived from the same axes: does Phase 3 write files (scope), does Phase 3b have a programmatic verifier (verifier), does it touch production paths (scope + blast radius). L3 loops require G3-equivalent specification.

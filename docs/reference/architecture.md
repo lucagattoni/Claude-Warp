@@ -31,6 +31,8 @@ is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 | Subagent fan-out | `Agent` tool, `TaskCreate` | **Native** |
 | Worktree isolation | `EnterWorktree`, `isolation: "worktree"` | **Native** |
 | Scheduling runtime | `/loop`, `/schedule`, `CronCreate`, `claude --bg` / `claude agents`, `RemoteTrigger` | **Native** |
+| Until-condition goal runtime | `/goal` — per-turn Stop-hook evaluator on an independent small model | **Native** (v2.1.139) |
+| Interactive planning | `/plan` (plan mode), Ultraplan | **Native** |
 | Memory / context | `CLAUDE.md`, `/memory` | **Native** |
 | Code review | `/code-review`, `/simplify` | **Native** |
 | **Scheduling guards** | `scripts/guard-<name>.sh` | **Harness** |
@@ -43,6 +45,13 @@ is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 When a harness row becomes native, `/claude-warp-sync` marks it `superseded`,
 logs a migration note in `HARNESS_SYNC_LOG.md`, and adds a deprecation notice
 to the affected skill.
+
+The native rows are not just "not reimplemented" — the harness **delegates into them** where it
+can. The goal runner scaffolded by `/claude-warp-new-goal` drives its until-done loop with native
+`/goal` (independent per-turn evaluation for free) instead of a self-judged prompt; the scaffolders
+route users to native `/loop` (in-session recurring, ≤ 7 days) and `/plan` (interactive supervised
+change) outright when no harness value — guards, cross-run state, budgets, readiness gates,
+daemon-free triggers — is needed on top.
 
 **Boundary last verified against Claude Code v2.1.199 (2026-07-03).** `/claude-warp-sync` read every
 release in the window **v2.1.196 → v2.1.199** (full notes, not a keyword grep). No Harness row has

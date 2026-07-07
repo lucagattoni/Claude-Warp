@@ -29,7 +29,9 @@ Install path: `skills/claude-warp-setup/SKILL.md`
 `/claude-warp-new` router and `spec-refine`. Phase 1–10:
 
 1. **Branch (classify the shape)** — single-shot `goal` / `loop` / `harness` from recurrence +
-   stage count + scope size (the router, folded in); resume an existing draft if present
+   stage count + scope size (the router, folded in); resume an existing draft if present. Routes
+   *away* first when no contract is needed: a one-off change the user will supervise
+   interactively is native `/plan` (plan mode) — a contract is for plans that execute unattended
 2. **Draft-first** — a complete best-guess contract, persisted to `contract.draft.yaml`
 3. **Risk classify** R0–R5 (§5.1) → sets interview rigor
 4. **Interview** — dynamic, depth scales with risk *and* shape (a goal in ≤3 Qs, a harness more)
@@ -66,12 +68,20 @@ stops when a verifiable criterion is met. ("Loops discover work. Goals finish it
 across four axes (objective clarity, verifier independence, state file, budget).
 G0 stops with an explanation; G1–G2 proceed with warnings in GOAL.md.
 
+**Rides native `/goal` (v0.40.0).** The generated runner drives its until-done loop with Claude
+Code's [`/goal`](https://code.claude.com/docs/en/goal) (v2.1.139+): after every turn an
+independent small-model evaluator judges the done-condition, so completion is not self-graded by
+the working agent. The scaffold adds what `/goal` alone lacks — the GOAL.md state file, the G0–G3
+gate before anything runs, hard `--max-turns`/`--max-budget-usd` caps, and guardrails. When the
+user is present and none of that is needed, the skill says "just use `/goal`" and stops. A legacy
+self-judged prompt variant is generated on Claude Code < 2.1.139 or when hooks are disabled.
+
 **Files created:**
 
 | File | Purpose |
 |---|---|
 | `<slug>-GOAL.md` | State file: Objective, Done conditions, Guardrails, Execution log |
-| `scripts/run-<slug>.sh` | Run-once script — re-invokable; GOAL.md tracks progress across context resets |
+| `scripts/run-<slug>.sh` | Run-once script — delegates until-done to native `/goal`; re-invokable; GOAL.md tracks progress across context resets |
 
 Install path: `skills/claude-warp-new-goal/SKILL.md`
 
@@ -80,6 +90,12 @@ Install path: `skills/claude-warp-new-goal/SKILL.md`
 ### `/claude-warp-new-loop "goal"`
 
 Scaffolds a complete **recurring** single-agent loop from a one-line goal description.
+
+**Routes to native `/loop` first.** For quick in-session polling — session open or backgrounded,
+≤ 7 days (native scheduled tasks expire), no guard or cross-run state — the skill points the user
+at native [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) (or a project `.claude/loop.md`)
+and stops. A ClaudeWarp loop is for work that runs unattended with **no session at all**:
+crontab/launchd/CI trigger, duplicate-run guard, cross-run state file, L2/L3 gating.
 
 **Derives from the goal:**
 - `SKILL_SLUG`, `SKILL_NAME`, `SKILL_DESCRIPTION`

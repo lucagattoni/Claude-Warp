@@ -7,6 +7,52 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.40.0] — 2026-07-07
+
+Alignment pass against the four existing planning/execution commands — native `/plan`, native
+`/goal`, native `/loop`, and the user-level `/refine-plan` — deciding for each whether a
+ClaudeWarp component is superseded, should delegate into the native primitive, or should route
+away to it.
+
+### Changed
+- **`claude-warp-new-goal` runner now delegates its until-done loop to native `/goal`**
+  ([docs](https://code.claude.com/docs/en/goal), Claude Code v2.1.139+). The scaffolded
+  `scripts/run-<slug>.sh` invokes `claude -p "/goal <condition>"` instead of a self-judged
+  plain prompt, so an **independent small-model evaluator** — not the working agent — judges
+  the done-condition after every turn (a structural counter to hallucinated completion, and
+  turn-level support for the G-scale's *verifier independence* axis). CLI `--max-turns` /
+  `--max-budget-usd` caps remain the hard outer bound. A legacy self-judged variant is
+  generated when Claude Code < 2.1.139 or hooks are disabled. The skill also routes away
+  entirely — "just use `/goal`" — when the user is present and no GOAL.md state, readiness
+  gate, budget caps, or cron/CI runner are needed.
+- **`claude-warp-new-loop` routes to native `/loop` first.** New routing note: quick in-session
+  polling (session open or backgrounded, ≤ 7-day native task expiry, no guard/cross-run state)
+  belongs to native `/loop` / `.claude/loop.md` — a ClaudeWarp loop is scaffolded only for
+  unattended, session-less scheduling (crontab/launchd/CI, duplicate-run guard, cross-run state,
+  L2/L3 gating).
+- **`claude-warp-contract` routes to native `/plan` first.** New Phase 1 note: a one-off change
+  the user will supervise interactively is native plan mode's job; a contract earns its ceremony
+  only when the plan must execute unattended (risk class, budgets, `stop.check`, `--contract`
+  handoff).
+
+### Added
+- **Native-vs-harness table**: two new **Native** rows — *Until-condition goal runtime* (`/goal`,
+  v2.1.139) and *Interactive planning* (`/plan` plan mode, Ultraplan) — plus a paragraph on
+  delegating into native rows ([architecture](docs/reference/architecture.md#native-vs-harness)).
+- **Scheduling guide**: new *Session-scoped (`/loop`)* tier documented ahead of Routines and
+  crontab/launchd, including `.claude/loop.md`, the 7-day expiry, and backgrounded sessions
+  ([guide](docs/guides/scheduling.md)).
+- **Concepts**: "each shape rides a native primitive" — the goal/loop/plan ↔ `/goal`/`/loop`/`/plan`
+  mapping and what the scaffold adds on top ([concepts](docs/concepts.md)).
+
+### Decided (no change needed)
+- **`/refine-plan` is not native Claude Code** — it is a user-level skill (`~/.claude/skills/`);
+  no ClaudeWarp component overlaps it as an artifact (the contract's Phase 6 critical pass reviews
+  contracts, not plan documents). Nothing superseded.
+- **`claude-warp-new-loop` is not superseded by native `/loop`** — session-scoped vs. daemon-free
+  unattended scheduling remain disjoint; the boundary was already correct in the native-vs-harness
+  table and is now documented user-facing.
+
 ## [0.39.0] — 2026-07-03
 
 ### Added
