@@ -163,3 +163,9 @@ loop engineering patterns, failure modes, and building blocks.
   → [the full model](docs/concepts.md).
 - **Working on ClaudeWarp itself?** `scripts/dev.sh selfhost` symlinks the skills as live commands and
   `scripts/dev.sh verify` runs the deterministic CI checks. → [Developing](docs/reference/developing.md).
+
+---
+
+## License
+
+[MIT](LICENSE)
