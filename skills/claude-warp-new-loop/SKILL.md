@@ -171,12 +171,18 @@ read `templates/run-headless.sh.tpl` and fill:
 If the goal processes **many independent items in parallel** (batch migrations,
 multi-file ops, fan-out analyses):
 read `templates/run-fanout.sh.tpl` instead and fill:
-- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{ALLOWED_TOOLS}}`, `{{DISALLOWED_TOOLS}}`
+  (no `{{MAX_BUDGET_USD}}`: a background session takes no `--max-budget-usd` — the runner pins
+  `--model`/`--effort` and stops stragglers at its deadline instead)
 - `{{TASK_LIST_COMMAND}}` — command that outputs one item per line (e.g. `find src -name "*.py"`)
 - `{{TASK_PROMPT_PREFIX}}` — prompt prefix passed to each agent (e.g. `"Migrate this file to async/await:"`)
 
-The fan-out runner uses `claude --bg --worktree` — each item runs in a background
-agent with an isolated git worktree; no concurrency cap or manual PID management needed.
+The fan-out runner launches one native background session per item (`claude --bg --worktree
+'<task>'`) in an isolated git worktree; no manual worktree or PID management. It polls
+`claude agents --json --all` until every session exits, stops a `blocked` session (waiting on
+a prompt nobody can answer) and any straggler at the deadline, and reports **done = the
+session exited** — the per-item verdict is whatever the loop's skill recorded in the state
+file or on the worker's branch, never inferred by the runner.
 
 If the goal is the **KB Tracker** shape — a noisy **retrieval** stage (external search,
 bulky, parallel-friendly) feeding a sequential **reasoning/write** stage (integrate,

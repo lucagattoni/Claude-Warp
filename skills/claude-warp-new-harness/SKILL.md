@@ -487,8 +487,12 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails. Auto-enabled and
 #                   non-overridable at risk R2+ (mandatory qualify; constitution P2).
-# --parallel-waves  Run tasks within each wave concurrently using claude --bg --worktree;
-#                   tasks in different waves still run sequentially (dependency order).
+# --parallel-waves  EXPERIMENTAL. Run tasks within each wave concurrently as native background
+#                   sessions (claude --bg --worktree); tasks in different waves still run
+#                   sequentially (dependency order). Workers commit on their own worktree
+#                   branches and are NOT merged back or reconciled into features.json by this
+#                   runner, and a background session takes no --max-budget-usd — see the note
+#                   in run_coding_loop before using it.
 # --converge        After all waves complete, run /claude-warp-converge once to reconcile the
 #                   actual tree against intent; if it appends a convergence wave, run ONE more
 #                   coding loop to close it, then stop (no re-converge). Default OFF.
@@ -588,37 +592,67 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] Wave $wave: $wave_pending tasks..." >> "$LOG"
 
     if [ "$PARALLEL_WAVES" -eq 1 ] && [ "$wave_pending" -gt 1 ]; then
-      # Launch wave tasks in parallel via --bg --worktree
+      # Launch wave tasks in parallel as native background sessions: `claude --bg --worktree '<task>'`.
+      # EXPERIMENTAL — read before relying on it (verified against Claude Code v2.1.261):
+      #   - `--bg` rejects `-p` (since v2.1.198); the task is the positional, placed FIRST so a
+      #     variadic flag cannot swallow it and `--worktree [name]` cannot take it as a name.
+      #   - `--max-budget-usd` only works with `--print`: a background worker has NO dollar cap. Its
+      #     ceilings are --max-turns and the explicit --model/--effort below (omit those and it
+      #     inherits your interactive defaults).
+      #   - Each worker commits on ITS OWN worktree branch (background sessions commit+push,
+      #     v2.1.221) and edits ITS OWN copy of $FEATURES. This runner does not merge those branches
+      #     or reconcile task statuses back into the primary $FEATURES — after the wave, merge the
+      #     worker branches and update statuses by hand, or run without --parallel-waves.
+      #   - A worker that goes `blocked` (waiting on a prompt nobody can answer) is stopped and
+      #     surfaced, never waited on.
       TASK_IDS=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
 ids=[str(t['id']) for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]
 print(' '.join(ids))" 2>/dev/null || echo "")
 
+      WORKER_MODEL="${CLAUDEWARP_WORKER_MODEL:-claude-sonnet-5}"
       AGENT_IDS=()
       for tid in $TASK_IDS; do
-        agent_id=$(claude \
-          --permission-mode auto \
-          --max-turns <MAX_TURNS_WORKER> \
-          --max-budget-usd <MAX_BUDGET_USD> \
+        launch_out=$(claude --bg "Read <HARNESS_SLUG>-session-init.md, then execute task id=$tid in $FEATURES" \
+          --worktree \
+          --model "$WORKER_MODEL" \
           --effort high \
-          --allowedTools "Read,Edit,Bash,Glob,Grep" \
-          --bg --worktree \
-          -p "Read <HARNESS_SLUG>-session-init.md, then execute task id=$tid in $FEATURES" \
-          2>/dev/null | grep -o 'agent:[^ ]*' | head -1 || echo "")
-        [ -n "$agent_id" ] && AGENT_IDS+=("$agent_id")
+          --max-turns <MAX_TURNS_WORKER> \
+          --permission-mode auto \
+          --disallowedTools "$HARNESS_DENY" \
+          --allowedTools "Read,Edit,Bash,Glob,Grep" 2>&1) || true
+        # `claude --bg` prints `backgrounded · <8-hex id>`; matched without the `·` glyph (C-locale cron).
+        agent_id=$(printf '%s\n' "$launch_out" | grep -oE 'backgrounded[^0-9a-f]*[0-9a-f]{8}' | grep -oE '[0-9a-f]{8}$' | head -1 || true)
+        if [ -n "$agent_id" ]; then
+          AGENT_IDS+=("$agent_id")
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] wave $wave task $tid → background session $agent_id" >> "$LOG"
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: wave $wave task $tid failed to launch: $launch_out" >> "$LOG"
+        fi
       done
 
-      # Poll until all wave agents finish
-      for agent_id in "${AGENT_IDS[@]}"; do
-        while claude agents --json 2>/dev/null | python3 -c "
+      # Poll `claude agents --json --all` (without --all a finished session vanishes from the list)
+      # until every wave session has exited; stop a blocked one and surface what it waited on.
+      # ${arr[@]+...} keeps an empty AGENT_IDS safe under `set -u` on bash 3.2.
+      for agent_id in ${AGENT_IDS[@]+"${AGENT_IDS[@]}"}; do
+        while : ; do
+          row=$(claude agents --json --all 2>/dev/null | python3 -c "
 import json,sys
 agents=json.load(sys.stdin)
-a=next((a for a in agents if a.get('id')=='$agent_id'),None)
-sys.exit(0 if a and a.get('status') in ('running','pending') else 1)" 2>/dev/null; do
-          sleep 10
+a=next((x for x in agents if x.get('id')=='$agent_id'),None)
+print('missing\t' if a is None else '%s\t%s' % (a.get('state') or a.get('status') or 'unknown', a.get('waitingFor') or ''))" 2>/dev/null || printf 'missing\t\n')
+          case "${row%%	*}" in
+            done|missing) break ;;
+            blocked)
+              claude stop "$agent_id" >/dev/null 2>&1 || true
+              echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: background session $agent_id blocked (waiting on: ${row#*	}) — stopped; its task stays pending." >> "$LOG"
+              break ;;
+            *) sleep 10 ;;
+          esac
         done
       done
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] wave $wave background sessions exited — merge their worktree branches and reconcile $FEATURES before the next wave (see the --parallel-waves note above)." >> "$LOG"
     else
       # Sequential fallback (wave has 1 task, or --parallel-waves not set)
       while [ "$iter" -lt "$max_iter" ]; do

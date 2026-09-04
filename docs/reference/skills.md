@@ -120,7 +120,7 @@ cleanup maintenance prompt in-session.
 |---|---|
 | `.claude/skills/<slug>/SKILL.md` | Loop procedure with phases: guard → state → work → verify → write → stop |
 | `scripts/guard-<slug>.sh` | Prevents double-runs (once per day / weekdays only) |
-| `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, uses `claude --bg --worktree`) based on goal shape |
+| `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, one `claude --bg --worktree` session per item) based on goal shape |
 | `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
@@ -181,6 +181,20 @@ sync (docs/09 Headless Mode — "a skill can't tell interactive from headless in
 Claude Code v2.1.200 → v2.1.261 changelog scan. See [Deployment → Fail-closed by
 construction](../guides/deployment.md#fail-closed-by-construction).
 
+**Fan-out runner rebuilt against the current CLI (v0.42.0).** `run-fanout.sh.tpl` combined
+`--bg` with `-p`, which Claude Code has rejected up front since v2.1.198 (before that the pair
+silently created an unattachable session), grepped for a full UUID where `claude --bg` prints
+`backgrounded · <8-hex id>`, and polled `claude agents --json` without `--all` on a status
+vocabulary the CLI never emits — so no worker could launch, and had one launched, its finishing
+would have been counted as a failure. Rebuilt and scripted-tested against a stub emitting the real
+v2.1.261 shapes: positional task first, short-id capture, `--all` polling on `state`
+(`working | blocked | done`), a `blocked` session (waiting on a prompt nobody can answer) is
+stopped and surfaced, stragglers are stopped at the deadline instead of left billing, and "done" is
+reported as *session exited* — never as a pass. Because `--max-budget-usd` and
+`--permission-prompts` are print-only, the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`,
+default `claude-sonnet-5`) and `--effort` — a background session otherwise inherits your
+interactive defaults — and documents that the deadline is the cost ceiling.
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---
@@ -212,7 +226,7 @@ reboot, or a different machine resuming the queue.
 | `VISION.md` | High-level goal and success criteria (anchor file) |
 | `AGENTS.md` | Role definitions and handoff protocol (anchor file) |
 | `PROMPT.md` | Current work unit — edit to re-task without changing rules (anchor file) |
-| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall |
+| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall; `--parallel-waves` (experimental) runs a wave's tasks as native background sessions — workers land on their own worktree branches and are not merged back or reconciled into `features.json` by the runner |
 
 **Decomposition approval gate.** Between the initializer and the coding loop, the runner can pause for the operator to review the proposed task breakdown before any budget is spent executing it. It is **required at R2+** (the same threshold that makes QA non-overridable) and **opt-in below** via `--approve-plan`. When the gate fires, the runner prints the breakdown (wave / id / title / `depends_on`) and **stops with exit 0** — no coding work runs — until you re-run with `--plan-approved` (or `CLAUDEWARP_PLAN_APPROVED=1`). Because `features.json` persists, the approved re-run skips the initializer and proceeds straight to execution. The gate is non-interactive by design, so a scheduled/unattended harness never executes an unreviewed decomposition. (It fires on the initial decomposition only, not on a `--retry` re-init, which is an explicit autonomous stall-recovery mode you've already opted into.)
 

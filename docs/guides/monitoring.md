@@ -10,8 +10,10 @@ Background agents and fan-out runners surface sessions through the Claude Code a
 # Interactive dashboard — shows all running and completed sessions
 claude agents
 
-# Machine-readable — useful for scripting
-claude agents --json | jq '.[].status'
+# Machine-readable — useful for scripting. --all includes finished sessions (without it a
+# finished session simply disappears). state: working | blocked | done; waitingFor says
+# what a blocked session is waiting on.
+claude agents --json --all | jq '.[] | {id, state, waitingFor}'
 
 # Tail output from a specific session
 claude logs <session-id>

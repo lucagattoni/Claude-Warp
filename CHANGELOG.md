@@ -36,6 +36,29 @@ the installed `claude` v2.1.261, not only the changelog.
   repo-resident settings can no longer grant `auto`/`bypassPermissions` — the runners pass
   `--permission-mode` on the command line for exactly this reason.
 
+### Fixed
+- **`run-fanout.sh.tpl` could not launch a single worker on any Claude Code since v2.1.198.** It
+  combined `--bg` with `-p`, which the CLI rejects up front (before v2.1.198 the pair silently
+  created an unattachable session); it then grepped the output for a full UUID where `claude --bg`
+  prints `backgrounded · <8-hex id>`, polled `claude agents --json` without `--all` (a finished
+  session simply vanishes from that list, which the runner counted as a failure), and matched a
+  `status` vocabulary (`completed|success|running…`) the CLI never emits — `state` is
+  `working | blocked | done`. Rebuilt and scripted-tested against a stub emitting the installed
+  v2.1.261's real shapes: positional task first (so a variadic `--allowedTools` cannot swallow it and
+  `--worktree [name]` cannot take it as a name), short-id capture without relying on the `·` glyph,
+  `--all` polling on `state`, a `blocked` session (waiting on a prompt nobody can answer) is stopped
+  and surfaced with its `waitingFor`, stragglers are stopped at the deadline instead of left
+  billing, and "done" is reported as *session exited* — never as a pass. Since `--max-budget-usd`
+  and `--permission-prompts` are print-only, the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`,
+  default `claude-sonnet-5`) and `--effort` — a one-word test background session otherwise
+  inherited the interactive default and ran Opus 5 at xhigh for $0.24 — and states that the
+  deadline is the cost ceiling. `new-loop` no longer fills `{{MAX_BUDGET_USD}}` into it.
+- **`new-harness --parallel-waves` had the same launch and poll defects** (`--bg -p`, an `agent:`
+  id grep, `status in ('running','pending')`) plus an unguarded `"${AGENT_IDS[@]}"` that aborts an
+  empty wave under `set -u` on bash 3.2. Fixed the same way and labelled **experimental** in the
+  usage header, because workers commit on their own worktree branches and the runner does not merge
+  them back or reconcile `features.json` — a limitation that was implied before and is now stated.
+
 ## [0.41.3] — 2026-07-07
 
 ### Changed
