@@ -96,6 +96,20 @@ routing note updated. Check each against the window the same way:
 | `new-hook` routing to prompt-based Stop hooks | `type: "prompt"` hooks can't guarantee exact/zero-cost matching | a native deterministic hook variant for pattern-matching (no LLM call) |
 | External-trigger routing to Desktop scheduled tasks | Desktop-app only, not CLI | CLI-native local unattended scheduling with no open session |
 | Contract's Channels mention | research preview, MCP-plugin setup weight | Channels moving to GA with lighter setup |
+| `new-harness` staying over agent teams (v0.42.0) | teams are experimental, interactive-only (`-p` spawns plain subagents), in-process teammates not restored by `/resume` | a headless or resumable team mode |
+| External trigger staying over `claude self-hosted-runner` (v0.42.0) | needs Team/Enterprise, a runner daemon, and the cloud scheduler | a runner on Pro/Max, or a CLI-native local scheduler with no open session |
+| Fan-out runner on native `--bg` with no dollar cap (v0.42.0) | `--max-budget-usd` / `--permission-prompts` only work with `--print` | either flag binding a `--bg` session, or a per-session budget on `claude agents` |
+| Native table's `TaskCreate` note (v0.42.0) | task-tracking tools off on Sonnet 5 / Opus 5 / Fable since v2.1.233 | the tools returning by default |
+| Runners' `--permission-prompts none` probe (v0.42.0) | flag exists from v2.1.259 with `host|none` | a renamed/removed flag, or a changed default — re-check the probe string `--permission-prompts` in `claude --help` |
+
+**Verify CLI facts against the installed binary, not only the changelog.** For every flag or
+command a ClaudeWarp template or runner emits, check it against `claude --help`; for the
+background-session contract also check `claude agents --json --all` and run one throwaway
+`claude --bg '<trivial task>'` (then `claude stop`/`claude rm` it). The v2.1.200 → v2.1.261 run
+found the fan-out runner had been unable to launch a worker since v2.1.198 (`--bg` rejects `-p`)
+— worded as a `Fixed` bullet, so the keyword checklist above did not catch it, and nothing in the
+changelog would have made anyone test it. A sync that only reads is a sync that can miss a
+scaffold being broken.
 
 Record a hit as a note in the sync report (not an auto-cut — these are prose in SKILL.md/docs, not
 `components[]` entries) and, if a boundary closed, edit the relevant skill/doc in the same commit.

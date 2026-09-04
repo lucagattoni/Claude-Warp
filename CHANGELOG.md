@@ -81,6 +81,22 @@ the installed `claude` v2.1.261, not only the changelog.
   Optional `experimental.cacheTtl` (v2.1.248) noted for long-lived agents. The harness's
   initializer/QA agent frontmatter and `claude-warp-inventory`'s known-model check moved to the same
   lineup (a retired ID still runs, but is now exactly the deprecation signal that check exists for).
+- **Native-vs-harness boundary advanced to Claude Code v2.1.261** (`architecture.md`): 53 releases
+  read, no Harness row superseded; reinforced rows recorded with versions; two judgment calls
+  recorded rather than cut — `claude self-hosted-runner` (v2.1.224, Team/Enterprise; daemon-based,
+  cloud-scheduled) against *External trigger*, and agent teams (experimental, interactive-only, not
+  restored on resume) against `new-harness`. New native row for agent teams; the Scheduling-runtime
+  row notes `/loop`'s self-paced mode on every provider (v2.1.248) and per-loop tokens in `/usage`
+  (v2.1.243); the "why `new-harness` isn't superseded" paragraph now states workflow resume
+  semantics accurately (completed agents replay on a same-session resume; nothing carries to another
+  machine) instead of "restarts fresh". `comparison.md` rows updated the same way (`/goal` survives
+  `--resume` v2.1.239 and self-clears on unrecoverable errors v2.1.234; `/loop`'s instruments; the
+  self-hosted runner as a fourth native trigger option).
+- **`claude-warp-sync` gains five watchlist rows and a "verify against the installed binary" step.**
+  The v2.1.200 → v2.1.261 run found the fan-out runner had been unable to launch a worker since
+  v2.1.198 — worded as a `Fixed` bullet the keyword checklist did not catch; the skill now requires
+  checking every flag a template emits against `claude --help`, and the background-session contract
+  against `claude agents --json --all` plus one throwaway `claude --bg` session.
 
 ### Fixed
 - **`run-fanout.sh.tpl` could not launch a single worker on any Claude Code since v2.1.198.** It
