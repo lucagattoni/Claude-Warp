@@ -47,10 +47,29 @@ Desktop app (not the bare CLI) is how you run Claude Code.
 
 Use this when you're CLI-only/headless (no Desktop app), need sub-hourly intervals, or are self-hosted.
 
+### PATH is the thing that breaks first
+
+Neither cron nor launchd reads your shell profile. Both run with a minimal `PATH` — often just
+`/usr/bin:/bin` — which does **not** include `~/.local/bin`, where the native installer puts
+`claude`. A loop that runs perfectly by hand then dies at its first `claude` call with exit 127,
+and the only evidence is a log file nobody is reading.
+
+Prove it before you trust the schedule, by running the loop the way the scheduler will:
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin scripts/run-<slug>.sh
+```
+
+The scaffolded runner prepends the usual install locations (`$HOME/.local/bin`,
+`/usr/local/bin`, `/opt/homebrew/bin`) and, if it still cannot find the binary, aborts with a
+`FATAL: claude not found on PATH` line instead of failing obscurely — so this command either
+runs the loop or tells you exactly what is wrong. Set `CLAUDE_BIN=/full/path/to/claude` if your
+install lives somewhere else.
+
 **crontab:**
 ```bash
 crontab -e
-# paste the contents of scripts/trigger-<slug>.crontab
+# paste the contents of scripts/trigger-<slug>.crontab — INCLUDING its PATH= line
 ```
 
 **launchd (macOS — more reliable than crontab):**
@@ -68,11 +87,19 @@ Create `~/Library/LaunchAgents/com.claudewarp.<slug>.plist`:
     <string>/bin/bash</string>
     <string>/path/to/project/scripts/run-<slug>.sh</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- launchd does not read your shell profile; without this, `claude` is not found. -->
+    <key>PATH</key>
+    <string>/Users/&lt;you&gt;/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>    <integer>9</integer>
     <key>Minute</key>  <integer>0</integer>
   </dict>
+  <key>StandardOutPath</key>   <string>/path/to/project/logs/launchd-&lt;slug&gt;.log</string>
+  <key>StandardErrorPath</key> <string>/path/to/project/logs/launchd-&lt;slug&gt;.log</string>
   <key>RunAtLoad</key> <false/>
 </dict>
 </plist>

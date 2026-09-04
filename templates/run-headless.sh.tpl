@@ -61,6 +61,39 @@ done
 mkdir -p logs
 LOG="logs/{{SKILL_SLUG}}-$(date '+%Y%m%d').log"
 
+# ── Preflight: resolve the `claude` binary ────────────────────────────────────
+# cron and launchd run with a minimal PATH (often just /usr/bin:/bin) that does NOT
+# include ~/.local/bin, where the native installer puts `claude`. Without this, a
+# scheduled run dies at its first invocation with 127 and the loop simply never runs —
+# a failure that only appears when you exercise the scaffold the way the scheduler
+# does, not when you run it by hand with your own shell. Set CLAUDE_BIN to override.
+[ -n "${CLAUDE_BIN:-}" ] && PATH="$(dirname "$CLAUDE_BIN"):$PATH"
+PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+export PATH
+if ! command -v claude >/dev/null 2>&1; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment." | tee -a "$LOG" >&2
+  exit 127
+fi
+
+# ── Preflight: resolve a wall-clock timeout command ───────────────────────────
+# `timeout` is GNU coreutils and is NOT present on stock macOS (Homebrew's coreutils
+# installs it as `gtimeout`). Every claude call below was wrapped in it, so on a stock
+# Mac the runner failed with exit 127 before ever reaching Claude — and the retry logic
+# then read that deterministic failure as a candidate transient one. Resolve it here
+# instead, and be honest when it is absent rather than claiming a cap we do not enforce.
+TIMEOUT_CMD=()
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(timeout "${MAX_MINUTES}m")
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(gtimeout "${MAX_MINUTES}m")
+elif [ "${CLAUDEWARP_REQUIRE_TIMEOUT:-0}" = "1" ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: neither \`timeout\` nor \`gtimeout\` found and CLAUDEWARP_REQUIRE_TIMEOUT=1 — refusing to run without the ${MAX_MINUTES}m wall-clock cap. Install it: brew install coreutils" | tee -a "$LOG" >&2
+  exit 127
+else
+  # NOT RUN != pass: say plainly that the cap is unenforced rather than implying it holds.
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: neither \`timeout\` nor \`gtimeout\` found — the ${MAX_MINUTES}m wall-clock cap is NOT enforced this run (stock macOS ships neither; \`brew install coreutils\` provides gtimeout). --max-turns and --max-budget-usd still bound the run. Set CLAUDEWARP_REQUIRE_TIMEOUT=1 to make this fatal instead (recommended for an L3 loop)." | tee -a "$LOG" >&2
+fi
+
 # `--permission-prompts none` exists from Claude Code v2.1.259; older CLIs reject unknown
 # flags, so probe once and pass it only when supported. The ${arr[@]+"${arr[@]}"} expansion
 # below is the bash-3.2-safe way to splice a possibly-empty array under `set -u`.
@@ -87,7 +120,7 @@ if [ "$WORKTREE" -eq 1 ]; then
 fi
 
 run_once() {
-  ( cd "$WORK_DIR" && timeout "${MAX_MINUTES}m" claude \
+  ( cd "$WORK_DIR" && ${TIMEOUT_CMD[@]+"${TIMEOUT_CMD[@]}"} claude \
     --permission-mode auto \
     ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns {{MAX_TURNS}} \

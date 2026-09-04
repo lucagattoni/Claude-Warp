@@ -240,7 +240,9 @@ Append-only run log. Updated by `/<SKILL_SLUG>` each run.
 **2e. Trigger snippet** — `scripts/trigger-<SKILL_SLUG>.crontab`
 
 Read `templates/trigger.crontab.tpl` and fill:
-- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{CRON_SCHEDULE}}`, `{{REPO_ROOT}}`
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{CRON_SCHEDULE}}`, `{{REPO_ROOT}}`, `{{HOME}}`
+  (the absolute home directory — `echo $HOME`; cron does not expand `~` or read your profile,
+  and `claude` normally lives in `$HOME/.local/bin`)
 
 For an **L3** loop (writes to production paths or pushes unattended), append `--worktree`
 to the generated cron/launchd command line — it runs the session off the primary checkout

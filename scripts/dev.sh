@@ -60,7 +60,7 @@ note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
 
 check_source_integrity() {
-  echo "[1/8] Source integrity — every skill is well-formed"
+  echo "[1/9] Source integrity — every skill is well-formed"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -74,7 +74,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/8] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/9] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -84,7 +84,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/8] Copy contract — the documented loop lands every skill"
+  echo "[3/9] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -106,7 +106,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/8] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/9] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -134,7 +134,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/8] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/9] Docs coherence — every skill has a section in reference/skills.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
@@ -144,7 +144,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/8] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/9] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -171,7 +171,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/8] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/9] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
@@ -190,7 +190,7 @@ check_claim_count_coherence() {
 }
 
 check_plugin_version_coherence() {
-  echo "[8/8] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/9] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -227,6 +227,35 @@ verify_live() {
   rm -rf "$tmp"
 }
 
+check_scheduled_env_preflight() {
+  echo "[9/9] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
+  # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
+  # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
+  for t in run-headless run-two-stage run-fanout; do
+    local f="templates/$t.sh.tpl"
+    [ -f "$f" ] || { note_fail "$t: template missing"; continue; }
+    # Word-anchored: a bare substring grep also matches a mutated `claudeXX`, which is the
+    # naive-grep false negative scripts/verifier-lib.sh exists to prevent (caught by mutating
+    # this very check — the first version of it passed a template with the preflight removed).
+    grep -qE 'command -v claude([^A-Za-z0-9_-]|$)' "$f" \
+      || note_fail "$t: no \`claude\` preflight — a cron/launchd run would die with 127"
+    grep -qE 'CLAUDE_BIN([^A-Za-z0-9_]|$)' "$f" \
+      || note_fail "$t: no CLAUDE_BIN override for a non-standard install path"
+  done
+  for t in run-headless run-two-stage; do
+    local f="templates/$t.sh.tpl"
+    [ -f "$f" ] || continue
+    grep -qE 'gtimeout([^A-Za-z0-9_-]|$)' "$f" \
+      || note_fail "$t: wraps calls in \`timeout\` without a gtimeout fallback (absent on stock macOS)"
+    grep -qE 'timeout "\$\{MAX_MINUTES\}m" claude' "$f" \
+      && note_fail "$t: still calls \`timeout\` directly instead of the resolved TIMEOUT_CMD"
+  done
+  grep -q '^PATH=' templates/trigger.crontab.tpl \
+    || note_fail "trigger.crontab.tpl sets no PATH — cron cannot find \`claude\`"
+  [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude + timeout; crontab template sets PATH"
+}
+
 verify() {
   echo "ClaudeWarp verify — deterministic source + install-contract checks"
   echo
@@ -238,6 +267,7 @@ verify() {
   check_executable_selftests
   check_claim_count_coherence
   check_plugin_version_coherence
+  check_scheduled_env_preflight
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   if [ "$FAIL" -eq 0 ]; then
