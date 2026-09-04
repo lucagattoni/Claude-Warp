@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-09-04 20:53 UTC
+
 Sync against Claude Code **v2.1.200 → v2.1.261** (53 releases read in full, `Fixed` bullets
 grepped) and the Claude-Loops `2.6.0 → 3.0.0` delta (`c34d41e..4ed29ff`, 36 docs changed, five new).
 No harness row is superseded; several things ClaudeWarp *emits* or *claims* were stale against the
