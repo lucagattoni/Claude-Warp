@@ -377,7 +377,7 @@ command/path-glob denial, `audit-log`/`security-scan`'s no-LLM-round-trip requir
 | `subagent-chain` | `SubagentStop` | Triggers follow-on work when a background agent finishes |
 | `security-scan` | `PostToolUse` | Flags secrets / git-safety bypasses / broad destructive patterns to `logs/security-scan.log` (async) |
 | `evidence-gate` | `PreToolUse` | Blocks a `Write`/`Edit` to a state file when no prior `Read` of it was recorded |
-| `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings (fail-closed: missing/unparseable verdict blocks). Separates *review* (produces the verdict) from *enforcement* (this hook) |
+| `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings **and** its `coverage` is not `PARTIAL`/`VACUOUS` (v0.42.0: a review cut short, or one that reviewed nothing, is not an approval even under `APPROVE`). Fail-closed: missing/unparseable verdict blocks. Separates *review* (produces the verdict) from *enforcement* (this hook) |
 | `kill-switch` | `PreToolUse` | Blocks all tool calls while an `AGENT_STOP` file exists — operator mid-run halt |
 | `steer` | `UserPromptSubmit` | Injects `STEER.md` once as context, then clears the file |
 | `intent-gate` (v0.39.0) | `PreToolUse` | Denies a `Write`/`Edit` whose target path matches none of the declared `SCOPE_GLOBS` — default-deny, mechanically enforcing a harness task's negative scope (`must_not_change`) *before* the write happens, rather than only detecting it after via `git diff` |

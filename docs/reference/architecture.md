@@ -251,8 +251,21 @@ it and **blocks turn end** until it is `APPROVE` with zero open critical/major f
 ```json
 { "schema": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES | decision_needed",
+  "coverage": "CLEAN | FINDINGS | PARTIAL | VACUOUS",
   "findings": [ { "severity": "critical|major|minor|recommendation", "note": "<what>" } ] }
 ```
+
+**Coverage is a second axis (v0.42.0).** `verdict` is what the review concluded; `coverage` is
+whether anyone actually looked — `CLEAN`/`FINDINGS` ran to completion, `PARTIAL` was cut short (a
+turn or budget cap, a lens that died, a delegated reviewer whose output came back *marked partial*,
+which Claude Code does for a `maxTurns`-capped subagent since v2.1.246), `VACUOUS` reviewed nothing.
+The hook blocks `PARTIAL`/`VACUOUS` even under `APPROVE`, because a clean verdict from a review that
+did not look at everything is precisely the failure Claude-Loops' Pinakes case study documents: a
+14-agent pass lost five agents to a session limit and reported "8 raised, 4 confirmed" as clean, and
+the two findings whose refuters died were the two about runtime behaviour — one of them the only
+real defect ([Session Architecture](https://lucagattoni.github.io/Claude-Loops/37-session-architecture/)).
+The harness QA evaluator now ends every grading with a `coverage:` line and never returns `approved`
+from a `PARTIAL` grading.
 
 Two properties keep it honest rather than theatre. It **fails closed** — a missing or unparseable
 verdict blocks, because *no review* must count as *not approved* (P6 applied to the gate itself). And it

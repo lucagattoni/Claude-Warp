@@ -366,6 +366,13 @@ actually a deliberate human-gated decision is a Type-B hold (`needs_context`), s
   ratio." Criteria you ran with a real `cmd:` count; criteria you eyeballed do not lift confidence.
 - **"Unverified" set (R2+).** List every criterion reported `not run` as an explicit **Unverified**
   set in `qa_feedback`, so the harness sees the grading's blind spots, not only its PASS/FAIL calls.
+- **Coverage (all tiers).** End with a `coverage: CLEAN | FINDINGS | PARTIAL | VACUOUS` line. If
+  your grading was cut short — you hit your turn cap, a `cmd:` you needed could not run, or a
+  subagent you delegated to returned output *marked partial* (what Claude Code does for a
+  `maxTurns`-capped subagent since v2.1.246) — it is `PARTIAL`, and a `PARTIAL` grading never
+  yields `approved`: record exactly what was and was not examined in `qa_feedback`, leave the task
+  in its current status, and let the runner surface it. `VACUOUS` means you reviewed nothing (no
+  completed task found, or every check was `not run`) — say so; never round it up to a clean pass.
 
 For each criterion: PASS, FAIL, or NOT RUN with one sentence of evidence.
 If any criterion FAILs at **critical/major** severity: write a `qa_feedback` field on the task in

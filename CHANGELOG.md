@@ -35,6 +35,18 @@ the installed `claude` v2.1.261, not only the changelog.
   `blockReadsOutsideWorkingDirectories` (v2.1.257) for L3, and the v2.1.207/v2.1.257 rule that
   repo-resident settings can no longer grant `auto`/`bypassPermissions` — the runners pass
   `--permission-mode` on the command line for exactly this reason.
+- **`review-result.v1` gains a `coverage` axis; `review-gate` blocks `PARTIAL`/`VACUOUS` even
+  under `APPROVE`.** `verdict` says what a review concluded; `coverage` (`CLEAN | FINDINGS |
+  PARTIAL | VACUOUS`) says whether anyone actually looked. A review cut short (a turn/budget cap, a
+  lens that died, a delegated reviewer whose output came back *marked partial* — what Claude Code
+  does for a `maxTurns`-capped subagent since v2.1.246) or one that reviewed nothing cannot clear
+  the gate no matter what it says. Adapted from Claude-Loops' Pinakes case study (docs/37 Session
+  Architecture): a 14-agent review pass lost five agents to a session limit, reported "8 raised,
+  4 confirmed" as clean, and the two findings whose refuters died were the two about runtime
+  behaviour — one of them the only real defect. Verdicts without the field still pass (pre-field
+  compatibility); the harness QA evaluator now ends every grading with a `coverage:` line and never
+  returns `approved` from a `PARTIAL` grading. Exit-code tested on 8 cases (CLEAN / FINDINGS /
+  absent pass; PARTIAL / VACUOUS / REQUEST_CHANGES / open-major / no-file block).
 
 ### Changed
 - **Stale native references retired against the v2.1.200 → v2.1.261 window.** The
