@@ -61,7 +61,7 @@ ls .claude/agents/ 2>/dev/null || echo "none"
 
 For each `.md` file:
 1. Read `name:` and `model:` from frontmatter
-2. Check model is a known Claude model ID (claude-opus-4-8, claude-sonnet-4-6, claude-haiku-4-5-*)
+2. Check model is a known Claude model ID or alias (`claude-opus-5`, `claude-sonnet-5`, `claude-fable-5-1`, `claude-haiku-4-5-*`, or the aliases `opus` / `sonnet` / `haiku` / `inherit`; lineup as of Claude Code v2.1.261 — a retired ID such as `claude-opus-4-8` or `claude-sonnet-4-6` still runs today but is the deprecation signal this check exists for)
 3. Flag unknown model strings as `⚠ stale model id` — may need updating after a model deprecation
 
 ## Phase 4 — Scan hooks

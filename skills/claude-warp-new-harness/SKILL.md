@@ -264,7 +264,7 @@ Create `.claude/agents/<HARNESS_SLUG>-initializer.md`:
 ---
 name: <HARNESS_SLUG>-initializer
 description: Reads the goal and scope, then populates <HARNESS_SLUG>-features.json with a bounded task list
-model: claude-opus-4-8
+model: claude-opus-5
 tools: Read,Glob,Grep,Edit
 ---
 
@@ -316,7 +316,7 @@ Create `.claude/agents/<HARNESS_SLUG>-qa.md`:
 ---
 name: <HARNESS_SLUG>-qa
 description: Evaluates completed tasks against predefined criteria; reports pass/fail with actionable feedback before the next task starts
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 tools: <QA_TOOLS>
 ---
 

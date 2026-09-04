@@ -12,10 +12,23 @@ Derive from it:
 - `AGENT_NAME` — kebab-case identifier (e.g. `security-reviewer`)
 - `AGENT_DISPLAY` — human-readable name (e.g. "Security Reviewer")
 - `AGENT_DESCRIPTION` — one sentence: what this agent does and when to use it
-- `AGENT_MODEL` — choose based on role:
-  - Routine review / summarisation → `claude-sonnet-4-6`
-  - Deep analysis, security, complex reasoning → `claude-opus-4-8`
-  - Fast lookups, classification → `claude-haiku-4-5-20251001`
+- `AGENT_MODEL` — choose based on role (current lineup as of Claude Code v2.1.261; check
+  `/model` before trusting this list on a later CLI):
+  - Routine review / summarisation, most implementation work → `claude-sonnet-5`
+  - Judge / adjudicator passes, deep security analysis → `claude-opus-5`
+  - Fast lookups, classification, well-specified mechanical work → `claude-haiku-4-5-20251001`
+
+  Always write the field, even when it equals the session default. Since v2.1.251 a
+  definition's `model:` **outranks** `CLAUDE_CODE_SUBAGENT_MODEL` (the env var now only sets the
+  *default*), and a per-spawn `model` outranks both; the only thing above a definition is
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257+), which pins every subagent to the env var — a
+  cost audit, not a routing choice. `/tasks` shows the model and effort each subagent actually
+  ran on (v2.1.243+): check it on a real run rather than trusting the frontmatter.
+- `AGENT_CACHE_TTL` (optional) — the `experimental.cacheTtl` frontmatter key (`"5m"` or `"1h"`,
+  v2.1.248+) sets this agent's prompt-cache TTL when no `subagentPromptCacheTtl` setting is
+  configured. A 1h cache write costs 2× base input against 1.25× for 5m: worth it only for an
+  agent re-invoked over an hour (a long QA loop), wasted on a one-shot lookup. Add it per the
+  [sub-agents reference](https://code.claude.com/docs/en/sub-agents) only when the role needs it.
 - `AGENT_TOOLS` — minimum tool set for the role (e.g. `Read,Grep,Glob,Bash` for
   a code reviewer; `Read,WebFetch` for a research agent)
 - `AGENT_PERSONA` — 2–4 sentences describing the agent's expertise, focus, and
@@ -89,4 +102,7 @@ To invoke from a parent loop or skill:
 
 To invoke from a parent loop in headless mode:
   Pass the agent name in your skill's Agent tool call.
+
+Verify on the first real run: /tasks shows the model and effort this agent
+actually ran on (v2.1.243+) — the frontmatter is what you asked for, not proof.
 ```

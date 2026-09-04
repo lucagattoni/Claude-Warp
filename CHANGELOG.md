@@ -43,6 +43,15 @@ the installed `claude` v2.1.261, not only the changelog.
   Sonnet 5 / Opus 5 / Fable since v2.1.233 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`; the `Agent`
   tool, background by default since v2.1.198, is the primitive). README's `new-hook` row said
   9 patterns where the skill has carried 10 since `intent-gate` landed in v0.39.0.
+- **`claude-warp-new-agent` scaffolds the current model lineup and states the precedence that now
+  applies.** The model table was on retired IDs (`claude-sonnet-4-6`, `claude-opus-4-8`); it now
+  offers `claude-sonnet-5` / `claude-opus-5` / `claude-haiku-4-5-20251001` by role, and says why the
+  field is always written: since v2.1.251 a definition's `model:` outranks
+  `CLAUDE_CODE_SUBAGENT_MODEL` (default-only now), `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257)
+  is the only override above it, and `/tasks` shows what each subagent actually ran on (v2.1.243).
+  Optional `experimental.cacheTtl` (v2.1.248) noted for long-lived agents. The harness's
+  initializer/QA agent frontmatter and `claude-warp-inventory`'s known-model check moved to the same
+  lineup (a retired ID still runs, but is now exactly the deprecation signal that check exists for).
 
 ### Fixed
 - **`run-fanout.sh.tpl` could not launch a single worker on any Claude Code since v2.1.198.** It

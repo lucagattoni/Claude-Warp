@@ -333,7 +333,12 @@ Scaffolds a specialized subagent definition for use inside loops and harnesses.
 
 **Derives from the role:**
 - `AGENT_NAME` — kebab-case identifier
-- `AGENT_MODEL` — Opus 4.8 for deep analysis; Sonnet 4.6 for routine work; Haiku 4.5 for fast lookups
+- `AGENT_MODEL` — Sonnet 5 for routine review and implementation; Opus 5 for judge/adjudicator
+  and deep security passes; Haiku 4.5 for fast lookups (lineup as of Claude Code v2.1.261).
+  Always written: since v2.1.251 a definition's `model:` outranks `CLAUDE_CODE_SUBAGENT_MODEL`
+  (default-only now); `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257) is the only override above
+  it; `/tasks` shows what each subagent actually ran on (v2.1.243). Optional
+  `experimental.cacheTtl` (v2.1.248) for an agent re-invoked over an hour.
 - `AGENT_TOOLS` — minimum tool set for the role
 - `AGENT_PERSONA` — expertise, focus, output format, and constraints
 
