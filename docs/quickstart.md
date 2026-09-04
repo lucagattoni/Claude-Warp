@@ -100,7 +100,7 @@ state file, then creates:
 | File | What it's for |
 |---|---|
 | `.claude/skills/<slug>/SKILL.md` | The loop's procedure — guard → load state → do the work → verify → record. Edit Phase 3 to change *what* it does. |
-| `scripts/run-<slug>.sh` | The **runner** — wraps `claude -p` with `--max-turns` and `--max-budget-usd` so an unattended run can't run away. |
+| `scripts/run-<slug>.sh` | The **runner** — wraps `claude -p` with `--max-turns`, `--max-budget-usd` and fail-closed permission flags so an unattended run can't run away, and can't hang on a prompt nobody is there to answer. |
 | `scripts/guard-<slug>.sh` | Stops it running twice in one day. |
 | `<SLUG>_LOG.md` | Append-only history — what it did each morning. |
 | `scripts/trigger-<slug>.crontab` | A ready-to-paste cron line for Step 3. |

@@ -9,9 +9,9 @@ file into your project.
 | `CLAUDE.md.tpl` | `claude-warp-setup` | Base loop engineering context for a project |
 | `loop.SKILL.md.tpl` | `claude-warp-new-loop` | Loop skill skeleton: guard → state → work → verify → write → stop |
 | `guard.sh.tpl` | `claude-warp-new-loop` | Run-once-per-day / weekday-only guard script |
-| `run-headless.sh.tpl` | `claude-warp-new-loop` | Single-agent headless runner with `--max-turns`, `--max-budget-usd`, configurable `--effort`, and an optional `--worktree` mode (throwaway worktree + origin-advanced retry guard, for L3 loops) |
+| `run-headless.sh.tpl` | `claude-warp-new-loop` | Single-agent headless runner with `--max-turns`, `--max-budget-usd`, configurable `--effort`, fail-closed permissions (`--permission-prompts none` when the CLI supports it, plus a `--disallowedTools` hard deny), and an optional `--worktree` mode (throwaway worktree + origin-advanced retry guard, for L3 loops) |
 | `run-fanout.sh.tpl` | `claude-warp-new-loop` | Parallel fan-out runner: `claude --bg --worktree` per item, git-isolated, polled via `claude agents --json` |
-| `run-two-stage.sh.tpl` | `claude-warp-new-loop` | Two-session pipeline runner (KB Tracker shape): a search stage and an integrate stage run sequentially in one throwaway worktree with an artifact handoff |
+| `run-two-stage.sh.tpl` | `claude-warp-new-loop` | Two-session pipeline runner (KB Tracker shape): a search stage and an integrate stage run sequentially in one throwaway worktree with an artifact handoff. The search stage runs under a fixed `--disallowedTools` deny (no skills, git, or gh) so it cannot run the integrate stage inside itself, and the wrapper skips the integrate stage when its commit already landed on origin |
 | `trigger.crontab.tpl` | `claude-warp-new-loop` | Reference cron entry (not installed — paste into `crontab -e`) |
 | `harness-manifest.json.tpl` | `claude-warp-setup` | Version + components registry |
 | `constitution.md.tpl` | `claude-warp-setup` | Optional project MUST/SHOULD principles the contract's critical pass gates against |

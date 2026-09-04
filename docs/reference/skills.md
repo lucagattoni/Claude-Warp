@@ -74,7 +74,9 @@ independent small-model evaluator judges the done-condition, so completion is no
 the working agent. The scaffold adds what `/goal` alone lacks — the GOAL.md state file, the G0–G3
 gate before anything runs, hard `--max-turns`/`--max-budget-usd` caps, and guardrails. When the
 user is present and none of that is needed, the skill says "just use `/goal`" and stops. A legacy
-self-judged prompt variant is generated on Claude Code < 2.1.139 or when hooks are disabled.
+self-judged prompt variant is generated on Claude Code < 2.1.139 or when hooks are disabled. The
+runner passes `--permission-prompts none` (v2.1.259+, probed) so an unattended run denies — rather
+than hangs on — anything the auto-mode classifier would have asked a human about.
 
 **Files created:**
 
@@ -164,6 +166,20 @@ surviving retry, and a direct reset/clean-survival check) in a throwaway git rem
 stubbed `claude` binary. Sourced from the ClaudeLoops `2.6.0` sync (§3.6.1 / Loop Patterns
 Catalog — "Knowledge-Base Tracker Loop", the pattern documenting Claude-Loops' own
 `fetch-loop-news`/`integrate-loop-news` pipeline).
+
+**Fail-closed headless runs (v0.42.0).** Every `claude -p` the loop runners launch passes
+`--permission-prompts none` (Claude Code v2.1.259+, probed at runtime and omitted on older CLIs):
+anything the auto-mode classifier would have asked a human about is denied — not waited on, not
+waved through. Each runner also carries a `--disallowedTools` hard deny filled from the derived
+`DISALLOWED_TOOLS` (a destructive floor, plus `git push` below L3), because `--allowedTools` is a
+pre-approval list the classifier can expand beyond, not a deny-list. The two-stage runner's search
+stage additionally denies `Skill`, `Bash(git *)` and `Bash(gh *)` so it cannot run the integrate
+stage inside itself — the failure Claude-Loops' own pipeline hit twice in production, which prose
+did not fix and a deny-list did — and the wrapper skips the integrate stage at zero LLM cost when
+its `loop(<slug>-integrate)` commit already landed on origin. Sourced from the Claude-Loops `3.0.0`
+sync (docs/09 Headless Mode — "a skill can't tell interactive from headless invocation") and the
+Claude Code v2.1.200 → v2.1.261 changelog scan. See [Deployment → Fail-closed by
+construction](../guides/deployment.md#fail-closed-by-construction).
 
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 

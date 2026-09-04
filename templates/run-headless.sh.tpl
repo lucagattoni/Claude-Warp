@@ -31,6 +31,14 @@
 # found high->xhigh lifts first-try-perfect 28%->89% for +9-29% cost, while a bolted-on
 # testing tool added 42-68% cost with no reliability gain. Bump to `xhigh` before reaching
 # for `--with-qa` on a loop that keeps failing for reasoning reasons, not scope reasons.
+#
+# Fail-closed permissions (Claude Code v2.1.259+): the session runs `--permission-mode auto`
+# with `--permission-prompts none` — anything the auto-mode classifier would have asked a
+# human about is DENIED: not waited on (nobody is at the terminal) and not waved through
+# (that is what `--dangerously-skip-permissions` does). `--allowedTools` is a pre-approval
+# list the classifier may still expand beyond; the hard deny is `--disallowedTools`, which
+# holds even under auto mode — keep the destructive set there, not only in a hook. On a
+# Claude Code older than v2.1.259 the flag is omitted automatically (see PERM_PROMPTS).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -52,6 +60,12 @@ done
 
 mkdir -p logs
 LOG="logs/{{SKILL_SLUG}}-$(date '+%Y%m%d').log"
+
+# `--permission-prompts none` exists from Claude Code v2.1.259; older CLIs reject unknown
+# flags, so probe once and pass it only when supported. The ${arr[@]+"${arr[@]}"} expansion
+# below is the bash-3.2-safe way to splice a possibly-empty array under `set -u`.
+PERM_PROMPTS=()
+claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
 
 WORK_DIR="$REPO_ROOT"
 DEFAULT_BRANCH=""
@@ -75,10 +89,12 @@ fi
 run_once() {
   ( cd "$WORK_DIR" && timeout "${MAX_MINUTES}m" claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns {{MAX_TURNS}} \
     --max-budget-usd {{MAX_BUDGET_USD}} \
     --effort {{EFFORT}} \
     --allowedTools "{{ALLOWED_TOOLS}}" \
+    --disallowedTools "{{DISALLOWED_TOOLS}}" \
     -p "/{{SKILL_SLUG}}" ) \
     >> "$LOG" 2>&1
 }

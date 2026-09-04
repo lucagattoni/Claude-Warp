@@ -7,6 +7,35 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+Sync against Claude Code **v2.1.200 → v2.1.261** (53 releases read in full, `Fixed` bullets
+grepped) and the Claude-Loops `2.6.0 → 3.0.0` delta (`c34d41e..4ed29ff`, 36 docs changed, five new).
+No harness row is superseded; several things ClaudeWarp *emits* or *claims* were stale against the
+current CLI, and two runner scaffolds were outright broken. Every CLI fact below was checked against
+the installed `claude` v2.1.261, not only the changelog.
+
+### Added
+- **Fail-closed headless runners.** Every `claude -p` launched by `run-headless.sh.tpl`,
+  `run-two-stage.sh.tpl`, the `new-goal` runner and the `new-harness` runner now passes
+  `--permission-prompts none` (Claude Code v2.1.259+, probed at runtime so an older CLI still
+  runs): anything the auto-mode classifier would have asked a human about is denied — not waited
+  on with nobody at the terminal, not waved through as `--dangerously-skip-permissions` would.
+  Each runner also carries a `--disallowedTools` hard deny (`new-loop` derives `DISALLOWED_TOOLS`:
+  a destructive floor, plus `git push` below L3; the harness runner denies the same floor to its
+  workers and QA passes), because `--allowedTools` is pre-approval the classifier can expand
+  beyond, not a deny-list.
+- **Two-stage runner: the search stage can no longer run the integrate stage inside itself.**
+  Stage A runs under `--disallowedTools "Skill,Bash(git *),Bash(gh *)"`, and the wrapper skips
+  Stage B at zero LLM cost if a `loop(<slug>-integrate)` commit already landed on origin since the
+  attempt's base SHA. Adapted from the Claude-Loops pipeline this template is modelled on, which
+  hit exactly this escalation twice in production — a strongly-worded prose "stop" did not prevent
+  the second occurrence; the deny-list did (Claude-Loops `3.0.0`, docs/09 Headless Mode).
+- **Deployment guide → "Fail-closed by construction"** — what the three permission flags each do
+  and don't do, why `--allowedTools` is not a deny-list, why `--dangerously-skip-permissions` is
+  the opposite of unattended-safe, `--restricted` (v2.1.248) as the strictest L1 fence,
+  `blockReadsOutsideWorkingDirectories` (v2.1.257) for L3, and the v2.1.207/v2.1.257 rule that
+  repo-resident settings can no longer grant `auto`/`bypassPermissions` — the runners pass
+  `--permission-mode` on the command line for exactly this reason.
+
 ## [0.41.3] — 2026-07-07
 
 ### Changed

@@ -146,8 +146,10 @@ Sum the weights of passing checks.
 inside the main agent context, the verification check can be delegated to a separate
 lightweight agent invocation after Phase 3 completes:
 ```bash
-# Example: run verification as a cheap Haiku sub-call (not inside this context window)
+# Example: run verification as a cheap Haiku sub-call (not inside this context window).
+# Fail-closed: a prompt nobody can answer is denied (--permission-prompts none, CC v2.1.259+).
 claude --model claude-haiku-4-5-20251001 --max-turns 5 \
+  --permission-mode auto --permission-prompts none --allowedTools "Bash(npm test*)" \
   -p "Run: npm test 2>&1; exit with the same code" 2>&1
 ```
 This keeps the main loop's context clean and uses a cheaper model for mechanical checks.

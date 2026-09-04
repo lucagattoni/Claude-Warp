@@ -540,6 +540,15 @@ REPRO_MODEL="${CLAUDEWARP_QA_MODEL:-sonnet}"
 # progressing). Operator-overridable via CLAUDEWARP_REPEAT_THRESHOLD.
 REPEAT_THRESHOLD="${CLAUDEWARP_REPEAT_THRESHOLD:-2}"
 
+# Fail-closed permissions. `--permission-prompts none` (Claude Code v2.1.259+) denies anything the
+# auto-mode classifier would have asked a human about — nobody is at the terminal. Probed once so an
+# older CLI (which rejects unknown flags) still runs; ${arr[@]+...} is the bash-3.2-safe splice.
+# HARNESS_DENY is the hard deny-list for workers and QA: `--allowedTools` is pre-approval the
+# classifier can expand beyond, `--disallowedTools` holds even under auto mode.
+PERM_PROMPTS=()
+claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
+HARNESS_DENY="Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)"
+
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
@@ -550,6 +559,7 @@ run_initializer() {
   local prompt="${1:-Use the <HARNESS_SLUG>-initializer agent to populate $FEATURES}"
   claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns <MAX_TURNS_INIT> \
     --max-budget-usd 1.00 \
     --effort high \
@@ -621,10 +631,12 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
 
         claude \
           --permission-mode auto \
+          ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
           --max-turns <MAX_TURNS_WORKER> \
           --max-budget-usd <MAX_BUDGET_USD> \
           --effort high \
           --allowedTools "Read,Edit,Bash,Glob,Grep" \
+          --disallowedTools "$HARNESS_DENY" \
           -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in wave $wave of $FEATURES" \
           >> "$LOG" 2>&1
 
@@ -632,8 +644,10 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
           echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-1]..." >> "$LOG"
           claude \
             --permission-mode auto \
+            ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
             --max-turns 10 \
             --effort high \
+            --disallowedTools "$HARNESS_DENY" \
             -p "Use the <HARNESS_SLUG>-qa agent to evaluate the most recently completed task in $FEATURES. You are pass-1 — tag your findings and verdict [pass-1 / <your model>]." \
             >> "$LOG" 2>&1
 
@@ -645,8 +659,10 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
             echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-2 / $REPRO_MODEL] — reproduction-required corroboration..." >> "$LOG"
             if ! claude \
                 --permission-mode auto \
+                ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
                 --max-turns 10 \
                 --effort high \
+                --disallowedTools "$HARNESS_DENY" \
                 ${REPRO_MODEL:+--model "$REPRO_MODEL"} \
                 -p "Use the <HARNESS_SLUG>-qa agent as the REPRODUCTION PASS (pass-2) for the most recently completed task in $FEATURES. Re-derive findings independently from the artifact + repo, reasoning-blind — do NOT trust pass-1's writeup. A pass-1 blocking finding reverts the task only if you reproduce it; if you cannot, downgrade it to a recorded non-blocking minor. A PASS is 'approved (corroborated)' only if you also pass; tag every finding and the verdict [pass-2 / $REPRO_MODEL]." \
                 >> "$LOG" 2>&1; then
@@ -729,6 +745,7 @@ diagnose_stall() {
   local stuck="$1" verdict
   verdict=$(claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns 4 \
     --max-budget-usd 0.25 \
     --effort high \
@@ -850,6 +867,7 @@ if [ "$CONVERGE" -eq 1 ]; then
 
   claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns 20 \
     --effort high \
     --allowedTools "Read,Glob,Grep,Bash,Edit" \
