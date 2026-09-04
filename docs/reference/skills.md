@@ -193,7 +193,12 @@ stopped and surfaced, stragglers are stopped at the deadline instead of left bil
 reported as *session exited* — never as a pass. Because `--max-budget-usd` and
 `--permission-prompts` are print-only, the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`,
 default `claude-sonnet-5`) and `--effort` — a background session otherwise inherits your
-interactive defaults — and documents that the deadline is the cost ceiling.
+interactive defaults — and documents that the deadline is the cost ceiling. **The per-worker
+floor cost is a cache write, not reasoning:** measured on v2.1.261 from the session's own
+cost-state, one worker replying one word cost $0.2425, of which $0.2266 (93%) was a 1-hour
+prompt-cache write of its 22,659-token system prompt + tool definitions at Opus 5's 2×-base
+rate, with 0 thinking tokens. Pinning a cheaper model is what moves that floor (the same write
+on Sonnet 5: $0.09); lowering `--effort` does not.
 
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
