@@ -28,11 +28,11 @@ is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 | Capability | Where it lives | Status |
 |---|---|---|
 | Skill auto-loading | `.claude/skills/` | **Native** (v2.1.157) |
-| Subagent fan-out | `Agent` tool, `TaskCreate` | **Native** |
+| Subagent fan-out | `Agent` tool — background by default since v2.1.198; the `TaskCreate`/`TodoWrite` task-tracking tools are off on Sonnet 5 / Opus 5 / Fable since v2.1.233 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` | **Native** |
 | Worktree isolation | `EnterWorktree`, `isolation: "worktree"` | **Native** |
 | Scheduling runtime | `/loop`, `/schedule`, `CronCreate`, `claude --bg` / `claude agents`, `RemoteTrigger` | **Native** |
 | Until-condition goal runtime | `/goal` — per-turn Stop-hook evaluator on an independent small model | **Native** (v2.1.139) |
-| Interactive planning | `/plan` (plan mode), Ultraplan | **Native** |
+| Interactive planning | `/plan` (plan mode) — Ultraplan was removed in v2.1.222 | **Native** |
 | Independent-unit fan-out with PRs | `/batch` — decompose, approve, one worktree+PR per unit | **Native** |
 | Large-scale scripted orchestration | Dynamic workflows (`ultracode`, `/workflows`) | **Native** (v2.1.154) |
 | Local unattended scheduling (Desktop) | Desktop scheduled tasks | **Native** |

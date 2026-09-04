@@ -36,6 +36,14 @@ the installed `claude` v2.1.261, not only the changelog.
   repo-resident settings can no longer grant `auto`/`bypassPermissions` — the runners pass
   `--permission-mode` on the command line for exactly this reason.
 
+### Changed
+- **Stale native references retired against the v2.1.200 → v2.1.261 window.** The
+  Native-vs-harness table no longer cites Ultraplan (removed in v2.1.222 — also fixed in
+  `comparison.md`) or `TaskCreate` as the fan-out primitive (the task-tracking tools are off on
+  Sonnet 5 / Opus 5 / Fable since v2.1.233 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`; the `Agent`
+  tool, background by default since v2.1.198, is the primitive). README's `new-hook` row said
+  9 patterns where the skill has carried 10 since `intent-gate` landed in v0.39.0.
+
 ### Fixed
 - **`run-fanout.sh.tpl` could not launch a single worker on any Claude Code since v2.1.198.** It
   combined `--bg` with `-p`, which the CLI rejects up front (before v2.1.198 the pair silently
