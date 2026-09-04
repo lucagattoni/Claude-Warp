@@ -54,6 +54,20 @@ mkdir -p logs
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
 SUMMARY_LOG="logs/{{SKILL_SLUG}}-${RUN_ID}.log"
 
+# ── Preflight: resolve the `claude` binary ────────────────────────────────────
+# cron and launchd run with a minimal PATH (often just /usr/bin:/bin) that does NOT
+# include ~/.local/bin, where the native installer puts `claude`. Without this, a
+# scheduled run dies at its first invocation with 127 and the loop simply never runs —
+# a failure that only appears when you exercise the scaffold the way the scheduler
+# does, not when you run it by hand with your own shell. Set CLAUDE_BIN to override.
+[ -n "${CLAUDE_BIN:-}" ] && PATH="$(dirname "$CLAUDE_BIN"):$PATH"
+PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+export PATH
+if ! command -v claude >/dev/null 2>&1; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment." | tee -a "$SUMMARY_LOG" >&2
+  exit 127
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Fan-out start: {{SKILL_NAME}} (model ${WORKER_MODEL}, effort ${WORKER_EFFORT}, deadline ${MAX_MINUTES}m)" | tee -a "$SUMMARY_LOG"
 
 # ── Step 1: Generate task list ────────────────────────────────────────────────

@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.2] — 2026-09-04 21:11 UTC
+
+Two silent `exit 127`s that made **every scheduled loop fail before reaching Claude**, found by
+running a scaffolded runner the way a scheduler runs it rather than reasoning about it. Prompted by
+the Claude-Loops session reporting the same defect class in its own pipeline (a `uv` gate that would
+have been a command-not-found under launchd).
+
+### Fixed
+- **cron and launchd could not find `claude`.** Neither reads your shell profile; both run with a
+  minimal `PATH` (often `/usr/bin:/bin`) that omits `~/.local/bin`, where the native installer puts
+  the binary — reproduced here with `env -i HOME=$HOME PATH=/usr/bin:/bin`, which cannot resolve
+  `claude` on this machine. `trigger.crontab.tpl` set no `PATH` and the scheduling guide's launchd
+  plist had no `EnvironmentVariables`, so a loop that ran perfectly by hand died at its first call
+  with 127 and left only a log nobody reads. All three runners now prepend the usual install
+  locations, honour a `CLAUDE_BIN` override, and abort with a named `FATAL` line rather than failing
+  obscurely; the crontab template ships a `PATH=` line; the plist gains `EnvironmentVariables` and
+  `StandardOutPath`.
+- **`timeout` does not exist on stock macOS, and both main runners wrapped every `claude` call in
+  it.** GNU coreutils provides it; Homebrew installs it as `gtimeout`; a stock Mac — this repo's own
+  platform — has neither, so `run-headless` and `run-two-stage` returned 127 on every attempt before
+  invoking Claude at all, and the retry logic then read that deterministic failure as a candidate
+  *transient* one and spent its retries on it. Both now resolve `timeout` → `gtimeout` → neither, and
+  when neither exists they say so loudly (`the wall-clock cap is NOT enforced this run`) instead of
+  implying a cap they do not enforce — NOT RUN ≠ pass, applied to our own control. Set
+  `CLAUDEWARP_REQUIRE_TIMEOUT=1` to make the absence fatal instead; recommended for an L3 loop.
+
+### Added
+- **`scripts/dev.sh verify` check 9/9 — scheduled-run environment.** Gates what prose could not:
+  every runner template must preflight `claude` and offer `CLAUDE_BIN`, the two `timeout`-wrapping
+  runners must carry the `gtimeout` fallback and must not call `timeout` directly, and
+  `trigger.crontab.tpl` must set `PATH`. Verified by mutation — all six reintroduced defects fail the
+  gate. The first version of the check did **not**: `grep -q 'command -v claude'` still matched a
+  mutated `command -v claudeXX`, so the mutant survived. The greps are now word-anchored. That is the
+  same naive-grep false negative `scripts/verifier-lib.sh` exists to prevent, caught only because the
+  check was mutation-tested rather than trusted for passing.
+- **Scheduling guide: "PATH is the thing that breaks first"** — with the one-line reproduction
+  (`env -i HOME="$HOME" PATH=/usr/bin:/bin scripts/run-<slug>.sh`) to run before trusting a schedule.
+
 ## [0.42.1] — 2026-09-04 21:01 UTC
 
 ### Fixed
