@@ -560,6 +560,32 @@ PERM_PROMPTS=()
 claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
 HARNESS_DENY="Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)"
 
+# python3 reads every task count this runner branches on. A missing or broken interpreter made
+# each read fall back to a benign number — `|| echo 0` means "no pending tasks", `|| echo -1`
+# means "nothing left" — so the runner skipped every wave, executed nothing, and reported
+# "Harness complete" with exit 0 while features.json still held pending work. Measured, not
+# theorised. Preflight it, and read counts through jnum() which ABORTS instead of substituting
+# a number that happens to mean success.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: `python3` not found on PATH ($PATH) — this runner counts tasks with it, and a missing parser reads as an empty queue." | tee -a "$LOG" >&2
+  exit 127
+fi
+
+# jnum <python-snippet> — echo an integer, or abort loudly. Never returns a default.
+jnum() {
+  local out
+  if ! out=$(python3 -c "$1" 2>&1); then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: reading $FEATURES failed — refusing to infer a task count from a failed read (that is how a harness reports complete having done nothing). python3 said: $out" | tee -a "$LOG" >&2
+    exit 3
+  fi
+  case "$out" in
+    ''|*[!0-9-]*)
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: expected an integer from $FEATURES, got: $out" | tee -a "$LOG" >&2
+      exit 3 ;;
+  esac
+  printf '%s' "$out"
+}
+
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
@@ -583,17 +609,20 @@ run_coding_loop() {
   local max_iter=50 iter=0 pending=1
 
   # Get sorted list of wave numbers
+  # A failed read here previously defaulted to "1", inventing a wave list.
   WAVES=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
 waves=sorted(set(t.get('wave',1) for t in d['tasks']))
-print(' '.join(str(w) for w in waves))" 2>/dev/null || echo "1")
+print(' '.join(str(w) for w in waves))") || {
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: cannot read waves from $FEATURES — aborting rather than guessing." | tee -a "$LOG" >&2
+    exit 3; }
 
   for wave in $WAVES; do
-    wave_pending=$(python3 -c "
+    wave_pending=$(jnum "
 import json
 d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo 0)
+print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]))")
     [ "$wave_pending" -eq 0 ] && continue
 
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] Wave $wave: $wave_pending tasks..." >> "$LOG"
@@ -612,11 +641,15 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
       #     worker branches and update statuses by hand, or run without --parallel-waves.
       #   - A worker that goes `blocked` (waiting on a prompt nobody can answer) is stopped and
       #     surfaced, never waited on.
+      # A failed read here used to yield an empty id list, so the wave launched nothing and
+      # moved on. Abort instead — an unreadable queue is not an empty queue.
       TASK_IDS=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
 ids=[str(t['id']) for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]
-print(' '.join(ids))" 2>/dev/null || echo "")
+print(' '.join(ids))") || {
+        echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: cannot read wave $wave task ids from $FEATURES — aborting rather than launching an empty wave." | tee -a "$LOG" >&2
+        exit 3; }
 
       WORKER_MODEL="${CLAUDEWARP_WORKER_MODEL:-claude-sonnet-5}"
       AGENT_IDS=()
@@ -664,10 +697,10 @@ print('missing\t' if a is None else '%s\t%s' % (a.get('state') or a.get('status'
       # Sequential fallback (wave has 1 task, or --parallel-waves not set)
       while [ "$iter" -lt "$max_iter" ]; do
         iter=$((iter+1))
-        wave_pending=$(python3 -c "
+        wave_pending=$(jnum "
 import json
 d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]))" 2>/dev/null || echo 0)
+print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]))")
         [ "$wave_pending" -eq 0 ] && break
 
         claude \
@@ -748,10 +781,10 @@ if ch:
 
   # Holding statuses (needs_context, blocked) count as NOT complete and must be surfaced,
   # the same as pending/in_progress. done_with_concerns counts as complete but is surfaced below.
-  pending=$(python3 -c "
+  pending=$(jnum "
 import json
 d=json.load(open('$FEATURES'))
-print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress','needs_context','blocked')]))" 2>/dev/null || echo -1)
+print(len([t for t in d['tasks'] if t['status'] in ('pending','in_progress','needs_context','blocked')]))")
 
   # Surface honest-uncertainty statuses (Type-B holds + caveats) regardless of completion.
   python3 -c "
@@ -801,7 +834,7 @@ Reply with ONLY one lowercase word: code, spec, or intent. If you cannot tell, r
 }
 
 # ── Step 1: Initializer ───────────────────────────────────────────────────────
-TASK_COUNT=$(python3 -c "import json,sys; d=json.load(open('$FEATURES')); print(len(d['tasks']))" 2>/dev/null || echo 0)
+TASK_COUNT=$(jnum "import json,sys; d=json.load(open('$FEATURES')); print(len(d['tasks']))")
 if [ "$TASK_COUNT" -eq 0 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Running initializer..." >> "$LOG"
   if ! run_initializer; then
@@ -904,7 +937,7 @@ fi
 # coding loop to close it — then stops. No re-converge (guards the infinite-fix loop).
 if [ "$CONVERGE" -eq 1 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] --converge: reconciling actual state vs intent..." >> "$LOG"
-  BEFORE=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+  BEFORE=$(jnum "import json; print(len(json.load(open('$FEATURES'))['tasks']))")
 
   claude \
     --permission-mode auto \
@@ -915,7 +948,7 @@ if [ "$CONVERGE" -eq 1 ]; then
     -p "/claude-warp-converge --slug <HARNESS_SLUG> --contract contract.yaml" \
     >> "$LOG" 2>&1
 
-  AFTER=$(python3 -c "import json; print(len(json.load(open('$FEATURES'))['tasks']))" 2>/dev/null || echo 0)
+  AFTER=$(jnum "import json; print(len(json.load(open('$FEATURES'))['tasks']))")
   if [ "$AFTER" -gt "$BEFORE" ]; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] converge appended $((AFTER-BEFORE)) task(s); running one closing loop..." >> "$LOG"
     run_coding_loop          # single closing pass — do NOT re-invoke converge afterward

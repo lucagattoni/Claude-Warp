@@ -67,6 +67,12 @@ if ! command -v claude >/dev/null 2>&1; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment." | tee -a "$SUMMARY_LOG" >&2
   exit 127
 fi
+# python3 parses every JSON status this runner reads. If it is missing, the reads fail and their
+# fallbacks would quietly mean "nothing to do" — a green run that did nothing. Fail loudly instead.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`python3\` not found on PATH ($PATH) — this runner parses JSON status with it, and a missing parser would look like an empty queue." | tee -a "$SUMMARY_LOG" >&2
+  exit 127
+fi
 
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Fan-out start: {{SKILL_NAME}} (model ${WORKER_MODEL}, effort ${WORKER_EFFORT}, deadline ${MAX_MINUTES}m)" | tee -a "$SUMMARY_LOG"
 
