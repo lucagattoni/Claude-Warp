@@ -20,6 +20,17 @@ GitHub compare between them is the authoritative change set. Scoping by "the las
 blocks" is a defect: a multi-day gap spans several runs and several doc edits, and any one
 of them can carry a Tier-1 finding.
 
+**A quiet source is not a clean source.** Claude-Loops is itself a loop, and it can be down:
+its tracker last ran 2026-07-08, failed on 2026-07-20, and was not re-armed for seven weeks —
+during which the repo kept gaining hand-authored content that no run block announced. So treat
+"no new run blocks" as **unknown**, never as "nothing new": compare commit SHAs (step 4), which
+see hand-authored commits too, and if the newest run block is more than ~2 weeks older than
+`main`'s newest commit, say so in the report rather than reporting a clean scan. A run block
+dated after a known outage may be a hand-driven catch-up rather than pipeline output — the
+findings are still valid, but do not infer from their existence that the pipeline is healthy.
+(Same false-negative class as the dead RSS feed that cost Claude-Loops two months of a source:
+"no new posts" and "the feed is gone" are the same empty result.)
+
 1. Get the exact local time:
    ```bash
    date '+%Y-%m-%d %H:%M %Z'

@@ -16,8 +16,14 @@
 #     cannot swallow it and `--worktree [name]` cannot take it as the worktree name.
 #   - `--max-budget-usd` and `--permission-prompts` only work with `--print`: a background
 #     session has NO dollar cap. Its ceilings are `--max-turns`, this runner's deadline, and
-#     an explicit `--model`/`--effort` — omit those and it inherits your interactive
-#     defaults (a one-word test session ran Opus 5 at xhigh effort for $0.24).
+#     an explicit `--model` — omit it and the session inherits your interactive default.
+#   - Every worker pays a FLOOR COST before it does any work: a fresh session writes its own
+#     system prompt + tool definitions into the prompt cache, billed at the model's cache-write
+#     rate. Measured on v2.1.261 (session cost-state, one worker, a one-word reply):
+#     $0.2425 total, of which $0.2266 (93%) was a 1-hour cache write of 22,659 tokens at Opus 5's
+#     2x-base rate. Thinking tokens: 0 — the effort level cost nothing here. So the lever is the
+#     MODEL, not the effort: the same write on Sonnet 5 is $0.09. Budget a fan-out as
+#     (items x floor) + actual work, and pin the cheapest model that can do the task.
 #   - `--disallowedTools` is the hard deny that holds under auto mode; `--allowedTools` is
 #     pre-approval the classifier can expand beyond.
 #   - Background sessions commit and push their worktree branch when they finish
@@ -39,7 +45,8 @@ done
 
 DEADLINE=$(( $(date +%s) + MAX_MINUTES * 60 ))
 POLL_SECONDS="${CLAUDEWARP_FANOUT_POLL:-15}"
-# Pin the worker model: a background session otherwise inherits your interactive default.
+# Pin the worker model: a background session otherwise inherits your interactive default, and
+# the per-worker cache-write floor (see header) scales with the model's price, not the task.
 WORKER_MODEL="${CLAUDEWARP_FANOUT_MODEL:-claude-sonnet-5}"
 WORKER_EFFORT="${CLAUDEWARP_FANOUT_EFFORT:-high}"
 

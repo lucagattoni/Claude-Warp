@@ -7,6 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.1] — 2026-09-04 21:01 UTC
+
+### Fixed
+- **The fan-out cost figure was right but its explanation was misleading.** v0.42.0 reported a
+  test background session as having "inherited the interactive default and ran Opus 5 at xhigh
+  for $0.24", which reads as though the effort level drove the cost. Recovered the session's
+  transcript and read its recorded `cost-state`: **$0.242504**, of which **$0.2266 (93%) was a
+  1-hour prompt-cache write of 22,659 tokens** — the session's own system prompt and tool
+  definitions — at Opus 5's 2x-base rate, with **0 thinking tokens**. The effort level cost
+  nothing. Independently recomputed from the turn's token counts at list price: $0.2406 for the
+  Opus portion, matching the recorded figure to four decimals. So the operator-facing rule is
+  **pin a cheaper model** (the same write on Sonnet 5 is $0.09), not lower the effort, and a
+  fan-out's budget is **(items x floor) + actual work**. Corrected in `run-fanout.sh.tpl`,
+  `guides/scaffolding.md` and `reference/skills.md`. The v0.42.0 entry below is left as written;
+  this is the correction, not a rewrite of it.
+- **`claude-warp-sync-research`: a quiet source is not a clean source.** Claude-Loops' own
+  tracker last ran 2026-07-08, failed 2026-07-20, and was not re-armed for seven weeks while the
+  repo kept gaining hand-authored content no run block announced. The skill now treats "no new
+  run blocks" as *unknown* rather than "nothing new" — the commit-SHA compare is the authority,
+  a run block far older than `main`'s newest commit must be reported as a staleness signal, and a
+  block dated after a known outage may be a hand-driven catch-up rather than evidence the
+  pipeline is healthy. Same false-negative class as the dead RSS feed that cost Claude-Loops two
+  months of a source. Reported by the Claude-Loops session, 2026-09-04.
+
 ## [0.42.0] — 2026-09-04 20:53 UTC
 
 Sync against Claude Code **v2.1.200 → v2.1.261** (53 releases read in full, `Fixed` bullets
