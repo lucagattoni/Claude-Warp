@@ -47,6 +47,23 @@ the installed `claude` v2.1.261, not only the changelog.
   compatibility); the harness QA evaluator now ends every grading with a `coverage:` line and never
   returns `approved` from a `PARTIAL` grading. Exit-code tested on 8 cases (CLEAN / FINDINGS /
   absent pass; PARTIAL / VACUOUS / REQUEST_CHANGES / open-major / no-file block).
+- **Hook self-protection guidance** in `claude-warp-new-hook` and the skills reference: a gate
+  inside the repo the loop edits is a gate the loop can rewrite. For L3, `intent-gate` never grants
+  `hooks/**` or `.claude/settings.json`, `destructive-block` denies `rm`/`mv`/`chmod`/`git checkout
+  --` on them, or the hook is wired from user-scope `~/.claude/settings.json` — the direction
+  Claude Code itself took when it stopped honouring `autoMode` (v2.1.207), `sandbox.ripgrep`
+  (v2.1.232) and `bypassPermissions` (v2.1.257) from project settings (Claude-Loops docs/33 "Where
+  default-deny actually gets loaded").
+- **`claude-warp-retro` runs the removal test.** Before proposing improvements it asks, per guard /
+  checker / corroboration pass, whether the last N runs would still have passed without it on the
+  current model; a component whose absence changes nothing is proposed for removal with the run
+  evidence, re-asked at the next model release (Andrew Ng's removal test via Claude-Loops §24 "When
+  to Remove Harness" — the retro-side complement to `/claude-warp-sync`'s native-supersession
+  pruning).
+- **Monitoring guide: cost per run and pruning.** `/usage`'s Loops breakdown (v2.1.243) as the
+  first-party tokens-per-run figure for a `/loop`-routed loop, the `--max-budget-usd` ceiling for a
+  headless runner, the no-dollar-cap fact for a `--bg` fan-out worker, and `/skill-doctor`
+  (v2.1.261) for skills that never fire in a project.
 
 ### Changed
 - **Stale native references retired against the v2.1.200 → v2.1.261 window.** The

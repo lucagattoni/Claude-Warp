@@ -391,6 +391,12 @@ command/path-glob denial, `audit-log`/`security-scan`'s no-LLM-round-trip requir
 
 **Safety:** exit code 2 blocks; exit 1 is a non-blocking warning that accidentally permits the denied action. All deny logic must be wrapped so unhandled errors exit 2.
 
+**Self-protection (v0.42.0):** a gate inside the repo the loop edits is a gate the loop can rewrite.
+For an L3 loop, `intent-gate` never grants `hooks/**` or `.claude/settings.json`, `destructive-block`
+denies `rm`/`mv`/`chmod`/`git checkout --` on them, or the hook is wired from user-scope
+`~/.claude/settings.json` — out of the repo's reach, the direction Claude Code itself took for
+`autoMode` / `sandbox.ripgrep` / `bypassPermissions` in v2.1.207 / v2.1.232 / v2.1.257.
+
 Install path: `skills/claude-warp-new-hook/SKILL.md`
 
 ---
@@ -427,7 +433,12 @@ does not modify any loop/goal files (RETRO.md is the only output).
    not a run series
 2. Reads git log for run commits and fix commits in the past 30 days
 3. Scans last 10 dated sections for verdict distribution and recurring failures
-4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts
+4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts — and applies the
+   **removal test** (v0.42.0): which guard, checker, or corroboration pass would the last N runs
+   still have passed without on the current model? A component whose absence changes nothing is
+   proposed for removal with the run evidence, re-asked at the next model release (Andrew Ng's
+   removal test, via Claude-Loops §24 "When to Remove Harness" — the retro-side complement to
+   `/claude-warp-sync`'s native-supersession pruning)
 5. Appends a dated entry to `RETRO.md` with top 3 concrete improvements
 6. Records the retrospective as a `converged` event in the cross-session ledger (see
    `/claude-warp-ledger`) so it is queryable across sessions

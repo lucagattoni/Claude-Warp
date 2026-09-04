@@ -392,6 +392,20 @@ JSON
 exit 2
 ```
 
+**Self-protection — the gate must not be editable by the loop it gates.** A hook in `hooks/` and
+its wiring in `.claude/settings.json` live inside the repo the loop edits, so a loop under
+`--permission-mode auto` can, in principle, rewrite its own gate (auto mode blocks transcript
+tampering since v2.1.205; it does not treat a hook script as protected). For an L3 loop, always do
+at least one of:
+- keep `hooks/**` and `.claude/settings.json` out of `intent-gate`'s `SCOPE_GLOBS` — a scope that
+  includes the gate is not a scope;
+- include `hooks/` and `.claude/settings.json` in `destructive-block`'s `<BLOCK_PATTERN>` for `rm`,
+  `mv`, `chmod`, and `git checkout --` / `git restore` on those paths;
+- move the gate out of the repo's reach entirely: wire the same hook from user-scope
+  `~/.claude/settings.json` — the direction Claude Code itself took when it stopped honouring
+  `autoMode` (v2.1.207), `sandbox.ripgrep` (v2.1.232) and `bypassPermissions` (v2.1.257) from
+  project settings (Claude-Loops [§33 Where default-deny actually gets loaded](https://lucagattoni.github.io/Claude-Loops/33-agent-security-hardening/)).
+
 Create the directory and make executable:
 ```bash
 mkdir -p hooks
