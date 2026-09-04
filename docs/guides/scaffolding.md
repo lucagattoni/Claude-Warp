@@ -60,7 +60,7 @@ When the goal processes many independent items, ClaudeWarp selects the fan-out r
 claude -p '/claude-warp-new-loop "migrate all Python files in src/ to async/await"'
 ```
 
-The runner uses `claude --bg --worktree` — each item gets its own background agent in an isolated git worktree, preventing file conflicts. Session IDs are collected and polled until all complete; results appear in `logs/<slug>-<run-id>.log`.
+The runner uses `claude --bg --worktree '<task>'` — each item gets its own background session in an isolated git worktree, preventing file conflicts. Session ids are collected and polled (`claude agents --json --all`) until every session exits; a session stuck waiting for input is stopped and reported as **blocked**, and stragglers are stopped at `--max-minutes`. Results appear in `logs/<slug>-<run-id>.log` — "done" there means the session *exited*; each item's verdict is what the loop's skill recorded (state file, the worker's branch). A background session takes no `--max-budget-usd` (that flag is print-only), so the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`, default `claude-sonnet-5`) and `--max-turns`, and the deadline is the cost ceiling.
 
 Fill in the generated `scripts/run-<slug>.sh`:
 - `TASK_LIST_COMMAND` — command that outputs one item per line (e.g. `find src -name "*.py"`)

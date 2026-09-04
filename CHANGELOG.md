@@ -7,6 +7,122 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-09-04 20:53 UTC
+
+Sync against Claude Code **v2.1.200 → v2.1.261** (53 releases read in full, `Fixed` bullets
+grepped) and the Claude-Loops `2.6.0 → 3.0.0` delta (`c34d41e..4ed29ff`, 36 docs changed, five new).
+No harness row is superseded; several things ClaudeWarp *emits* or *claims* were stale against the
+current CLI, and two runner scaffolds were outright broken. Every CLI fact below was checked against
+the installed `claude` v2.1.261, not only the changelog.
+
+### Added
+- **Fail-closed headless runners.** Every `claude -p` launched by `run-headless.sh.tpl`,
+  `run-two-stage.sh.tpl`, the `new-goal` runner and the `new-harness` runner now passes
+  `--permission-prompts none` (Claude Code v2.1.259+, probed at runtime so an older CLI still
+  runs): anything the auto-mode classifier would have asked a human about is denied — not waited
+  on with nobody at the terminal, not waved through as `--dangerously-skip-permissions` would.
+  Each runner also carries a `--disallowedTools` hard deny (`new-loop` derives `DISALLOWED_TOOLS`:
+  a destructive floor, plus `git push` below L3; the harness runner denies the same floor to its
+  workers and QA passes), because `--allowedTools` is pre-approval the classifier can expand
+  beyond, not a deny-list.
+- **Two-stage runner: the search stage can no longer run the integrate stage inside itself.**
+  Stage A runs under `--disallowedTools "Skill,Bash(git *),Bash(gh *)"`, and the wrapper skips
+  Stage B at zero LLM cost if a `loop(<slug>-integrate)` commit already landed on origin since the
+  attempt's base SHA. Adapted from the Claude-Loops pipeline this template is modelled on, which
+  hit exactly this escalation twice in production — a strongly-worded prose "stop" did not prevent
+  the second occurrence; the deny-list did (Claude-Loops `3.0.0`, docs/09 Headless Mode).
+- **Deployment guide → "Fail-closed by construction"** — what the three permission flags each do
+  and don't do, why `--allowedTools` is not a deny-list, why `--dangerously-skip-permissions` is
+  the opposite of unattended-safe, `--restricted` (v2.1.248) as the strictest L1 fence,
+  `blockReadsOutsideWorkingDirectories` (v2.1.257) for L3, and the v2.1.207/v2.1.257 rule that
+  repo-resident settings can no longer grant `auto`/`bypassPermissions` — the runners pass
+  `--permission-mode` on the command line for exactly this reason.
+- **`review-result.v1` gains a `coverage` axis; `review-gate` blocks `PARTIAL`/`VACUOUS` even
+  under `APPROVE`.** `verdict` says what a review concluded; `coverage` (`CLEAN | FINDINGS |
+  PARTIAL | VACUOUS`) says whether anyone actually looked. A review cut short (a turn/budget cap, a
+  lens that died, a delegated reviewer whose output came back *marked partial* — what Claude Code
+  does for a `maxTurns`-capped subagent since v2.1.246) or one that reviewed nothing cannot clear
+  the gate no matter what it says. Adapted from Claude-Loops' Pinakes case study (docs/37 Session
+  Architecture): a 14-agent review pass lost five agents to a session limit, reported "8 raised,
+  4 confirmed" as clean, and the two findings whose refuters died were the two about runtime
+  behaviour — one of them the only real defect. Verdicts without the field still pass (pre-field
+  compatibility); the harness QA evaluator now ends every grading with a `coverage:` line and never
+  returns `approved` from a `PARTIAL` grading. Exit-code tested on 8 cases (CLEAN / FINDINGS /
+  absent pass; PARTIAL / VACUOUS / REQUEST_CHANGES / open-major / no-file block).
+- **Hook self-protection guidance** in `claude-warp-new-hook` and the skills reference: a gate
+  inside the repo the loop edits is a gate the loop can rewrite. For L3, `intent-gate` never grants
+  `hooks/**` or `.claude/settings.json`, `destructive-block` denies `rm`/`mv`/`chmod`/`git checkout
+  --` on them, or the hook is wired from user-scope `~/.claude/settings.json` — the direction
+  Claude Code itself took when it stopped honouring `autoMode` (v2.1.207), `sandbox.ripgrep`
+  (v2.1.232) and `bypassPermissions` (v2.1.257) from project settings (Claude-Loops docs/33 "Where
+  default-deny actually gets loaded").
+- **`claude-warp-retro` runs the removal test.** Before proposing improvements it asks, per guard /
+  checker / corroboration pass, whether the last N runs would still have passed without it on the
+  current model; a component whose absence changes nothing is proposed for removal with the run
+  evidence, re-asked at the next model release (Andrew Ng's removal test via Claude-Loops §24 "When
+  to Remove Harness" — the retro-side complement to `/claude-warp-sync`'s native-supersession
+  pruning).
+- **Monitoring guide: cost per run and pruning.** `/usage`'s Loops breakdown (v2.1.243) as the
+  first-party tokens-per-run figure for a `/loop`-routed loop, the `--max-budget-usd` ceiling for a
+  headless runner, the no-dollar-cap fact for a `--bg` fan-out worker, and `/skill-doctor`
+  (v2.1.261) for skills that never fire in a project.
+
+### Changed
+- **Stale native references retired against the v2.1.200 → v2.1.261 window.** The
+  Native-vs-harness table no longer cites Ultraplan (removed in v2.1.222 — also fixed in
+  `comparison.md`) or `TaskCreate` as the fan-out primitive (the task-tracking tools are off on
+  Sonnet 5 / Opus 5 / Fable since v2.1.233 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`; the `Agent`
+  tool, background by default since v2.1.198, is the primitive). README's `new-hook` row said
+  9 patterns where the skill has carried 10 since `intent-gate` landed in v0.39.0.
+- **`claude-warp-new-agent` scaffolds the current model lineup and states the precedence that now
+  applies.** The model table was on retired IDs (`claude-sonnet-4-6`, `claude-opus-4-8`); it now
+  offers `claude-sonnet-5` / `claude-opus-5` / `claude-haiku-4-5-20251001` by role, and says why the
+  field is always written: since v2.1.251 a definition's `model:` outranks
+  `CLAUDE_CODE_SUBAGENT_MODEL` (default-only now), `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257)
+  is the only override above it, and `/tasks` shows what each subagent actually ran on (v2.1.243).
+  Optional `experimental.cacheTtl` (v2.1.248) noted for long-lived agents. The harness's
+  initializer/QA agent frontmatter and `claude-warp-inventory`'s known-model check moved to the same
+  lineup (a retired ID still runs, but is now exactly the deprecation signal that check exists for).
+- **Native-vs-harness boundary advanced to Claude Code v2.1.261** (`architecture.md`): 53 releases
+  read, no Harness row superseded; reinforced rows recorded with versions; two judgment calls
+  recorded rather than cut — `claude self-hosted-runner` (v2.1.224, Team/Enterprise; daemon-based,
+  cloud-scheduled) against *External trigger*, and agent teams (experimental, interactive-only, not
+  restored on resume) against `new-harness`. New native row for agent teams; the Scheduling-runtime
+  row notes `/loop`'s self-paced mode on every provider (v2.1.248) and per-loop tokens in `/usage`
+  (v2.1.243); the "why `new-harness` isn't superseded" paragraph now states workflow resume
+  semantics accurately (completed agents replay on a same-session resume; nothing carries to another
+  machine) instead of "restarts fresh". `comparison.md` rows updated the same way (`/goal` survives
+  `--resume` v2.1.239 and self-clears on unrecoverable errors v2.1.234; `/loop`'s instruments; the
+  self-hosted runner as a fourth native trigger option).
+- **`claude-warp-sync` gains five watchlist rows and a "verify against the installed binary" step.**
+  The v2.1.200 → v2.1.261 run found the fan-out runner had been unable to launch a worker since
+  v2.1.198 — worded as a `Fixed` bullet the keyword checklist did not catch; the skill now requires
+  checking every flag a template emits against `claude --help`, and the background-session contract
+  against `claude agents --json --all` plus one throwaway `claude --bg` session.
+
+### Fixed
+- **`run-fanout.sh.tpl` could not launch a single worker on any Claude Code since v2.1.198.** It
+  combined `--bg` with `-p`, which the CLI rejects up front (before v2.1.198 the pair silently
+  created an unattachable session); it then grepped the output for a full UUID where `claude --bg`
+  prints `backgrounded · <8-hex id>`, polled `claude agents --json` without `--all` (a finished
+  session simply vanishes from that list, which the runner counted as a failure), and matched a
+  `status` vocabulary (`completed|success|running…`) the CLI never emits — `state` is
+  `working | blocked | done`. Rebuilt and scripted-tested against a stub emitting the installed
+  v2.1.261's real shapes: positional task first (so a variadic `--allowedTools` cannot swallow it and
+  `--worktree [name]` cannot take it as a name), short-id capture without relying on the `·` glyph,
+  `--all` polling on `state`, a `blocked` session (waiting on a prompt nobody can answer) is stopped
+  and surfaced with its `waitingFor`, stragglers are stopped at the deadline instead of left
+  billing, and "done" is reported as *session exited* — never as a pass. Since `--max-budget-usd`
+  and `--permission-prompts` are print-only, the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`,
+  default `claude-sonnet-5`) and `--effort` — a one-word test background session otherwise
+  inherited the interactive default and ran Opus 5 at xhigh for $0.24 — and states that the
+  deadline is the cost ceiling. `new-loop` no longer fills `{{MAX_BUDGET_USD}}` into it.
+- **`new-harness --parallel-waves` had the same launch and poll defects** (`--bg -p`, an `agent:`
+  id grep, `status in ('running','pending')`) plus an unguarded `"${AGENT_IDS[@]}"` that aborts an
+  empty wave under `set -u` on bash 3.2. Fixed the same way and labelled **experimental** in the
+  usage header, because workers commit on their own worktree branches and the runner does not merge
+  them back or reconcile `features.json` — a limitation that was implied before and is now stated.
+
 ## [0.41.3] — 2026-07-07
 
 ### Changed

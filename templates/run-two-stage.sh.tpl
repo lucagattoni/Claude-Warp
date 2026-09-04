@@ -25,6 +25,20 @@
 # Safe-to-retry guard: same as run-headless.sh.tpl --worktree — the worktree's
 # local HEAD is disposable (reset to origin every attempt), so safety is
 # judged by whether origin/<default-branch> has advanced past the base SHA.
+#
+# Stage A cannot escalate into Stage B. A headless session cannot tell whether it
+# was launched by this wrapper or by a human, and under `--permission-mode auto`
+# the classifier can approve tools that `--allowedTools` never listed — the
+# Claude-Loops pipeline this pattern comes from watched its search stage run the
+# whole integrate stage inside itself, twice, despite prose telling it to stop.
+# What held was a real deny-list: Stage A runs with
+# `--disallowedTools "Skill,Bash(git *),Bash(gh *)"` (it may write the artifact;
+# it may not invoke skills, commit, push, or open PRs). Defense in depth, at zero
+# LLM cost: after Stage A the wrapper checks whether origin/<default-branch>
+# already carries this run's Stage B commit (`loop({{STAGE_B_SLUG}}): …`) and
+# skips Stage B if so. Both sessions run `--permission-prompts none` (Claude Code
+# v2.1.259+; omitted automatically on older CLIs): a prompt nobody can answer is
+# denied, never waited on or waved through.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -45,6 +59,11 @@ done
 mkdir -p logs
 LOG="logs/{{SKILL_SLUG}}-$(date '+%Y%m%d').log"
 
+# `--permission-prompts none` exists from Claude Code v2.1.259; probe once, pass only when
+# supported (${arr[@]+"${arr[@]}"} is the bash-3.2-safe empty-array splice under `set -u`).
+PERM_PROMPTS=()
+claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
+
 DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || true)"
 DEFAULT_BRANCH="${DEFAULT_BRANCH#origin/}"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
@@ -58,22 +77,39 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# run_stage <skill-slug> <disallowed-tools>
 run_stage() {
-  local slug="$1"
+  local slug="$1" deny="$2"
   ( cd "$WORK_DIR" && timeout "${MAX_MINUTES}m" claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns {{MAX_TURNS}} \
     --max-budget-usd {{MAX_BUDGET_USD}} \
     --effort {{EFFORT}} \
     --allowedTools "{{ALLOWED_TOOLS}}" \
+    --disallowedTools "$deny" \
     -p "/${slug}" ) \
     >> "$LOG" 2>&1
 }
 
+# True if origin/<default-branch> gained a Stage B commit for THIS loop since base SHA $1
+# (the loop skill's commit convention is `loop(<slug>): run <date>`). An unrelated concurrent
+# commit does not match, so it is not mistaken for this run's publish.
+stage_b_landed() {
+  git fetch origin "$DEFAULT_BRANCH" -q
+  git log --format=%s "$1..origin/${DEFAULT_BRANCH}" 2>/dev/null | grep -q "loop({{STAGE_B_SLUG}})"
+}
+
+# run_pipeline <base-sha>
 run_pipeline() {
-  run_stage "{{STAGE_A_SLUG}}" || return $?
+  local base="$1"
+  run_stage "{{STAGE_A_SLUG}}" "Skill,Bash(git *),Bash(gh *)" || return $?
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Stage A ({{STAGE_A_SLUG}}) done" >> "$LOG"
-  run_stage "{{STAGE_B_SLUG}}" || return $?
+  if stage_b_landed "$base"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: a loop({{STAGE_B_SLUG}}) commit already landed on origin/${DEFAULT_BRANCH} since ${base} — Stage A escalated into Stage B (deny-list breached?) or a concurrent run published. Skipping Stage B; inspect the log." >> "$LOG"
+    return 0
+  fi
+  run_stage "{{STAGE_B_SLUG}}" "{{DISALLOWED_TOOLS}}" || return $?
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Stage B ({{STAGE_B_SLUG}}) done" >> "$LOG"
 }
 
@@ -90,7 +126,7 @@ while : ; do
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Starting {{SKILL_NAME}} pipeline (attempt $((attempt+1))/$((MAX_RETRIES+1)), max ${MAX_MINUTES}m, worktree ${WORK_DIR} off origin/${DEFAULT_BRANCH})" >> "$LOG"
 
   set +e
-  run_pipeline
+  run_pipeline "$BEFORE"
   RC=$?
   set -e
 

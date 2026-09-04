@@ -28,19 +28,20 @@ is tracked in `harness-manifest.json` and kept current by `/claude-warp-sync`.
 | Capability | Where it lives | Status |
 |---|---|---|
 | Skill auto-loading | `.claude/skills/` | **Native** (v2.1.157) |
-| Subagent fan-out | `Agent` tool, `TaskCreate` | **Native** |
+| Subagent fan-out | `Agent` tool — background by default since v2.1.198; the `TaskCreate`/`TodoWrite` task-tracking tools are off on Sonnet 5 / Opus 5 / Fable since v2.1.233 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` | **Native** |
 | Worktree isolation | `EnterWorktree`, `isolation: "worktree"` | **Native** |
-| Scheduling runtime | `/loop`, `/schedule`, `CronCreate`, `claude --bg` / `claude agents`, `RemoteTrigger` | **Native** |
+| Scheduling runtime | `/loop` (self-paced mode on every provider since v2.1.248; per-loop tokens in `/usage` since v2.1.243), `/schedule`, `CronCreate`, `claude --bg` / `claude agents`, `RemoteTrigger` | **Native** |
 | Until-condition goal runtime | `/goal` — per-turn Stop-hook evaluator on an independent small model | **Native** (v2.1.139) |
-| Interactive planning | `/plan` (plan mode), Ultraplan | **Native** |
+| Interactive planning | `/plan` (plan mode) — Ultraplan was removed in v2.1.222 | **Native** |
 | Independent-unit fan-out with PRs | `/batch` — decompose, approve, one worktree+PR per unit | **Native** |
 | Large-scale scripted orchestration | Dynamic workflows (`ultracode`, `/workflows`) | **Native** (v2.1.154) |
+| Peer agents with a shared, dependency-aware task list | Agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) — interactive-only (a headless `-p` session spawns plain subagents); in-process teammates are not restored by `/resume` | **Native** (experimental) |
 | Local unattended scheduling (Desktop) | Desktop scheduled tasks | **Native** |
 | Event-pushed-into-session triggers | Channels (research preview) | **Native** |
 | Memory / context | `CLAUDE.md`, `/memory` | **Native** |
 | Code review | `/code-review`, `/simplify` | **Native** |
 | **Scheduling guards** | `scripts/guard-<name>.sh` | **Harness** |
-| **External trigger** | `scripts/run-<name>.sh` + crontab snippet | **Harness** — CLI-only/headless; Desktop tasks and Channels above cover it when either applies |
+| **External trigger** | `scripts/run-<name>.sh` + crontab snippet | **Harness** — CLI-only/headless/daemon-free; Desktop tasks and Channels above cover it when either applies, and on Team/Enterprise `claude self-hosted-runner` (v2.1.224) lets a cloud Routine execute on your own machine — daemon-based and cloud-scheduled, so a judgment call recorded, not a supersession |
 | **Cross-run structured state** | `<NAME>_LOG.md` + dedup logic | **Harness** |
 | **Changelog monitor / self-pruner** | `/claude-warp-sync` | **Harness** |
 | **Loop scaffolder** | `/claude-warp-new-loop`, `/claude-warp-new-harness` | **Harness** — routes to `/loop`/`/batch`/workflows first when native fits |
@@ -58,33 +59,50 @@ change), `/batch` (independent-unit fan-out with a PR per unit), and dynamic wor
 orchestration up to 1,000 agents) outright when no harness value — guards, cross-run state,
 budgets, readiness gates, daemon-free triggers — is needed on top.
 
-**Why `/claude-warp-new-harness` isn't superseded by dynamic workflows.** They look similar —
-both fan work across many agents — but a workflow's state lives in the runtime process: "if you
-exit Claude Code while a workflow is running, the next session starts the workflow fresh"
-([docs](https://code.claude.com/docs/en/workflows)). The harness's `features.json` + git-based
-recovery is durable specifically *because* it's a file on disk a fresh agent re-reads — a crash,
-a reboot, or a different machine picking up the queue all resume from it. That is the harness's
-reason to exist even as `/batch` and workflows absorb more of the in-session fan-out case.
+**Why `/claude-warp-new-harness` isn't superseded by dynamic workflows or agent teams.** They look
+similar — all fan work across many agents — but a workflow's state lives with the runtime: a
+completed agent's result is cached and replayed on a resume of *that session*, "the first agent
+whose prompt differs from the previous run … runs again, and so does every agent after it"
+([docs](https://code.claude.com/docs/en/workflows)), leaving with "Exit and stop tasks" ends the
+run, and nothing carries it to another machine. Agent teams (experimental,
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) add a shared, dependency-aware task list that persists
+locally — but teammates are interactive-only (a headless `-p` session spawns plain subagents) and
+`/resume` does not restore in-process teammates. The harness's `features.json` + git-based recovery
+is durable specifically *because* it's a file on disk a fresh agent re-reads — a crash, a reboot, a
+headless cron re-entry, or a different machine picking up the queue all resume from it. That is the
+harness's reason to exist even as `/batch`, workflows and teams absorb more of the in-session
+fan-out case.
 
-**Boundary last verified against Claude Code v2.1.199 (2026-07-03).** `/claude-warp-sync` read every
-release in the window **v2.1.196 → v2.1.199** (full notes, not a keyword grep). No Harness row has
-become fully native; the window mainly deepened background-agent/subagent maturity (subagents now
-background by default, background agents auto-commit/push/open a draft PR from a worktree, agent
-notifications on completion/needs-input) — reinforcing the already-native *Scheduling runtime* and
-*Subagent fan-out* rows without closing *External trigger* (still no daemon-free, OS-level guard
-primitive). One item cuts the other way: v2.1.198 **removed** the native `/agents` wizard ("ask
-Claude to create or manage subagents, or edit `.claude/agents/` directly"), which if anything
-reinforces the case for keeping **Agent scaffolder** (`/claude-warp-new-agent`) as a Harness row
-rather than a candidate for supersession. This line is the source-repo record of the last-scanned
+**Boundary last verified against Claude Code v2.1.261 (2026-09-04).** `/claude-warp-sync` read
+every release in the window **v2.1.200 → v2.1.261** (53 releases; every non-`Fixed` bullet in
+full, `Fixed` bullets grepped for the component keywords), cross-checked against the Claude-Loops
+`3.0.0` integration of the same window, and — new this run — against the installed binary
+(`claude --help`, `claude agents --json --all`, one throwaway `claude --bg` session), because the
+changelog alone had not made anyone notice that `claude --bg` rejects `-p` (v2.1.198), which had
+left the fan-out runner unable to launch a worker. **No Harness row became native.** Reinforced,
+not superseded: *Scheduling runtime* (`/loop` self-paced mode on every provider, v2.1.248; per-loop
+tokens in `/usage`, v2.1.243), *Subagent fan-out* (a `maxTurns`-capped subagent returns output
+marked partial, v2.1.246; nested background results saved in the parent transcript, v2.1.259; the
+one-hour cap on subagent background commands removed, v2.1.260), *Worktree isolation* (a run of
+fixes relaxing isolation refusals for loops, pipelines and heredocs that never touch git). Two
+judgment calls recorded rather than cut: `claude self-hosted-runner` (v2.1.224, Team/Enterprise)
+lets a cloud Routine run on your own machine — daemon-based and cloud-scheduled, so *External
+trigger* stays a Harness row for the daemon-free cron case; agent teams give a dependency-aware
+task list but are experimental, interactive-only and not restored on resume, so *Loop scaffolder*
+(`new-harness`) stays. One item cut the other way again: the startup tip and `/powerup` nudge to
+create custom subagents were removed (v2.1.232), on top of the `/agents` wizard removal
+(v2.1.198) — *Agent scaffolder* stays. Routing boundaries re-checked against
+`claude-warp-sync`'s watchlist: none closed; two nuances landed in `comparison.md` (`/goal` now
+survives a `--resume` and clears itself on an unrecoverable error, v2.1.239 / v2.1.234; workflow
+results replay on a same-session resume). This line is the source-repo record of the last-scanned
 version (the install equivalent is `claude_code.last_sync_version` in `harness-manifest.json`).
 
 **This line tracks `/claude-warp-sync`'s own scan cadence only** — it does not move just because
 the table's content changed. v0.40.0/v0.41.0 (2026-07-07) added the `/goal`, `/plan`, `/batch`,
 dynamic-workflows, Desktop-scheduled-tasks, and Channels rows above from direct research against
-live Claude Code docs, not from a `/claude-warp-sync` run — so the boundary line above still
-correctly reads v2.1.199, and the next actual sync run is what will advance it (see
-`claude-warp-sync`'s new delegation/routing-boundary watchlist, which now also re-checks the six
-routing decisions those two releases introduced).
+live Claude Code docs, not from a `/claude-warp-sync` run; v0.42.0 (2026-09-04) is the first sync
+run to advance it since v2.1.199, and the first to verify the emitted CLI surface against the
+installed binary as well as the changelog.
 
 **The two directions.** ClaudeWarp separates two kinds of thing, and they move in opposite directions:
 
@@ -251,8 +269,21 @@ it and **blocks turn end** until it is `APPROVE` with zero open critical/major f
 ```json
 { "schema": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES | decision_needed",
+  "coverage": "CLEAN | FINDINGS | PARTIAL | VACUOUS",
   "findings": [ { "severity": "critical|major|minor|recommendation", "note": "<what>" } ] }
 ```
+
+**Coverage is a second axis (v0.42.0).** `verdict` is what the review concluded; `coverage` is
+whether anyone actually looked — `CLEAN`/`FINDINGS` ran to completion, `PARTIAL` was cut short (a
+turn or budget cap, a lens that died, a delegated reviewer whose output came back *marked partial*,
+which Claude Code does for a `maxTurns`-capped subagent since v2.1.246), `VACUOUS` reviewed nothing.
+The hook blocks `PARTIAL`/`VACUOUS` even under `APPROVE`, because a clean verdict from a review that
+did not look at everything is precisely the failure Claude-Loops' Pinakes case study documents: a
+14-agent pass lost five agents to a session limit and reported "8 raised, 4 confirmed" as clean, and
+the two findings whose refuters died were the two about runtime behaviour — one of them the only
+real defect ([Session Architecture](https://lucagattoni.github.io/Claude-Loops/37-session-architecture/)).
+The harness QA evaluator now ends every grading with a `coverage:` line and never returns `approved`
+from a `PARTIAL` grading.
 
 Two properties keep it honest rather than theatre. It **fails closed** — a missing or unparseable
 verdict blocks, because *no review* must count as *not approved* (P6 applied to the gate itself). And it

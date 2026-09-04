@@ -71,6 +71,14 @@ Answer these questions:
 - Are any failures systemic (same root cause repeating)?
 - Are handoffs clustered around a specific type of input?
 
+**Removal test (the harness is meant to shrink):**
+- For each guard, checker, or corroboration pass this loop carries, ask: would the last N runs
+  still have passed on the current model with that component removed? A component whose absence
+  would have changed nothing was load-bearing for an older model and is now overhead — propose
+  removing it as one of the improvements below, and name the run evidence. Re-ask at the next
+  model release; the answer is not permanent. (Andrew Ng's removal test, via Claude-Loops
+  [§24 When to Remove Harness](https://lucagattoni.github.io/Claude-Loops/24-harness-patterns/).)
+
 **Concrete improvements (top 3):**
 For each, specify: which phase to edit, what to change, and why.
 Format: `Phase X — <what> — <why>`

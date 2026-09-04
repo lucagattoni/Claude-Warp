@@ -226,6 +226,7 @@ stay separated. The verdict is `.claudewarp/review-result.json` (`review-result.
 {
   "schema": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES | decision_needed",
+  "coverage": "CLEAN | FINDINGS | PARTIAL | VACUOUS",
   "findings": [ { "severity": "critical|major|minor|recommendation", "note": "<what>" } ]
 }
 ```
@@ -233,6 +234,20 @@ stay separated. The verdict is `.claudewarp/review-result.json` (`review-result.
 **Fail-closed:** a missing or unparseable verdict blocks (no review == not approved). Only
 `critical`/`major` findings gate — `minor`/`recommendation` never block (mirrors the contract's
 severity→verdict rider). To pass, produce/refresh an `APPROVE` verdict with zero open critical/major.
+
+**Coverage is a separate axis from the verdict.** `verdict` says what the review concluded;
+`coverage` says whether anyone actually looked: `FINDINGS` (ran to completion, raised findings),
+`CLEAN` (ran to completion, raised none), `PARTIAL` (cut short — a turn/budget cap, a lens that
+died, a delegated reviewer that returned output *marked partial*, which Claude Code does for a
+`maxTurns`-capped subagent since v2.1.246), `VACUOUS` (nothing was reviewed — every reviewer died,
+or the input set was empty). The hook blocks `PARTIAL` and `VACUOUS` **even under `APPROVE`**: a
+clean verdict from a review that did not look at everything is exactly how a 14-agent review pass
+reported "8 raised, 4 confirmed" as a clean result after five of its agents had died on a session
+limit — the two findings that lost their refuters were the two about runtime behaviour, one of them
+the only real defect in the pass (Claude-Loops, [Session Architecture → the finding that actually
+mattered](https://lucagattoni.github.io/Claude-Loops/37-session-architecture/)). A verdict without
+a `coverage` field is tolerated (verdicts written before the field existed), but every ClaudeWarp
+surface that produces one sets it.
 
 ```bash
 #!/usr/bin/env bash
@@ -263,17 +278,23 @@ READ=$(python3 - "$VERDICT_FILE" <<'PY' 2>/dev/null || echo "PARSE_ERROR")
 import json,sys
 d=json.load(open(sys.argv[1]))
 verdict=str(d.get("verdict",""))
+coverage=str(d.get("coverage","")).upper()
 blocking=sum(1 for f in d.get("findings",[])
              if str(f.get("severity","")).lower() in ("critical","major"))
-print(f"{verdict}\t{blocking}")
+print(f"{verdict}\t{blocking}\t{coverage}")
 PY
 
 [ "$READ" = "PARSE_ERROR" ] && block "review verdict at ${VERDICT_FILE} is unparseable"
 VERDICT=$(printf '%s' "$READ" | cut -f1)
 BLOCKING=$(printf '%s' "$READ" | cut -f2)
+COVERAGE=$(printf '%s' "$READ" | cut -f3)
 
 [ "$VERDICT" = "APPROVE" ] || block "verdict is '${VERDICT}', not APPROVE"
 [ "${BLOCKING:-0}" -gt 0 ] && block "${BLOCKING} open critical/major finding(s) unresolved"
+# Coverage axis: a verdict from a review that did not look at everything is not an approval.
+case "$COVERAGE" in
+  PARTIAL|VACUOUS) block "review coverage is ${COVERAGE} — the review was cut short or reviewed nothing; re-run it to completion (CLEAN or FINDINGS) before stopping" ;;
+esac
 exit 0
 ```
 
@@ -370,6 +391,20 @@ cat <<JSON
 JSON
 exit 2
 ```
+
+**Self-protection — the gate must not be editable by the loop it gates.** A hook in `hooks/` and
+its wiring in `.claude/settings.json` live inside the repo the loop edits, so a loop under
+`--permission-mode auto` can, in principle, rewrite its own gate (auto mode blocks transcript
+tampering since v2.1.205; it does not treat a hook script as protected). For an L3 loop, always do
+at least one of:
+- keep `hooks/**` and `.claude/settings.json` out of `intent-gate`'s `SCOPE_GLOBS` — a scope that
+  includes the gate is not a scope;
+- include `hooks/` and `.claude/settings.json` in `destructive-block`'s `<BLOCK_PATTERN>` for `rm`,
+  `mv`, `chmod`, and `git checkout --` / `git restore` on those paths;
+- move the gate out of the repo's reach entirely: wire the same hook from user-scope
+  `~/.claude/settings.json` — the direction Claude Code itself took when it stopped honouring
+  `autoMode` (v2.1.207), `sandbox.ripgrep` (v2.1.232) and `bypassPermissions` (v2.1.257) from
+  project settings (Claude-Loops [§33 Where default-deny actually gets loaded](https://lucagattoni.github.io/Claude-Loops/33-agent-security-hardening/)).
 
 Create the directory and make executable:
 ```bash
@@ -521,9 +556,11 @@ Hook scaffolded ✓
     adjust the BLOCK_PATTERN regex in the script as needed.
   audit-log: all tool calls appended to logs/audit.log asynchronously.
   review-gate: the loop cannot stop until .claudewarp/review-result.json is
-    APPROVE with 0 open critical/major. Fail-closed — no verdict = blocked. A
-    separate review surface (contract critical pass, QA evaluator, converge, or
-    a manual pass) must write the verdict; this hook only enforces it.
+    APPROVE with 0 open critical/major and coverage is not PARTIAL/VACUOUS (a
+    review cut short, or one that reviewed nothing, is not an approval even if
+    it says APPROVE). Fail-closed — no verdict = blocked. A separate review
+    surface (contract critical pass, QA evaluator, converge, or a manual pass)
+    must write the verdict; this hook only enforces it.
   intent-gate: a Write/Edit to a path outside SCOPE_GLOBS is denied before it
     runs — default-deny, not an after-the-fact grading check. Update
     SCOPE_GLOBS in the script when the task's declared scope changes.

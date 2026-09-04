@@ -91,6 +91,12 @@ Derive from it:
   "no new items found in source"); must be checkable by reading a file or exit code,
   not just "looks finished"
 - `ALLOWED_TOOLS` — minimum tool set needed (default: `"Read,Edit,WebFetch"`)
+- `DISALLOWED_TOOLS` — the hard deny-list passed as `--disallowedTools`. It holds even under
+  `--permission-mode auto`, unlike `ALLOWED_TOOLS`, which is pre-approval the auto classifier can
+  expand beyond. Always include the destructive floor
+  `Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)`; for L1/L2
+  also add `Bash(git push*)` (no unattended push below L3); add anything in `DO_NOT` that maps to
+  a tool pattern (e.g. `Edit(src/**)` for "must not write to `src/`").
 - `DO_NOT` — explicit boundaries: paths/systems/operations the loop must never touch
   (e.g. "must not write to `src/`, must not push to main, must not delete files")
   Derive from the goal scope; if the goal says nothing, default to "must not modify files
@@ -156,7 +162,8 @@ chmod +x scripts/guard-<SKILL_SLUG>.sh
 
 If the goal processes a **single context per run** (the common case):
 read `templates/run-headless.sh.tpl` and fill:
-- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`,
+  `{{DISALLOWED_TOOLS}}`
 - `{{EFFORT}}` — default `high`; use `xhigh` for a loop whose failures are reasoning-driven
   (wrong fix, missed edge case) rather than scope-driven — raising effort is the cheaper
   reliability lever, before reaching for an extra checker pass
@@ -164,12 +171,18 @@ read `templates/run-headless.sh.tpl` and fill:
 If the goal processes **many independent items in parallel** (batch migrations,
 multi-file ops, fan-out analyses):
 read `templates/run-fanout.sh.tpl` instead and fill:
-- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`, `{{ALLOWED_TOOLS}}`
+- `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{MAX_TURNS}}`, `{{ALLOWED_TOOLS}}`, `{{DISALLOWED_TOOLS}}`
+  (no `{{MAX_BUDGET_USD}}`: a background session takes no `--max-budget-usd` — the runner pins
+  `--model`/`--effort` and stops stragglers at its deadline instead)
 - `{{TASK_LIST_COMMAND}}` — command that outputs one item per line (e.g. `find src -name "*.py"`)
 - `{{TASK_PROMPT_PREFIX}}` — prompt prefix passed to each agent (e.g. `"Migrate this file to async/await:"`)
 
-The fan-out runner uses `claude --bg --worktree` — each item runs in a background
-agent with an isolated git worktree; no concurrency cap or manual PID management needed.
+The fan-out runner launches one native background session per item (`claude --bg --worktree
+'<task>'`) in an isolated git worktree; no manual worktree or PID management. It polls
+`claude agents --json --all` until every session exits, stops a `blocked` session (waiting on
+a prompt nobody can answer) and any straggler at the deadline, and reports **done = the
+session exited** — the per-item verdict is whatever the loop's skill recorded in the state
+file or on the worker's branch, never inferred by the runner.
 
 If the goal is the **KB Tracker** shape — a noisy **retrieval** stage (external search,
 bulky, parallel-friendly) feeding a sequential **reasoning/write** stage (integrate,
@@ -184,7 +197,9 @@ skills** instead of one, and use the two-stage runner:
 2. Read `templates/run-two-stage.sh.tpl` and fill:
    `{{SKILL_NAME}}`, `{{SKILL_SLUG}}`, `{{STAGE_A_SLUG}}` (`<SKILL_SLUG>-search`),
    `{{STAGE_B_SLUG}}` (`<SKILL_SLUG>-integrate`), `{{MAX_TURNS}}`, `{{MAX_BUDGET_USD}}`,
-   `{{EFFORT}}`, `{{ALLOWED_TOOLS}}`, `{{ARTIFACT_PATH}}`.
+   `{{EFFORT}}`, `{{ALLOWED_TOOLS}}`, `{{DISALLOWED_TOOLS}}` (applied to the integrate stage;
+   the search stage always runs under the fixed deny `Skill,Bash(git *),Bash(gh *)` so it cannot
+   invoke the integrate skill, commit, push, or open a PR from inside itself), `{{ARTIFACT_PATH}}`.
 
 **Simplification vs. the source pattern** (Claude-Loops' own `fetch-loop-news` /
 `integrate-loop-news` pipeline, §3.6.1): this shares one retry loop across both stages
@@ -194,6 +209,17 @@ fresh/complete artifact before re-searching — write that check into the search
 Phase 1, it is not provided by the runner. Always AUTONOMY_LEVEL **L3** (the integrate
 stage publishes unattended) — the runner always runs in a worktree, unlike
 `run-headless.sh.tpl` where `--worktree` is opt-in.
+
+**The search stage cannot escalate into the integrate stage.** A headless session cannot
+tell whether a wrapper or a human launched it, and under `--permission-mode auto` the
+classifier can approve tools `--allowedTools` never listed — the Claude-Loops pipeline this
+shape comes from watched its search stage run the whole integrate stage (KB writes, release,
+push) inside itself, and a strongly-worded prose "stop here" did not prevent the recurrence.
+The runner therefore denies `Skill,Bash(git *),Bash(gh *)` to Stage A by construction, and
+skips Stage B at zero LLM cost when a `loop(<SKILL_SLUG>-integrate)` commit already landed
+on origin since the attempt's base SHA. Keep the prose "stop after writing the artifact" in
+the search skill too (it still matters when someone runs the skill interactively, outside
+the wrapper) — but never rely on it alone.
 
 Make executable:
 ```bash

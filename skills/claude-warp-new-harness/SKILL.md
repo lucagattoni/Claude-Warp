@@ -264,7 +264,7 @@ Create `.claude/agents/<HARNESS_SLUG>-initializer.md`:
 ---
 name: <HARNESS_SLUG>-initializer
 description: Reads the goal and scope, then populates <HARNESS_SLUG>-features.json with a bounded task list
-model: claude-opus-4-8
+model: claude-opus-5
 tools: Read,Glob,Grep,Edit
 ---
 
@@ -316,7 +316,7 @@ Create `.claude/agents/<HARNESS_SLUG>-qa.md`:
 ---
 name: <HARNESS_SLUG>-qa
 description: Evaluates completed tasks against predefined criteria; reports pass/fail with actionable feedback before the next task starts
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 tools: <QA_TOOLS>
 ---
 
@@ -366,6 +366,13 @@ actually a deliberate human-gated decision is a Type-B hold (`needs_context`), s
   ratio." Criteria you ran with a real `cmd:` count; criteria you eyeballed do not lift confidence.
 - **"Unverified" set (R2+).** List every criterion reported `not run` as an explicit **Unverified**
   set in `qa_feedback`, so the harness sees the grading's blind spots, not only its PASS/FAIL calls.
+- **Coverage (all tiers).** End with a `coverage: CLEAN | FINDINGS | PARTIAL | VACUOUS` line. If
+  your grading was cut short — you hit your turn cap, a `cmd:` you needed could not run, or a
+  subagent you delegated to returned output *marked partial* (what Claude Code does for a
+  `maxTurns`-capped subagent since v2.1.246) — it is `PARTIAL`, and a `PARTIAL` grading never
+  yields `approved`: record exactly what was and was not examined in `qa_feedback`, leave the task
+  in its current status, and let the runner surface it. `VACUOUS` means you reviewed nothing (no
+  completed task found, or every check was `not run`) — say so; never round it up to a clean pass.
 
 For each criterion: PASS, FAIL, or NOT RUN with one sentence of evidence.
 If any criterion FAILs at **critical/major** severity: write a `qa_feedback` field on the task in
@@ -487,8 +494,12 @@ Create `scripts/run-<HARNESS_SLUG>.sh`:
 # --with-qa         After each coding agent turn, invoke the QA evaluator agent;
 #                   coding agent re-works the task if QA fails. Auto-enabled and
 #                   non-overridable at risk R2+ (mandatory qualify; constitution P2).
-# --parallel-waves  Run tasks within each wave concurrently using claude --bg --worktree;
-#                   tasks in different waves still run sequentially (dependency order).
+# --parallel-waves  EXPERIMENTAL. Run tasks within each wave concurrently as native background
+#                   sessions (claude --bg --worktree); tasks in different waves still run
+#                   sequentially (dependency order). Workers commit on their own worktree
+#                   branches and are NOT merged back or reconciled into features.json by this
+#                   runner, and a background session takes no --max-budget-usd — see the note
+#                   in run_coding_loop before using it.
 # --converge        After all waves complete, run /claude-warp-converge once to reconcile the
 #                   actual tree against intent; if it appends a convergence wave, run ONE more
 #                   coding loop to close it, then stop (no re-converge). Default OFF.
@@ -540,6 +551,15 @@ REPRO_MODEL="${CLAUDEWARP_QA_MODEL:-sonnet}"
 # progressing). Operator-overridable via CLAUDEWARP_REPEAT_THRESHOLD.
 REPEAT_THRESHOLD="${CLAUDEWARP_REPEAT_THRESHOLD:-2}"
 
+# Fail-closed permissions. `--permission-prompts none` (Claude Code v2.1.259+) denies anything the
+# auto-mode classifier would have asked a human about — nobody is at the terminal. Probed once so an
+# older CLI (which rejects unknown flags) still runs; ${arr[@]+...} is the bash-3.2-safe splice.
+# HARNESS_DENY is the hard deny-list for workers and QA: `--allowedTools` is pre-approval the
+# classifier can expand beyond, `--disallowedTools` holds even under auto mode.
+PERM_PROMPTS=()
+claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
+HARNESS_DENY="Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)"
+
 mkdir -p logs
 LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
@@ -550,6 +570,7 @@ run_initializer() {
   local prompt="${1:-Use the <HARNESS_SLUG>-initializer agent to populate $FEATURES}"
   claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns <MAX_TURNS_INIT> \
     --max-budget-usd 1.00 \
     --effort high \
@@ -578,37 +599,67 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] Wave $wave: $wave_pending tasks..." >> "$LOG"
 
     if [ "$PARALLEL_WAVES" -eq 1 ] && [ "$wave_pending" -gt 1 ]; then
-      # Launch wave tasks in parallel via --bg --worktree
+      # Launch wave tasks in parallel as native background sessions: `claude --bg --worktree '<task>'`.
+      # EXPERIMENTAL — read before relying on it (verified against Claude Code v2.1.261):
+      #   - `--bg` rejects `-p` (since v2.1.198); the task is the positional, placed FIRST so a
+      #     variadic flag cannot swallow it and `--worktree [name]` cannot take it as a name.
+      #   - `--max-budget-usd` only works with `--print`: a background worker has NO dollar cap. Its
+      #     ceilings are --max-turns and the explicit --model/--effort below (omit those and it
+      #     inherits your interactive defaults).
+      #   - Each worker commits on ITS OWN worktree branch (background sessions commit+push,
+      #     v2.1.221) and edits ITS OWN copy of $FEATURES. This runner does not merge those branches
+      #     or reconcile task statuses back into the primary $FEATURES — after the wave, merge the
+      #     worker branches and update statuses by hand, or run without --parallel-waves.
+      #   - A worker that goes `blocked` (waiting on a prompt nobody can answer) is stopped and
+      #     surfaced, never waited on.
       TASK_IDS=$(python3 -c "
 import json
 d=json.load(open('$FEATURES'))
 ids=[str(t['id']) for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('pending','in_progress')]
 print(' '.join(ids))" 2>/dev/null || echo "")
 
+      WORKER_MODEL="${CLAUDEWARP_WORKER_MODEL:-claude-sonnet-5}"
       AGENT_IDS=()
       for tid in $TASK_IDS; do
-        agent_id=$(claude \
-          --permission-mode auto \
-          --max-turns <MAX_TURNS_WORKER> \
-          --max-budget-usd <MAX_BUDGET_USD> \
+        launch_out=$(claude --bg "Read <HARNESS_SLUG>-session-init.md, then execute task id=$tid in $FEATURES" \
+          --worktree \
+          --model "$WORKER_MODEL" \
           --effort high \
-          --allowedTools "Read,Edit,Bash,Glob,Grep" \
-          --bg --worktree \
-          -p "Read <HARNESS_SLUG>-session-init.md, then execute task id=$tid in $FEATURES" \
-          2>/dev/null | grep -o 'agent:[^ ]*' | head -1 || echo "")
-        [ -n "$agent_id" ] && AGENT_IDS+=("$agent_id")
+          --max-turns <MAX_TURNS_WORKER> \
+          --permission-mode auto \
+          --disallowedTools "$HARNESS_DENY" \
+          --allowedTools "Read,Edit,Bash,Glob,Grep" 2>&1) || true
+        # `claude --bg` prints `backgrounded · <8-hex id>`; matched without the `·` glyph (C-locale cron).
+        agent_id=$(printf '%s\n' "$launch_out" | grep -oE 'backgrounded[^0-9a-f]*[0-9a-f]{8}' | grep -oE '[0-9a-f]{8}$' | head -1 || true)
+        if [ -n "$agent_id" ]; then
+          AGENT_IDS+=("$agent_id")
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] wave $wave task $tid → background session $agent_id" >> "$LOG"
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: wave $wave task $tid failed to launch: $launch_out" >> "$LOG"
+        fi
       done
 
-      # Poll until all wave agents finish
-      for agent_id in "${AGENT_IDS[@]}"; do
-        while claude agents --json 2>/dev/null | python3 -c "
+      # Poll `claude agents --json --all` (without --all a finished session vanishes from the list)
+      # until every wave session has exited; stop a blocked one and surface what it waited on.
+      # ${arr[@]+...} keeps an empty AGENT_IDS safe under `set -u` on bash 3.2.
+      for agent_id in ${AGENT_IDS[@]+"${AGENT_IDS[@]}"}; do
+        while : ; do
+          row=$(claude agents --json --all 2>/dev/null | python3 -c "
 import json,sys
 agents=json.load(sys.stdin)
-a=next((a for a in agents if a.get('id')=='$agent_id'),None)
-sys.exit(0 if a and a.get('status') in ('running','pending') else 1)" 2>/dev/null; do
-          sleep 10
+a=next((x for x in agents if x.get('id')=='$agent_id'),None)
+print('missing\t' if a is None else '%s\t%s' % (a.get('state') or a.get('status') or 'unknown', a.get('waitingFor') or ''))" 2>/dev/null || printf 'missing\t\n')
+          case "${row%%	*}" in
+            done|missing) break ;;
+            blocked)
+              claude stop "$agent_id" >/dev/null 2>&1 || true
+              echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: background session $agent_id blocked (waiting on: ${row#*	}) — stopped; its task stays pending." >> "$LOG"
+              break ;;
+            *) sleep 10 ;;
+          esac
         done
       done
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] wave $wave background sessions exited — merge their worktree branches and reconcile $FEATURES before the next wave (see the --parallel-waves note above)." >> "$LOG"
     else
       # Sequential fallback (wave has 1 task, or --parallel-waves not set)
       while [ "$iter" -lt "$max_iter" ]; do
@@ -621,10 +672,12 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
 
         claude \
           --permission-mode auto \
+          ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
           --max-turns <MAX_TURNS_WORKER> \
           --max-budget-usd <MAX_BUDGET_USD> \
           --effort high \
           --allowedTools "Read,Edit,Bash,Glob,Grep" \
+          --disallowedTools "$HARNESS_DENY" \
           -p "Read <HARNESS_SLUG>-session-init.md, then execute the next pending task in wave $wave of $FEATURES" \
           >> "$LOG" 2>&1
 
@@ -632,8 +685,10 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
           echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-1]..." >> "$LOG"
           claude \
             --permission-mode auto \
+            ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
             --max-turns 10 \
             --effort high \
+            --disallowedTools "$HARNESS_DENY" \
             -p "Use the <HARNESS_SLUG>-qa agent to evaluate the most recently completed task in $FEATURES. You are pass-1 — tag your findings and verdict [pass-1 / <your model>]." \
             >> "$LOG" 2>&1
 
@@ -645,8 +700,10 @@ print(len([t for t in d['tasks'] if t.get('wave',1)==$wave and t['status'] in ('
             echo "[$(date '+%Y-%m-%d %H:%M %Z')] QA evaluator [pass-2 / $REPRO_MODEL] — reproduction-required corroboration..." >> "$LOG"
             if ! claude \
                 --permission-mode auto \
+                ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
                 --max-turns 10 \
                 --effort high \
+                --disallowedTools "$HARNESS_DENY" \
                 ${REPRO_MODEL:+--model "$REPRO_MODEL"} \
                 -p "Use the <HARNESS_SLUG>-qa agent as the REPRODUCTION PASS (pass-2) for the most recently completed task in $FEATURES. Re-derive findings independently from the artifact + repo, reasoning-blind — do NOT trust pass-1's writeup. A pass-1 blocking finding reverts the task only if you reproduce it; if you cannot, downgrade it to a recorded non-blocking minor. A PASS is 'approved (corroborated)' only if you also pass; tag every finding and the verdict [pass-2 / $REPRO_MODEL]." \
                 >> "$LOG" 2>&1; then
@@ -729,6 +786,7 @@ diagnose_stall() {
   local stuck="$1" verdict
   verdict=$(claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns 4 \
     --max-budget-usd 0.25 \
     --effort high \
@@ -850,6 +908,7 @@ if [ "$CONVERGE" -eq 1 ]; then
 
   claude \
     --permission-mode auto \
+    ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns 20 \
     --effort high \
     --allowedTools "Read,Glob,Grep,Bash,Edit" \

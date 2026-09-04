@@ -74,7 +74,9 @@ independent small-model evaluator judges the done-condition, so completion is no
 the working agent. The scaffold adds what `/goal` alone lacks — the GOAL.md state file, the G0–G3
 gate before anything runs, hard `--max-turns`/`--max-budget-usd` caps, and guardrails. When the
 user is present and none of that is needed, the skill says "just use `/goal`" and stops. A legacy
-self-judged prompt variant is generated on Claude Code < 2.1.139 or when hooks are disabled.
+self-judged prompt variant is generated on Claude Code < 2.1.139 or when hooks are disabled. The
+runner passes `--permission-prompts none` (v2.1.259+, probed) so an unattended run denies — rather
+than hangs on — anything the auto-mode classifier would have asked a human about.
 
 **Files created:**
 
@@ -118,7 +120,7 @@ cleanup maintenance prompt in-session.
 |---|---|
 | `.claude/skills/<slug>/SKILL.md` | Loop procedure with phases: guard → state → work → verify → write → stop |
 | `scripts/guard-<slug>.sh` | Prevents double-runs (once per day / weekdays only) |
-| `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, uses `claude --bg --worktree`) based on goal shape |
+| `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, one `claude --bg --worktree` session per item) based on goal shape |
 | `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
@@ -165,6 +167,34 @@ stubbed `claude` binary. Sourced from the ClaudeLoops `2.6.0` sync (§3.6.1 / Lo
 Catalog — "Knowledge-Base Tracker Loop", the pattern documenting Claude-Loops' own
 `fetch-loop-news`/`integrate-loop-news` pipeline).
 
+**Fail-closed headless runs (v0.42.0).** Every `claude -p` the loop runners launch passes
+`--permission-prompts none` (Claude Code v2.1.259+, probed at runtime and omitted on older CLIs):
+anything the auto-mode classifier would have asked a human about is denied — not waited on, not
+waved through. Each runner also carries a `--disallowedTools` hard deny filled from the derived
+`DISALLOWED_TOOLS` (a destructive floor, plus `git push` below L3), because `--allowedTools` is a
+pre-approval list the classifier can expand beyond, not a deny-list. The two-stage runner's search
+stage additionally denies `Skill`, `Bash(git *)` and `Bash(gh *)` so it cannot run the integrate
+stage inside itself — the failure Claude-Loops' own pipeline hit twice in production, which prose
+did not fix and a deny-list did — and the wrapper skips the integrate stage at zero LLM cost when
+its `loop(<slug>-integrate)` commit already landed on origin. Sourced from the Claude-Loops `3.0.0`
+sync (docs/09 Headless Mode — "a skill can't tell interactive from headless invocation") and the
+Claude Code v2.1.200 → v2.1.261 changelog scan. See [Deployment → Fail-closed by
+construction](../guides/deployment.md#fail-closed-by-construction).
+
+**Fan-out runner rebuilt against the current CLI (v0.42.0).** `run-fanout.sh.tpl` combined
+`--bg` with `-p`, which Claude Code has rejected up front since v2.1.198 (before that the pair
+silently created an unattachable session), grepped for a full UUID where `claude --bg` prints
+`backgrounded · <8-hex id>`, and polled `claude agents --json` without `--all` on a status
+vocabulary the CLI never emits — so no worker could launch, and had one launched, its finishing
+would have been counted as a failure. Rebuilt and scripted-tested against a stub emitting the real
+v2.1.261 shapes: positional task first, short-id capture, `--all` polling on `state`
+(`working | blocked | done`), a `blocked` session (waiting on a prompt nobody can answer) is
+stopped and surfaced, stragglers are stopped at the deadline instead of left billing, and "done" is
+reported as *session exited* — never as a pass. Because `--max-budget-usd` and
+`--permission-prompts` are print-only, the runner pins `--model` (`CLAUDEWARP_FANOUT_MODEL`,
+default `claude-sonnet-5`) and `--effort` — a background session otherwise inherits your
+interactive defaults — and documents that the deadline is the cost ceiling.
+
 Install path: `skills/claude-warp-new-loop/SKILL.md`
 
 ---
@@ -196,7 +226,7 @@ reboot, or a different machine resuming the queue.
 | `VISION.md` | High-level goal and success criteria (anchor file) |
 | `AGENTS.md` | Role definitions and handoff protocol (anchor file) |
 | `PROMPT.md` | Current work unit — edit to re-task without changing rules (anchor file) |
-| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall |
+| `scripts/run-<slug>.sh` | Runner: initializer once, then coding agent loop until all tasks done; `--retry` triggers Inner/Outer Dual Loop on stall; `--parallel-waves` (experimental) runs a wave's tasks as native background sessions — workers land on their own worktree branches and are not merged back or reconciled into `features.json` by the runner |
 
 **Decomposition approval gate.** Between the initializer and the coding loop, the runner can pause for the operator to review the proposed task breakdown before any budget is spent executing it. It is **required at R2+** (the same threshold that makes QA non-overridable) and **opt-in below** via `--approve-plan`. When the gate fires, the runner prints the breakdown (wave / id / title / `depends_on`) and **stops with exit 0** — no coding work runs — until you re-run with `--plan-approved` (or `CLAUDEWARP_PLAN_APPROVED=1`). Because `features.json` persists, the approved re-run skips the initializer and proceeds straight to execution. The gate is non-interactive by design, so a scheduled/unattended harness never executes an unreviewed decomposition. (It fires on the initial decomposition only, not on a `--retry` re-init, which is an explicit autonomous stall-recovery mode you've already opted into.)
 
@@ -303,7 +333,12 @@ Scaffolds a specialized subagent definition for use inside loops and harnesses.
 
 **Derives from the role:**
 - `AGENT_NAME` — kebab-case identifier
-- `AGENT_MODEL` — Opus 4.8 for deep analysis; Sonnet 4.6 for routine work; Haiku 4.5 for fast lookups
+- `AGENT_MODEL` — Sonnet 5 for routine review and implementation; Opus 5 for judge/adjudicator
+  and deep security passes; Haiku 4.5 for fast lookups (lineup as of Claude Code v2.1.261).
+  Always written: since v2.1.251 a definition's `model:` outranks `CLAUDE_CODE_SUBAGENT_MODEL`
+  (default-only now); `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257) is the only override above
+  it; `/tasks` shows what each subagent actually ran on (v2.1.243). Optional
+  `experimental.cacheTtl` (v2.1.248) for an agent re-invoked over an hour.
 - `AGENT_TOOLS` — minimum tool set for the role
 - `AGENT_PERSONA` — expertise, focus, output format, and constraints
 
@@ -342,7 +377,7 @@ command/path-glob denial, `audit-log`/`security-scan`'s no-LLM-round-trip requir
 | `subagent-chain` | `SubagentStop` | Triggers follow-on work when a background agent finishes |
 | `security-scan` | `PostToolUse` | Flags secrets / git-safety bypasses / broad destructive patterns to `logs/security-scan.log` (async) |
 | `evidence-gate` | `PreToolUse` | Blocks a `Write`/`Edit` to a state file when no prior `Read` of it was recorded |
-| `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings (fail-closed: missing/unparseable verdict blocks). Separates *review* (produces the verdict) from *enforcement* (this hook) |
+| `review-gate` | `Stop` | Blocks turn end until `.claudewarp/review-result.json` is `APPROVE` with 0 open critical/major findings **and** its `coverage` is not `PARTIAL`/`VACUOUS` (v0.42.0: a review cut short, or one that reviewed nothing, is not an approval even under `APPROVE`). Fail-closed: missing/unparseable verdict blocks. Separates *review* (produces the verdict) from *enforcement* (this hook) |
 | `kill-switch` | `PreToolUse` | Blocks all tool calls while an `AGENT_STOP` file exists — operator mid-run halt |
 | `steer` | `UserPromptSubmit` | Injects `STEER.md` once as context, then clears the file |
 | `intent-gate` (v0.39.0) | `PreToolUse` | Denies a `Write`/`Edit` whose target path matches none of the declared `SCOPE_GLOBS` — default-deny, mechanically enforcing a harness task's negative scope (`must_not_change`) *before* the write happens, rather than only detecting it after via `git diff` |
@@ -355,6 +390,12 @@ command/path-glob denial, `audit-log`/`security-scan`'s no-LLM-round-trip requir
 | `.claude/settings.json` | Updated with the new hook entry (appended, not replaced) |
 
 **Safety:** exit code 2 blocks; exit 1 is a non-blocking warning that accidentally permits the denied action. All deny logic must be wrapped so unhandled errors exit 2.
+
+**Self-protection (v0.42.0):** a gate inside the repo the loop edits is a gate the loop can rewrite.
+For an L3 loop, `intent-gate` never grants `hooks/**` or `.claude/settings.json`, `destructive-block`
+denies `rm`/`mv`/`chmod`/`git checkout --` on them, or the hook is wired from user-scope
+`~/.claude/settings.json` — out of the repo's reach, the direction Claude Code itself took for
+`autoMode` / `sandbox.ripgrep` / `bypassPermissions` in v2.1.207 / v2.1.232 / v2.1.257.
 
 Install path: `skills/claude-warp-new-hook/SKILL.md`
 
@@ -392,7 +433,12 @@ does not modify any loop/goal files (RETRO.md is the only output).
    not a run series
 2. Reads git log for run commits and fix commits in the past 30 days
 3. Scans last 10 dated sections for verdict distribution and recurring failures
-4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts
+4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts — and applies the
+   **removal test** (v0.42.0): which guard, checker, or corroboration pass would the last N runs
+   still have passed without on the current model? A component whose absence changes nothing is
+   proposed for removal with the run evidence, re-asked at the next model release (Andrew Ng's
+   removal test, via Claude-Loops §24 "When to Remove Harness" — the retro-side complement to
+   `/claude-warp-sync`'s native-supersession pruning)
 5. Appends a dated entry to `RETRO.md` with top 3 concrete improvements
 6. Records the retrospective as a `converged` event in the cross-session ledger (see
    `/claude-warp-ledger`) so it is queryable across sessions

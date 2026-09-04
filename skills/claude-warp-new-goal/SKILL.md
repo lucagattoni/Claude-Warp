@@ -147,8 +147,15 @@ mkdir -p logs
 
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Goal start: <GOAL_NAME>" | tee -a "$LOG"
 
+# Fail-closed: `--permission-prompts none` (Claude Code v2.1.259+) denies anything the auto-mode
+# classifier would have asked a human about — nobody is at the terminal. Probed once so an
+# older CLI (which rejects unknown flags) still runs; ${arr[@]+...} is the bash-3.2-safe splice.
+PERM_PROMPTS=()
+claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
+
 claude \
   --permission-mode auto \
+  ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
   --max-turns <MAX_TURNS> \
   --max-budget-usd <MAX_BUDGET_USD> \
   --effort high \
