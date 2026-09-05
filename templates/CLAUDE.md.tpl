@@ -15,8 +15,9 @@ that prompt Claude autonomously — not one-shot prompts.
 
 The conceptual foundation — paradigms, building blocks, failure modes, verification
 patterns — is documented in [Claude-Loops](https://lucagattoni.github.io/Claude-Loops/).
-When designing a new loop, consult `docs/failure-patterns.md` and `docs/building-blocks.md`
-there before writing the SKILL.md.
+When designing a new loop, consult its [Common Failure
+Patterns](https://lucagattoni.github.io/Claude-Loops/17-failure-patterns/) and [Building
+Blocks](https://lucagattoni.github.io/Claude-Loops/03-building-blocks/) before writing the SKILL.md.
 
 **Skills available** (invoke with `/skill-name`):
 - `/claude-warp-contract "goal"` — **start here**: the single adaptive entry — specify a plan, auto-route to its shape (single-shot/loop/harness), hand off to the scaffolder; scales questions to complexity
@@ -49,7 +50,8 @@ there before writing the SKILL.md.
 ## Scheduling
 
 External trigger (cron/launchd) → `scripts/run-<name>.sh` → `claude -p "/<name>"`.
-See `templates/trigger.crontab.tpl` and `docs/guides/scheduling.md` for setup instructions.
+See `.claudewarp/templates/trigger.crontab.tpl` (installed in this project) and the [scheduling
+guide](https://lucagattoni.github.io/Claude-Warp/guides/scheduling/) for setup instructions.
 
 ## Escalation rules
 

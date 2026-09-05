@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.44.1] — 2026-09-05 13:37 UTC
+
+`/claude-warp-inventory`, run for the first time against a real install, found two defects — both in
+fixes shipped hours earlier in v0.43.0 and v0.44.0. The skill designed to catch a broken install
+caught one, on its first outing.
+
+### Fixed
+- **v0.44.0 installed the runtime scripts and never tracked them.** `install.sh` copies
+  `scripts/check-ai-residuals.sh` and `scripts/ledger.sh` into the project, but
+  `/claude-warp-setup`'s `git add` did not include them, so they stayed untracked. Measured on a
+  live install: `git status` showed `?? scripts/`, and a fresh clone of that project contained
+  **13 templates and 0 scripts** — meaning the honesty gate the harness workers are told to run, and
+  the ledger `/claude-warp-ledger` wraps, work only for the person who ran `install.sh` and are
+  missing for every teammate. Setup now tracks `.claudewarp/templates/` and both scripts.
+- **The emitted `CLAUDE.md` pointed at paths no install has.** It referenced
+  `templates/trigger.crontab.tpl` (templates moved to `.claudewarp/templates/` in v0.43.0) and
+  `docs/guides/scheduling.md`, `docs/failure-patterns.md`, `docs/building-blocks.md` — the source
+  repo's mkdocs tree, never installed. Now points at the installed template path and at the
+  published documentation URLs.
+
+### Added
+- **check 11 extended twice.** It now reconstructs setup's actual `git add` command (joining
+  backslash continuations) and asserts the templates and both runtime scripts appear in it —
+  installing an artifact is not enough if nothing commits it. And every `` `docs/…` ``/`` `templates/…` ``
+  path in `CLAUDE.md.tpl` must exist in an install or be a URL. Mutation-tested three ways.
+
+**Method note.** The first version of the tracking assertion matched line patterns and failed on the
+unmutated tree, because the paths sit on a continuation line of the `git add` command. It now
+reconstructs the command itself. That is the fifth assertion in this repo caught by running it
+rather than reading it.
+
+**What the dogfood validated:** the ledger worked in an installed project for the **first time**
+(record + query + valid JSONL, UTC timestamps) — v0.44.0's fix confirmed end to end; and
+`/claude-warp-release`, run against this repo at a just-released state, correctly returned **BLOCK**
+on M1 (`VERSION` equals the last tag) and M4 (`v0.44.0` already exists), verified at the artifact
+level (tag → `HEAD`, GitHub release `isDraft: false`) rather than from run status, ran both evidence
+checks, refused to print the release commands, and wrote nothing.
+
 ## [0.44.0] — 2026-09-05 12:56 UTC
 
 Second live dogfood, this time of the **harness** — the most complex artifact in the repo and, until
