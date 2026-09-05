@@ -7,6 +7,10 @@
 #   scripts/dev.sh unhost          Remove the self-host symlinks.
 #   scripts/dev.sh verify          Deterministic checks: source integrity + the install copy
 #                                  contract + setup/manifest placeholder fill. No tokens, no LLM.
+#   scripts/dev.sh portability     Fill the runner templates and EXECUTE them against stub binaries,
+#                                  asserting observed exit codes. Add --docker to also run the same
+#                                  suite inside debian (bash 5.x + real `timeout`, with and without
+#                                  python3). No tokens, no auth, no network beyond the image pull.
 #   scripts/dev.sh verify --live   Also run the REAL /claude-warp-setup (claude -p) into a
 #                                  throwaway repo for full fidelity. Costs tokens; needs auth.
 #
@@ -16,7 +20,10 @@
 #     the shared executables (verifier-lib.sh, ledger.sh) pass their own --self-test; the plugin
 #     manifest version (.claude-plugin/plugin.json) tracks VERSION.
 #   - Does NOT cover: the actual LLM behaviour of /claude-warp-setup. That is non-deterministic
-#     and only exercised by `verify --live`.
+#     and only exercised by `verify --live`. It also does not cover how a FILLED runner behaves in a
+#     different OS — `verify` check 10 executes one on this host only. `scripts/dev.sh portability
+#     --docker` is what covers the environment-dependent branches (timeout present vs absent,
+#     python3 present vs absent), and it found no defects when first run across macOS and debian.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -521,5 +528,6 @@ case "${1:-}" in
   selfhost) selfhost ;;
   unhost)   unhost ;;
   verify)   shift; verify "${1:-}" ;;
-  *) echo "Usage: scripts/dev.sh {selfhost|unhost|verify [--live]}" >&2; exit 2 ;;
+  portability) shift; exec bash "$REPO_ROOT/tests/portability/run.sh" "${1:-}" ;;
+  *) echo "Usage: scripts/dev.sh {selfhost|unhost|verify [--live]|portability [--docker]}" >&2; exit 2 ;;
 esac

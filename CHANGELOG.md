@@ -7,6 +7,46 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.45.0] — 2026-09-05 16:44 UTC
+
+Closes the last environment gap on the adversarial review's UNVERIFIED list: *"darwin only — no Linux
+or container run; the cron-minimal-PATH cases were simulated with `env -i`, not by an actual job."*
+**No defects found — the runners are portable.** The gap was that nobody had checked.
+
+### Added
+- **`scripts/dev.sh portability [--docker]` and `tests/portability/run.sh`.** Fills the runner
+  templates and **executes** them against stub `claude` binaries, asserting observed exit codes:
+  missing binary → 127; unresolved slash command → 4; budget exhaustion → 6 after **exactly one**
+  attempt; `CLAUDE_BIN` outranking a planted native install; the fan-out counting *and launching* an
+  unterminated final task; the guard reopening the day after a `handoff`. The wall-clock cap must be
+  either enforced or **loudly declared unenforced** — never silently absent.
+  `--docker` runs the same file inside debian, with and without `python3`.
+
+  Results across three environments, every one green, with the environment-dependent branches
+  correctly taking *different* paths in each:
+
+  | Environment | bash | `timeout` | `python3` | Result |
+  |---|---|---|---|---|
+  | macOS (host) | 5.3 | absent → NOTIFY fires | present | **10/10** |
+  | debian container | 5.2 | present → no NOTIFY | present | **10/10** |
+  | debian container | 5.2 | present | absent → fan-out FATALs 127 | **9/9** |
+
+  Mutation-tested against five real regressions from this release train; it kills four. The survivor
+  is deliberate: removing the skill-presence preflight is still caught by the second unknown-command
+  guard, which is defence in depth working, not a hole.
+
+### Changed
+- `dev.sh`'s own coverage note now states plainly what `verify` does **not** cover — it executes a
+  filled runner on the host only; the environment-dependent branches are `portability --docker`'s job.
+
+**Method note.** Three of this suite's first results were false alarms caused by the test, not the
+product: a "missing claude" case whose stub was still reachable via the runner's own `$HOME/.local/bin`
+prepend, and two fan-out assertions run in a container with no `python3` (where FATAL-127 is the
+correct behaviour). Two of the first mutation attempts were also wrong — one anchored on text that had
+since changed, one removed a line in a way that made `CLAUDE_BIN` win trivially instead of restoring
+the v0.42.2 ordering bug. Every one was found by looking at the actual output rather than trusting the
+verdict. That is now the seventh instance this session of the instrument being the faulty part.
+
 ## [0.44.1] — 2026-09-05 13:37 UTC
 
 `/claude-warp-inventory`, run for the first time against a real install, found two defects — both in
