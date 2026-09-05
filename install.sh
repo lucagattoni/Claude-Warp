@@ -37,6 +37,18 @@ cp -r "$WARP_ROOT/skills/." "$TARGET/.claudewarp-skills/"
 # /claude-warp-update and /claude-warp-inventory then report that fabricated number as installed.
 cp "$WARP_ROOT/VERSION" "$TARGET/.claudewarp-version"
 
+# Runtime scripts the EMITTED instructions depend on. These are not dev tooling: the honesty rules
+# injected into every harness worker mandate `scripts/check-ai-residuals.sh` (documented as blocking
+# at R2+), and /claude-warp-ledger is a thin wrapper over `scripts/ledger.sh` while
+# /claude-warp-retro records to it. Neither reached an install before v0.44.0, so a live harness
+# worker honestly reported the residual scan as `not run` and the ledger silently never worked.
+# (dev.sh and verifier-lib.sh are deliberately NOT installed — they are source-repo tooling.)
+mkdir -p "$TARGET/scripts"
+for s in check-ai-residuals.sh ledger.sh; do
+  cp "$WARP_ROOT/scripts/$s" "$TARGET/scripts/$s"
+  chmod +x "$TARGET/scripts/$s"
+done
+
 # 3. Run claude-warp-setup autonomously
 echo "Running /claude-warp-setup in $TARGET ..."
 echo ""

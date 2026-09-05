@@ -41,6 +41,30 @@ entire reason to use ClaudeWarp rather than hand-writing a script — the binary
 fail-closed permission flags and deny-lists, the unknown-command guard, the safe-to-retry logic. A
 plausible-looking runner written from scratch has none of it and looks identical to one that does.
 
+## Phase 0 — Contract input (optional)
+
+`/claude-warp-contract` hands off with `/claude-warp-new-harness "<name>" --contract contract.yaml`
+(its Phase 10). Until v0.43.1 this skill had no Phase 0 and parsed `$ARGUMENTS` only as prose, so
+that handoff was silently ignored: the negotiated risk, budget, scope, stop-check and guardrails
+were all dropped, and the literal `--contract contract.yaml` text leaked into the derived goal.
+`new-loop` and `new-goal` have always honoured it; this skill now does too.
+
+If `$ARGUMENTS` contains `--contract <file>`, read that `contract.yaml` and map its fields instead
+of deriving them — it is already negotiated, risk-classified and readiness-checked:
+
+| Contract field | Harness parameter |
+|---|---|
+| `name` / `slug` | `HARNESS_NAME` / `HARNESS_SLUG` |
+| `goal` / `objective` | `HARNESS_GOAL` |
+| `scope.may_touch` | `SCOPE` |
+| `scope.must_not_touch` | each task's `must_not_change` |
+| `budget.max_budget_usd`, `budget.max_turns` | `MAX_BUDGET_USD`, `MAX_TURNS_WORKER` |
+| `stop.check` / `verifier` | `VERIFICATION_CMD` |
+| `risk` | **`RISK`** — the tier that decides whether QA and the approval gate are mandatory |
+
+Strip `--contract <file>` from `$ARGUMENTS` before using the remainder as the goal text. When a
+contract is supplied, skip the corresponding Phase 1 derivations and go straight to Phase 2.
+
 ## Phase 1 — Understand the goal
 
 Parse `$ARGUMENTS` as a plain-English goal.
@@ -53,9 +77,23 @@ Derive:
 - `MAX_TURNS_WORKER` — turns per task unit for the coding agent (default 30)
 - `MAX_BUDGET_USD` — hard cost cap per full harness run (default 5.00)
 - `VERIFICATION_CMD` — the command that confirms a task unit is done
+- `RISK` — the risk tier `R0`–`R5`. **Derive it explicitly; never leave it to chance.** It is not
+  cosmetic: the runner branches on it in three places, and at `R2+` the QA evaluator and the
+  decomposition approval gate become mandatory and non-overridable. Until v0.43.1 no phase derived
+  it at all, so the scaffolding agent inferred a plausible tier — a live run picked `R1`, which
+  silently left both gates off. Classify from blast radius:
+  - `R0`/`R1` — a scratch or throwaway tree, or output nothing downstream consumes.
+  - `R2` — writes source or docs a human will review and merge (the common case).
+  - `R3` — touches production paths, CI config, or anything that ships without further review.
+  - `R4`/`R5` — pushes unattended, mutates production data, or handles credentials.
+
+  **When the tier is genuinely unclear, use `R2`** and say so in the report. `R2` is the fail-closed
+  choice: it turns the independent verifier and the approval gate *on*. Guessing low turns off two
+  gates the docs describe as mandatory, and nothing downstream reveals that it happened.
   (e.g. `npm test`, `pytest`, `cargo test`; or "none — human review required")
 
-Get local time:
+- `LOCAL_TIMESTAMP` — the local time, read from the clock (never composed):
+
 ```bash
 date '+%Y-%m-%d %H:%M %Z'
 ```
