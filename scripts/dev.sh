@@ -60,7 +60,7 @@ note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
 
 check_source_integrity() {
-  echo "[1/10] Source integrity — every skill is well-formed"
+  echo "[1/11] Source integrity — every skill is well-formed"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -74,7 +74,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/10] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/11] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -84,7 +84,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/10] Copy contract — the documented loop lands every skill"
+  echo "[3/11] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -106,7 +106,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/10] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/11] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -134,7 +134,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/10] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/11] Docs coherence — every skill has a section in reference/skills.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
@@ -144,7 +144,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/10] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/11] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -171,7 +171,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/10] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/11] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
@@ -190,7 +190,7 @@ check_claim_count_coherence() {
 }
 
 check_plugin_version_coherence() {
-  echo "[8/10] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/11] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -228,7 +228,7 @@ verify_live() {
 }
 
 check_scheduled_env_preflight() {
-  echo "[9/10] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  echo "[9/11] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
   # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
@@ -279,7 +279,7 @@ check_scheduled_env_preflight() {
 }
 
 check_runner_execution() {
-  echo "[10/10] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
+  echo "[10/11] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
   # Checks 1-9 read source text. Three of their assertions were defeated live by whitespace, quotes
   # and a name prefix while still printing VERIFY PASSED, and two real behaviour bugs (CLAUDE_BIN
   # being outranked by a native install; the fan-out dropping an unterminated last line) were
@@ -330,7 +330,35 @@ check_runner_execution() {
   [ "$rc" -ne 0 ] && note_ok "'Unknown command' + CLI exit 0 is not reported as success (executed)" \
                   || note_fail "runner reported success on an unresolved slash command"
 
-  # (d) Fan-out must not drop a final line with no trailing newline — the v0.42.0 bug.
+  # (d) Budget exhaustion must not be retried — it is a cap, like a timeout, and each retry gets a
+  # fresh cap. Observed live: a $0.25 loop burned all three attempts to fail identically.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  local attempts; attempts=$(grep -c 'Starting probe' "$repo"/logs/*.log 2>/dev/null || echo 0)
+  if [ "$rc" -eq 6 ] && [ "$attempts" = "1" ]; then
+    note_ok "budget exhaustion fails fast without retrying (exit 6, 1 attempt)"
+  else
+    note_fail "budget exhaustion: expected exit 6 after 1 attempt, got exit $rc after $attempts attempt(s)"
+  fi
+
+  # (e) A run that did NOT complete must not consume the day. Observed live: a handoff wrote its
+  # dated section and the guard then blocked the retry for the rest of the day.
+  local gsh="$repo/scripts/guard-probe.sh"
+  sed -e "s|{{SKILL_NAME}}|probe|g" -e "s|{{STATE_FILE}}|PROBE_LOG.md|g" templates/guard.sh.tpl > "$gsh"
+  local today; today="$(date '+%Y-%m-%d')"
+  local gv gwant grc gfail=0
+  for gv in pass:1 skip:1 handoff:0 fail:0 timeout:0; do
+    gwant="${gv##*:}"; gv="${gv%%:*}"
+    printf '# probe\n\n<!-- state:\nlast_run: %s 10:00 UTC\nlast_verdict: %s\n-->\n\n## %s — %s\n' \
+      "$today" "$gv" "$today" "$gv" > "$repo/PROBE_LOG.md"
+    grc=0; ( cd "$repo" && bash scripts/guard-probe.sh >/dev/null 2>&1 ) || grc=$?
+    [ "$grc" = "$gwant" ] || { note_fail "guard: verdict '$gv' gave exit $grc, expected $gwant"; gfail=1; }
+  done
+  [ "$gfail" -eq 0 ] && note_ok "guard blocks only a completed day (pass/skip); handoff/fail/timeout may retry"
+
+  # (f) Fan-out must not drop a final line with no trailing newline — the v0.42.0 bug.
   printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; agents) echo "[]";; --bg) echo "backgrounded · deadbeef";; stop) :;; esac\n' > "$alt/claude"
   sed -e "s|{{SKILL_NAME}}|probe|g" -e "s|{{SKILL_SLUG}}|fan|g" -e "s|{{MAX_TURNS}}|3|g" \
       -e "s|{{ALLOWED_TOOLS}}|Read|g" -e "s|{{DISALLOWED_TOOLS}}|Bash(rm -rf *)|g" \
@@ -353,6 +381,52 @@ check_runner_execution() {
   rm -rf "$tmp"
 }
 
+check_install_completeness() {
+  echo "[11/11] Install completeness — every template a scaffolder reads survives an install"
+  # checks 3-4 verify that SKILLS land and that the two SETUP-filled templates are fillable. Nothing
+  # verified that the templates the SCAFFOLDERS read are present in an installed project — and they
+  # were not: install.sh deletes .claudewarp-templates/, so a real install had no templates at all
+  # and /claude-warp-new-loop improvised a runner with none of the shipped hardening. The source repo
+  # cannot see this because templates/ sits at its own root.
+  local tmp; tmp="$(mktemp -d)"
+  # Replicate the documented install: stage, run the setup COPY steps, clean up staging.
+  mkdir -p "$tmp/.claudewarp-templates" "$tmp/.claudewarp-skills"
+  cp -r templates/. "$tmp/.claudewarp-templates/"
+  cp -r skills/. "$tmp/.claudewarp-skills/"
+  # …the durable template install claude-warp-setup is responsible for:
+  mkdir -p "$tmp/.claudewarp/templates"
+  cp "$tmp/.claudewarp-templates"/*.tpl "$tmp/.claudewarp/templates/" 2>/dev/null || true
+  rm -rf "$tmp/.claudewarp-templates" "$tmp/.claudewarp-skills"   # install.sh's cleanup
+
+  # Every templates/<x>.tpl any skill tells an agent to read must resolve in that install.
+  local missing=0 refs
+  refs="$(grep -rhoE '`?templates/[A-Za-z0-9_.-]+\.tpl' skills/*/SKILL.md \
+          | sed 's/^`//' | sed 's|^templates/||' | sort -u)"
+  local t
+  for t in $refs; do
+    [ -f "$tmp/.claudewarp/templates/$t" ] || { note_fail "install has no $t — a scaffolder that reads it would improvise"; missing=$((missing+1)); }
+  done
+  local n; n="$(printf '%s\n' "$refs" | grep -c . || true)"
+  [ "$missing" -eq 0 ] && note_ok "all $n scaffolder-referenced templates present after a simulated install"
+
+  # The simulation above is fiction unless SETUP is actually instructed to perform that copy, so
+  # assert the instruction itself — a glob copy of every .tpl into .claudewarp/templates/. Asserting
+  # only that the string ".claudewarp/templates" appears somewhere is not enough: it appears in the
+  # explanatory prose too, so the check passed while the copy step was mutated away.
+  grep -qE 'cp .*\$\{?TEMPLATE_ROOT\}?.*/\*\.tpl[[:space:]]+\.claudewarp/templates/' skills/claude-warp-setup/SKILL.md \
+    || note_fail "claude-warp-setup has no glob copy of *.tpl into .claudewarp/templates/ (a partial or absent copy is the shipped bug)"
+  # And the scaffolders must be told to resolve from there rather than invent. Require the resolution
+  # rule's operative sentence, not merely the path string, for the same reason.
+  local sk
+  for sk in claude-warp-new-loop claude-warp-new-goal claude-warp-new-harness; do
+    grep -qE '1\. `\.claudewarp/templates/<name>\.tpl`' "skills/$sk/SKILL.md" \
+      || note_fail "$sk has no template-resolution rule pointing at .claudewarp/templates/"
+    grep -q 'Do \*\*not\*\* improvise' "skills/$sk/SKILL.md" \
+      || note_fail "$sk does not forbid improvising a missing template (improvising drops every runner guard)"
+  done
+  rm -rf "$tmp"
+}
+
 verify() {
   echo "ClaudeWarp verify — deterministic source + install-contract checks"
   echo
@@ -366,6 +440,7 @@ verify() {
   check_plugin_version_coherence
   check_scheduled_env_preflight
   check_runner_execution
+  check_install_completeness
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   if [ "$FAIL" -eq 0 ]; then

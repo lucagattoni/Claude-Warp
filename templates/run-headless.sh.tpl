@@ -143,6 +143,11 @@ assert_skill_present() {
 
 # Guard 2: even with the file present, catch the marker in the run's own output.
 UNKNOWN_CMD_MARKER="Unknown command:"
+# Budget exhaustion is a CAP, not a transient drop — the same distinction the exit-124 timeout
+# branch already makes. `--max-budget-usd` is per session, so every retry gets a fresh cap and
+# fails identically: observed live, a loop scaffolded with $0.25 burned all three attempts and
+# ~$0.75 to fail three times. Detected by message because the CLI exits 1, which is generic.
+BUDGET_MARKER="Exceeded USD budget"
 
 run_once() {
   assert_skill_present
@@ -159,6 +164,10 @@ run_once() {
     >> "$LOG" 2>&1
   local rc=$?
   # Only inspect what THIS attempt appended, so a marker from an earlier attempt cannot re-trigger.
+  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$BUDGET_MARKER"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
+    exit 6
+  fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /{{SKILL_SLUG}} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2
     exit 4

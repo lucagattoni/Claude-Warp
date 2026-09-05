@@ -27,6 +27,20 @@ a **mandatory QA evaluator with corroboration** gating each unit before commit, 
 **headless cron re-entry point** (`scripts/run-<slug>.sh --retry`) for work that runs
 unattended across many days.
 
+## Template resolution (read this before any "Read `templates/...`" step below)
+
+Resolve every `templates/<name>.tpl` referenced in this skill, in order:
+
+1. `.claudewarp/templates/<name>.tpl` — an installed project (written by `/claude-warp-setup`).
+2. `templates/<name>.tpl` — you are running inside the ClaudeWarp source repo.
+
+**If neither exists, STOP.** Print:
+`Template <name>.tpl not found — run /claude-warp-setup first (it installs templates into .claudewarp/templates/).`
+Do **not** improvise the file from memory. The templates carry the runner hardening that is the
+entire reason to use ClaudeWarp rather than hand-writing a script — the binary preflights, the
+fail-closed permission flags and deny-lists, the unknown-command guard, the safe-to-retry logic. A
+plausible-looking runner written from scratch has none of it and looks identical to one that does.
+
 ## Phase 1 — Understand the goal
 
 Parse `$ARGUMENTS` as a plain-English goal.

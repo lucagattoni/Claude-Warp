@@ -124,6 +124,11 @@ trap cleanup EXIT
 # origin/<default-branch>, so a skill committed locally but never pushed is absent here — the single
 # most likely way to hit it.
 UNKNOWN_CMD_MARKER="Unknown command:"
+# Budget exhaustion is a CAP, not a transient drop — the same distinction the exit-124 timeout
+# branch already makes. `--max-budget-usd` is per session, so every retry gets a fresh cap and
+# fails identically: observed live, a loop scaffolded with $0.25 burned all three attempts and
+# ~$0.75 to fail three times. Detected by message because the CLI exits 1, which is generic.
+BUDGET_MARKER="Exceeded USD budget"
 
 # run_stage <skill-slug> <disallowed-tools>
 run_stage() {
@@ -145,6 +150,10 @@ run_stage() {
     -p "/${slug}" ) \
     >> "$LOG" 2>&1
   local rc=$?
+  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$BUDGET_MARKER"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
+    exit 6
+  fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /${slug} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2
     exit 4
