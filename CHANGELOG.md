@@ -7,6 +7,42 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.3] — 2026-09-04 21:26 UTC
+
+A harness runner could report **"Harness complete", exit 0, having executed nothing**, with pending
+work still in `features.json`. Found by taking the Claude-Loops session's report of a hardcoded
+binary path as a hypothesis about this repo's own artifacts and asking what else the runners assume
+exists. Measured, not theorised.
+
+### Fixed
+- **A failed JSON read meant "no work left".** The harness runner branched on task counts read via
+  `python3`, each with a benign fallback — `|| echo 0` ("no pending tasks"), `|| echo -1` ("nothing
+  outstanding"), `|| echo ""` (an empty wave). With `python3` missing or `features.json` unreadable,
+  every wave was skipped, nothing ran, and the runner reported success. Reproduced with a stub
+  interpreter: one pending task in, `wave_pending=0` → wave skipped → `pending=-1` → *"Harness
+  complete (exit 0)"*. The same shape hid in the `--converge` tail (`BEFORE`/`AFTER` both 0 →
+  *"converged — no tasks appended"*) and in `--parallel-waves` (an empty id list → a wave that
+  launched nothing). All now read through a fail-closed `jnum()` that aborts with a named FATAL and
+  exit 3 rather than substituting a number that happens to mean success — **an unreadable queue is
+  not an empty queue**. Verified four ways: broken interpreter → exit 3; corrupt `features.json` →
+  exit 3 (checked bare, not through a pipe); valid input → unchanged exit 2 with the task counted;
+  pre-fix control → exit 0 "complete".
+- **`python3` is now preflighted** where it is actually used — the harness runner and
+  `run-fanout.sh.tpl` — with a FATAL naming the reason a missing parser matters. Deliberately *not*
+  added to `run-headless`/`run-two-stage`, which never call it; a preflight for an unused dependency
+  is a false failure, not extra safety.
+
+### Added
+- **`verify` check 9/9 extended**: the harness must carry `jnum()`, must preflight `python3`, and
+  must contain no `|| echo 0`/`-1` count fallback; `run-fanout` must preflight `python3`.
+- **Mutation matrix on the whole gate — and it caught the same bug twice in one session.** Two new
+  assertions used unanchored greps, so `command -v python3XX` still matched `command -v python3` and
+  the mutants survived: the *identical* word-anchoring defect fixed for the `claude` preflight in
+  v0.42.2, repeated an hour later in new code by someone who had just fixed it. Now anchored; six of
+  seven mutants killed, the survivor being a deliberate non-defect (a bare read aborts under
+  `set -e`). Knowing about a defect class demonstrably does not prevent reintroducing it — only
+  mutating the checker does.
+
 ## [0.42.2] — 2026-09-04 21:11 UTC
 
 Two silent `exit 127`s that made **every scheduled loop fail before reaching Claude**, found by

@@ -253,7 +253,20 @@ check_scheduled_env_preflight() {
   done
   grep -q '^PATH=' templates/trigger.crontab.tpl \
     || note_fail "trigger.crontab.tpl sets no PATH — cron cannot find \`claude\`"
-  [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude + timeout; crontab template sets PATH"
+  # A JSON read that falls back to a number meaning "no work" reports a green run that did
+  # nothing — measured in the harness runner before v0.42.3. Counts must abort, not default.
+  local hs="skills/claude-warp-new-harness/SKILL.md"
+  if [ -f "$hs" ]; then
+    grep -qE 'jnum\(\)[[:space:]]*\{' "$hs" \
+      || note_fail "new-harness: no fail-closed jnum() — a failed task-count read can mean 'complete'"
+    grep -qE "\|\| echo (0|-1)\)" "$hs" \
+      && note_fail "new-harness: a python3 count still falls back to a benign number (|| echo 0/-1)"
+    grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' "$hs" \
+      || note_fail "new-harness: no python3 preflight — a missing parser reads as an empty queue"
+  fi
+  grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' templates/run-fanout.sh.tpl \
+    || note_fail "run-fanout: parses JSON with python3 but does not preflight it"
+  [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
 }
 
 verify() {
