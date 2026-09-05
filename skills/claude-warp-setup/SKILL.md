@@ -167,10 +167,16 @@ Use the literal version string resolved in Phase 3 (e.g. `0.6.0`) — do not wri
 `{{HARNESS_VERSION}}` literally in the commit message.
 
 Stage only the files setup created or changed — never blanket-add `plans/` or `docs/`, which
-in an existing repo would sweep the user's unrelated uncommitted work into the install commit:
+in an existing repo would sweep the user's unrelated uncommitted work into the install commit.
+**Track the templates and the runtime scripts too** — they are what the scaffolders and the honesty
+rules read at runtime, so a project that does not commit them works only for the person who ran
+`install.sh`: a teammate's fresh clone gets skills that reference a `scripts/check-ai-residuals.sh`
+and a `scripts/ledger.sh` which are not there. (v0.44.0 installed them and forgot to track them;
+`/claude-warp-inventory` flagged it as `?? scripts/` on a live install.)
 
 ```bash
-git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore .claudewarp/constitution.md
+git add .claude/skills/ CLAUDE.md harness-manifest.json .gitignore .claudewarp/constitution.md \
+        .claudewarp/templates/ scripts/check-ai-residuals.sh scripts/ledger.sh
 git commit -m "chore: install ClaudeWarp loop harness v<HARNESS_VERSION>"
 ```
 

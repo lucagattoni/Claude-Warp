@@ -422,6 +422,30 @@ check_install_completeness() {
       || note_fail "install.sh has no copy loop installing scripts/$rs, which emitted instructions require"
   done
 
+  # Installing an artifact is not enough — setup must COMMIT it, or it exists only for whoever ran
+  # install.sh and a teammate's fresh clone gets skills referencing files that are not there.
+  # v0.44.0 installed the runtime scripts and forgot to track them; a live inventory run reported
+  # `?? scripts/` and a clone of that project had 13 templates and 0 scripts.
+  # Reconstruct the actual `git add` command (joining backslash continuations) rather than matching
+  # line patterns: the paths sit on a continuation line, and the first version of this assertion
+  # failed on the unmutated tree because of exactly that.
+  local addcmd tracked
+  addcmd="$(awk '/^git add /{c=$0; while (c ~ /\\$/) {sub(/\\$/,"",c); if ((getline nx)<=0) break; c=c nx} print c}' \
+            skills/claude-warp-setup/SKILL.md)"
+  for tracked in '.claudewarp/templates/' 'scripts/check-ai-residuals.sh' 'scripts/ledger.sh'; do
+    case "$addcmd" in
+      *"$tracked"*) ;;
+      *) note_fail "claude-warp-setup's git add does not track $tracked — it will not survive a clone" ;;
+    esac
+  done
+
+  # Paths the emitted CLAUDE.md points at must exist in an INSTALL (or be a URL). It referenced
+  # `templates/...` and `docs/guides/...`, neither of which an install has.
+  local ref
+  for ref in $(grep -oE '`(docs|templates)/[a-zA-Z0-9./-]+`' templates/CLAUDE.md.tpl | tr -d '`'); do
+    note_fail "CLAUDE.md.tpl points at '$ref', which does not exist in an installed project"
+  done
+
   # The simulation above is fiction unless SETUP is actually instructed to perform that copy, so
   # assert the instruction itself — a glob copy of every .tpl into .claudewarp/templates/. Asserting
   # only that the string ".claudewarp/templates" appears somewhere is not enough: it appears in the
