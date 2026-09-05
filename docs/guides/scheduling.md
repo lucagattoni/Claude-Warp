@@ -64,7 +64,7 @@ The scaffolded runner prepends the usual install locations (`$HOME/.local/bin`,
 `/usr/local/bin`, `/opt/homebrew/bin`) and, if it still cannot find the binary, aborts with a
 `FATAL: claude not found on PATH` line instead of failing obscurely — so this command either
 runs the loop or tells you exactly what is wrong. Set `CLAUDE_BIN=/full/path/to/claude` if your
-install lives somewhere else.
+install lives somewhere else — it is prepended last, so it outranks any install already on `PATH` (in v0.42.2 it did not, and an existing `~/.local/bin/claude` silently won; `verify` now proves the precedence by executing a filled runner against two stub binaries).
 
 **crontab:**
 ```bash

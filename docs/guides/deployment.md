@@ -19,7 +19,8 @@ Claude-Loops [§2.3 Harness vs Environment Engineering](https://lucagattoni.gith
 ## Fail-closed by construction
 
 Every runner ClaudeWarp scaffolds passes the same three permission flags to `claude -p`, and they
-do three different jobs:
+do three different jobs (the two-stage runner's search stage adds its stage-escalation denies **on top of**
+your `--disallowedTools`, never in place of them — it replaced them until v0.42.4):
 
 | Flag | What it does | What it does **not** do |
 |---|---|---|
