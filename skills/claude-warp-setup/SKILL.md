@@ -70,7 +70,15 @@ new-loop, new-goal, new-harness, new-agent, new-hook, inventory, retro, sync,
 sync-research, update — and anything added later). Confirm the count matches
 `ls "$WARP_ROOT"/skills | wc -l`.
 
-Read `$WARP_ROOT/VERSION` and record as `HARNESS_VERSION`.
+Read `HARNESS_VERSION` from the first of these that exists, and **never infer it**:
+1. `.claudewarp-version` in the project root (staged by `install.sh` — the normal case).
+2. `$WARP_ROOT/VERSION`, when you are running inside the ClaudeWarp source repo itself.
+
+If neither exists, write the literal string `unknown` into the manifest and say so in the
+report. Do **not** guess from version numbers mentioned in the copied skills or docs: a live
+install did exactly that and recorded `0.42.3` while the source tree was `0.42.4`, and both
+`/claude-warp-update` and `/claude-warp-inventory` then report that fabricated number as the
+installed version. `unknown` is a true statement; a plausible wrong version is not.
 
 ## Phase 4 — Fill CLAUDE.md
 
@@ -98,6 +106,32 @@ constitution the user has filled in.
 ```bash
 mkdir -p .claudewarp
 ```
+
+### Install the templates durably (the scaffolders need them later)
+
+`install.sh` stages templates in `.claudewarp-templates/` and **deletes that directory when it
+finishes**, so unless they are copied somewhere permanent the project ends up with no templates at
+all — and `/claude-warp-new-loop`, `/claude-warp-new-goal` and `/claude-warp-new-harness`, which are
+instructed to read `templates/*.tpl`, have nothing to read. A live install did exactly this. The
+scaffolder recovered only by reaching *outside* the project and reading the ClaudeWarp source clone
+by absolute path — which works on the machine you installed from and nowhere else: not if the clone
+moves or is deleted, not on another machine, not in CI. When that recovery fails the scaffolder has
+no template and would improvise a runner carrying none of the shipped hardening (preflights,
+deny-lists, fail-closed task counts). This copy makes resolution local and deterministic.
+
+```bash
+mkdir -p .claudewarp/templates
+cp "$TEMPLATE_ROOT"/*.tpl .claudewarp/templates/
+```
+
+Verify before continuing — a silent partial copy is the failure this step exists to prevent:
+
+```bash
+ls .claudewarp/templates/*.tpl | wc -l   # must be 13
+```
+
+If `$TEMPLATE_ROOT` is `$WARP_ROOT/templates` (you are running inside the ClaudeWarp source repo),
+skip this copy — `templates/` is already at the project root.
 
 If `.claudewarp/constitution.md` does **not** exist, read `$TEMPLATE_ROOT/constitution.md.tpl`,
 replace `{{PROJECT_NAME}}` (detected name) and `{{INSTALLED_AT}}` (Phase 1 local time), and write

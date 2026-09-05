@@ -31,6 +31,12 @@ cp -r "$WARP_ROOT/templates/." "$TARGET/.claudewarp-templates/"
 mkdir -p "$TARGET/.claudewarp-skills"
 cp -r "$WARP_ROOT/skills/." "$TARGET/.claudewarp-skills/"
 
+# The version of ClaudeWarp being installed, staged where claude-warp-setup can actually read it.
+# Without this the setup skill has no VERSION file anywhere in the target and infers one from prose
+# in the copied skills — a live install wrote 0.42.3 while the source tree was 0.42.4, and both
+# /claude-warp-update and /claude-warp-inventory then report that fabricated number as installed.
+cp "$WARP_ROOT/VERSION" "$TARGET/.claudewarp-version"
+
 # 3. Run claude-warp-setup autonomously
 echo "Running /claude-warp-setup in $TARGET ..."
 echo ""
@@ -42,7 +48,7 @@ claude \
   -p "/claude-warp-setup"
 
 # 4. Clean up staging dirs (claude-warp-setup moves skills to .claude/skills/)
-rm -rf "$TARGET/.claudewarp-templates" "$TARGET/.claudewarp-skills"
+rm -rf "$TARGET/.claudewarp-templates" "$TARGET/.claudewarp-skills" "$TARGET/.claudewarp-version"
 
 echo ""
 echo "Done. Run 'cat harness-manifest.json' to verify."

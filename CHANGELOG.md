@@ -7,6 +7,86 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.43.0] — 2026-09-05 05:27 UTC
+
+**First live end-to-end dogfood.** A throwaway project, a real local git remote, the real
+`install.sh`, the real `/claude-warp-setup`, the real `/claude-warp-new-loop`, and the generated
+runner executed against the real CLI. This is the review's #1 UNVERIFIED item closed: until now no
+runner had ever run against a real Claude session, and the entire scaffolder half was ungated.
+
+**What it validated** (worth stating, because a dogfood that only reports failures is not honest):
+setup installed 15 skills and filled every template placeholder; `/claude-warp-new-loop` produced a
+runner byte-identical to the v0.42.4 template with every guard intact; the v0.42.2 crontab `PATH`
+fix filled `{{HOME}}` correctly; the `timeout`/`gtimeout` NOTIFY fired with its honest
+cap-not-enforced wording; the loop, once given a workable budget, ran and **correctly emitted
+`handoff` rather than a false `pass`** when it found an uncommitted edit outside its SCOPE —
+naming the file, noting the edit contradicted its own `BUDGET` contract line, stating plainly that
+the append was skipped, and committing that record; and **the v0.42.4 unknown-command guard fired
+on a real run** — a
+`--worktree` run against an unpushed skill exited 4 with a FATAL naming the cause, where before
+v0.42.4 it logged `Done (exit 0)`.
+
+### Fixed
+- **Budget exhaustion was retried as if transient.** `--max-budget-usd` is a per-session cap, so
+  every retry gets a fresh cap and fails identically — the same distinction the runner already makes
+  for a timeout (exit 124). Observed live: a loop the scaffolder gave `$0.25` ran three attempts
+  (two of them logging `Error: Exceeded USD budget (0.25)`), exhausted its retries, and did **no
+  work** — `HEARTBEAT_LOG.md` still read `runs_total: 0`. Detected by message (the CLI exits 1,
+  which is generic), now a non-retryable exit 6 naming the fix.
+- **A scaffolder-quality note, not a code defect:** the `$0.25` cap was chosen by
+  `/claude-warp-new-loop` itself for a loop whose work did not fit in it. The runner's job is to
+  fail fast and say so, which it now does; sizing the cap to the work remains the scaffolder's
+  judgment, and this is the first evidence of it getting that wrong.
+- **The installed manifest's version was fabricated.** `install.sh` never copies `VERSION` into the
+  target, and `claude-warp-setup` was told to read `$WARP_ROOT/VERSION` — a path that does not exist
+  there. The live install inferred `0.42.3` from version numbers mentioned in the copied skills while
+  the source tree was `0.42.4`. `/claude-warp-update` reports that field as the installed version and
+  `/claude-warp-inventory` reports it as `INSTALLED_VERSION`, so both reasoned from a plausible wrong
+  number. `install.sh` now stages `.claudewarp-version`; setup reads it, falls back to the source
+  repo's `VERSION`, and writes the literal `unknown` rather than guessing when neither exists.
+- **Templates were resolvable only by reaching outside the project.** The installed project contains
+  no templates at all — `install.sh` deletes its `.claudewarp-templates/` staging directory and
+  nothing durable replaces it — while `new-loop`/`new-goal`/`new-harness` are instructed to read
+  `templates/*.tpl`. In the dogfood the scaffolder recovered by finding the ClaudeWarp **source
+  clone** elsewhere on the machine and reading `/Users/.../Claude-Warp/templates/*.tpl` by absolute
+  path, which is why the generated runner was correct. That recovery is environment-dependent, not a
+  guarantee: it fails if the clone is moved or deleted, on a different machine, in CI, or for a
+  plugin-style install — and the skills carried no instruction to stop, so the fallback was to
+  improvise a runner with none of the shipped hardening. `/claude-warp-setup` now installs all 13
+  templates to `.claudewarp/templates/`, and the three scaffolders resolve from there (then the
+  source repo) and **stop with a named error rather than improvising** when neither exists.
+
+- **A handoff consumed the day's run slot.** The once-per-day guard matched any `## <today>`
+  section, but a run that hands off has *not* done the work — it wrote an honest dated record and
+  the guard then blocked the retry for the rest of the day, so an operator who resolved the handoff
+  still could not re-run until tomorrow. Observed live end-to-end: the run detected an uncommitted
+  edit outside its SCOPE, recorded `handoff`, and locked the day. The guard now reads the state
+  header's `last_verdict` and closes the day only on a **completing** verdict (`pass`/`skip`);
+  `handoff`/`fail`/`timeout` leave it open for the retry that is precisely what those verdicts ask
+  for. A state file with no header falls back to the old conservative section match.
+
+### Added
+- **`verify` check 11/11 — install completeness.** Simulates the documented install (stage → setup's
+  template copy → `install.sh`'s cleanup) and asserts every `templates/*.tpl` any skill tells an
+  agent to read is present afterwards; that setup actually performs a glob copy of `*.tpl` into
+  `.claudewarp/templates/`; and that each scaffolder carries the resolution rule *and* the
+  do-not-improvise instruction. Mutation-tested: a partial copy, a removed copy, a removed resolution
+  rule, a permissive "improvise" instruction, and a skill referencing a nonexistent template each
+  fail the gate.
+- **`verify` check 10 gains guard-semantics and budget assertions** — the guard must return exit 1
+  for `pass`/`skip` and exit 0 for `handoff`/`fail`/`timeout` (mutation-tested by restoring the
+  old "any section closes the day" behaviour), and — a stub that prints `Exceeded USD budget` and exits
+  1 must produce exit 6 after exactly **one** attempt. Mutation-tested both ways (marker disabled;
+  detected-but-not-stopped).
+
+**Correction.** The first reading of the template finding, written before the evidence was in, was
+that every runner hardening in v0.42.0–v0.42.4 "never reaches an installed user." That was wrong and
+is not what happened: the generated runner had every guard, because the scaffolder found the source
+clone. The real defect is narrower and worth stating precisely — resolution depends on an
+out-of-project path that happens to exist on the installing machine, with no stop-instruction when it
+does not. Recorded because this session's own rule is that a plausible claim asserted before it is
+checked is the failure mode, not a style problem.
+
 ## [0.42.4] — 2026-09-05 05:10 UTC
 
 **An independent six-lens adversarial review of v0.42.0–v0.42.3 found ten defects in those four
