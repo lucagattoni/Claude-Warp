@@ -60,8 +60,17 @@ SUMMARY_LOG="logs/{{SKILL_SLUG}}-${RUN_ID}.log"
 # scheduled run dies at its first invocation with 127 and the loop simply never runs —
 # a failure that only appears when you exercise the scaffold the way the scheduler
 # does, not when you run it by hand with your own shell. Set CLAUDE_BIN to override.
-[ -n "${CLAUDE_BIN:-}" ] && PATH="$(dirname "$CLAUDE_BIN"):$PATH"
+# CLAUDE_BIN is prepended LAST so it actually wins. Prepending it first and then prepending the
+# default install dirs (v0.42.2) let an existing ~/.local/bin/claude silently outrank the override —
+# i.e. the one mechanism the FATAL below tells the operator to use was inert exactly when needed.
 PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+if [ -n "${CLAUDE_BIN:-}" ]; then
+  if [ ! -x "$CLAUDE_BIN" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: CLAUDE_BIN=$CLAUDE_BIN is not an executable file." | tee -a "$SUMMARY_LOG" >&2
+    exit 127
+  fi
+  PATH="$(cd "$(dirname "$CLAUDE_BIN")" && pwd):$PATH"
+fi
 export PATH
 if ! command -v claude >/dev/null 2>&1; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment." | tee -a "$SUMMARY_LOG" >&2
@@ -86,7 +95,11 @@ echo "[$(date '+%Y-%m-%d %H:%M %Z')] Fan-out start: {{SKILL_NAME}} (model ${WORK
 TASK_LIST="$(mktemp)"
 {{TASK_LIST_COMMAND}} > "$TASK_LIST"
 
-TOTAL=$(wc -l < "$TASK_LIST" | tr -d ' ')
+# `wc -l` counts NEWLINES, so a task list whose last line has no trailing newline undercounts by one
+# — and `while read` drops that same line, so TOTAL and the launch count agree while a real task was
+# silently never launched. `grep -c ''` counts LINES, and the read loop below takes the final
+# unterminated line via `|| [ -n "$item" ]`.
+TOTAL=$(grep -c '' "$TASK_LIST" | tr -d ' ')
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Tasks generated: ${TOTAL}" | tee -a "$SUMMARY_LOG"
 
 if [ "$TOTAL" -eq 0 ]; then
@@ -109,7 +122,7 @@ fi
 SESSION_MAP=()   # entries: "<short-id>|||<item>"
 LAUNCH_FAIL=0
 
-while IFS= read -r item; do
+while IFS= read -r item || [ -n "$item" ]; do
   [ -n "$item" ] || continue
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Launching: ${item}" | tee -a "$SUMMARY_LOG"
 
@@ -147,6 +160,8 @@ DONE=0
 BLOCKED=0
 MISSING=0
 TIMEOUT=0
+UNKNOWN=0
+READ_FAILS=0
 PENDING_MAP=()
 [ "${#SESSION_MAP[@]}" -gt 0 ] && PENDING_MAP=("${SESSION_MAP[@]}")
 
@@ -166,7 +181,19 @@ else:
 }
 
 while [ "${#PENDING_MAP[@]}" -gt 0 ]; do
-  AGENTS_JSON=$(claude agents --json --all 2>/dev/null || echo "[]")
+  # not_observed != absent: one failed READ of the agent list is not evidence the sessions ended.
+  # Defaulting to "[]" made a single hiccup report every live session as MISSING and exit 1.
+  if ! AGENTS_JSON=$(claude agents --json --all 2>/dev/null) || [ -z "$AGENTS_JSON" ]; then
+    READ_FAILS=$(( READ_FAILS + 1 ))
+    if [ "$READ_FAILS" -lt 3 ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M %Z')] WARN: could not read \`claude agents --json --all\` (attempt $READ_FAILS/3) — retrying, NOT concluding the sessions are gone." | tee -a "$SUMMARY_LOG"
+      sleep "$POLL_SECONDS"; continue
+    fi
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: \`claude agents --json --all\` unreadable $READ_FAILS times in a row — status of ${#PENDING_MAP[@]} session(s) is UNKNOWN, not finished. Inspect with: claude agents --all" | tee -a "$SUMMARY_LOG"
+    UNKNOWN=$(( UNKNOWN + ${#PENDING_MAP[@]} ))
+    break
+  fi
+  READ_FAILS=0
   STILL_RUNNING=()
 
   for entry in "${PENDING_MAP[@]}"; do
@@ -216,7 +243,7 @@ while [ "${#PENDING_MAP[@]}" -gt 0 ]; do
 done
 
 # ── Step 4: Summary ───────────────────────────────────────────────────────────
-FAILED=$((LAUNCH_FAIL + BLOCKED + MISSING + TIMEOUT))
+FAILED=$((LAUNCH_FAIL + BLOCKED + MISSING + TIMEOUT + UNKNOWN))
 echo "" | tee -a "$SUMMARY_LOG"
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Fan-out complete: {{SKILL_NAME}}" | tee -a "$SUMMARY_LOG"
 echo "  Total          : ${TOTAL}" | tee -a "$SUMMARY_LOG"
@@ -225,6 +252,7 @@ echo "  Launch failed  : ${LAUNCH_FAIL}" | tee -a "$SUMMARY_LOG"
 echo "  Blocked        : ${BLOCKED}" | tee -a "$SUMMARY_LOG"
 echo "  Missing        : ${MISSING}" | tee -a "$SUMMARY_LOG"
 echo "  Timeout        : ${TIMEOUT}" | tee -a "$SUMMARY_LOG"
+echo "  Unknown        : ${UNKNOWN}   — agent list unreadable; status never established" | tee -a "$SUMMARY_LOG"
 echo "  Sessions       : claude agents --all" | tee -a "$SUMMARY_LOG"
 
 [ "$FAILED" -eq 0 ] && exit 0 || exit 1

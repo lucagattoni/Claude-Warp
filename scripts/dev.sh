@@ -60,7 +60,7 @@ note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
 
 check_source_integrity() {
-  echo "[1/9] Source integrity — every skill is well-formed"
+  echo "[1/10] Source integrity — every skill is well-formed"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -74,7 +74,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/9] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/10] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -84,7 +84,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/9] Copy contract — the documented loop lands every skill"
+  echo "[3/10] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -106,7 +106,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/9] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/10] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -134,7 +134,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/9] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/10] Docs coherence — every skill has a section in reference/skills.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
@@ -144,7 +144,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/9] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/10] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -171,7 +171,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/9] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/10] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
@@ -190,7 +190,7 @@ check_claim_count_coherence() {
 }
 
 check_plugin_version_coherence() {
-  echo "[8/9] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/10] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -228,7 +228,7 @@ verify_live() {
 }
 
 check_scheduled_env_preflight() {
-  echo "[9/9] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  echo "[9/10] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
   # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
@@ -263,10 +263,94 @@ check_scheduled_env_preflight() {
       && note_fail "new-harness: a python3 count still falls back to a benign number (|| echo 0/-1)"
     grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' "$hs" \
       || note_fail "new-harness: no python3 preflight — a missing parser reads as an empty queue"
+    # The harness runner documents itself as a headless cron re-entry point, so it needs the same
+    # binary preflight as its three siblings — it shipped without one in v0.42.2 because this loop
+    # covered only templates/.
+    grep -qE 'command -v claude([^A-Za-z0-9_-]|$)' "$hs" \
+      || note_fail "new-harness: no \`claude\` preflight — its own docs call it a cron re-entry point"
+    grep -qE 'CLAUDE_BIN([^A-Za-z0-9_]|$)' "$hs" \
+      || note_fail "new-harness: no CLAUDE_BIN override"
+    grep -qE 'Unknown command' "$hs" \
+      || note_fail "new-harness: no guard for an unresolved slash command (the CLI exits 0 on one)"
   fi
   grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' templates/run-fanout.sh.tpl \
     || note_fail "run-fanout: parses JSON with python3 but does not preflight it"
   [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
+}
+
+check_runner_execution() {
+  echo "[10/10] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
+  # Checks 1-9 read source text. Three of their assertions were defeated live by whitespace, quotes
+  # and a name prefix while still printing VERIFY PASSED, and two real behaviour bugs (CLAUDE_BIN
+  # being outranked by a native install; the fan-out dropping an unterminated last line) were
+  # invisible to every one of them. This check fills a runner and executes it against stub binaries.
+  local tmp; tmp="$(mktemp -d)"
+  local home="$tmp/home" alt="$tmp/alt" repo="$tmp/repo"
+  mkdir -p "$home/.local/bin" "$alt" "$repo/scripts" "$repo/logs" "$repo/.claude/skills/probe"
+  printf 'x\n' > "$repo/.claude/skills/probe/SKILL.md"
+  ( cd "$repo" && git init -q && git -c user.email=v@x -c user.name=v commit -q --allow-empty -m init )
+  # Two stubs that announce which binary ran.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo NATIVE-RAN;; esac\n' > "$home/.local/bin/claude"
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo OVERRIDE-RAN;; esac\n' > "$alt/claude"
+  chmod +x "$home/.local/bin/claude" "$alt/claude"
+
+  fill_runner() {  # fill_runner <tpl> <dest> <slug>
+    sed -e "s|{{SKILL_NAME}}|probe|g" -e "s|{{SKILL_SLUG}}|$3|g" \
+        -e "s|{{MAX_TURNS}}|3|g" -e "s|{{MAX_BUDGET_USD}}|1.00|g" -e "s|{{EFFORT}}|high|g" \
+        -e "s|{{ALLOWED_TOOLS}}|Read|g" -e "s|{{DISALLOWED_TOOLS}}|Bash(rm -rf *)|g" \
+        "$1" > "$2"
+  }
+  fill_runner templates/run-headless.sh.tpl "$repo/scripts/run-probe.sh" probe
+
+  # (a) CLAUDE_BIN must outrank an existing native install — the v0.42.2 bug.
+  local out
+  out=$(cd "$repo" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+        /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1; cat logs/*.log 2>/dev/null || true)
+  case "$out" in
+    *OVERRIDE-RAN*) note_ok "CLAUDE_BIN outranks a native install (executed)" ;;
+    *NATIVE-RAN*)   note_fail "CLAUDE_BIN is inert: the native install ran instead of the override" ;;
+    *)              note_fail "runner produced no recognizable output; cannot confirm which binary ran" ;;
+  esac
+
+  # (b) No claude anywhere must be a loud 127, not a silent pass.
+  # NOTE: capture the status explicitly — under `set -e` a bare failing subshell aborts this whole
+  # script (it did: the check meant to catch broken gates was itself a broken gate, exit 127).
+  local rc=0
+  rm -f "$home/.local/bin/claude"
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  [ "$rc" -eq 127 ] && note_ok "missing claude exits 127 (executed)" \
+                    || note_fail "missing claude exited $rc, expected 127"
+
+  # (c) An unresolvable slash command exits 0 in the CLI; the runner must NOT read that as success.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Unknown command: /probe"; exit 0;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  [ "$rc" -ne 0 ] && note_ok "'Unknown command' + CLI exit 0 is not reported as success (executed)" \
+                  || note_fail "runner reported success on an unresolved slash command"
+
+  # (d) Fan-out must not drop a final line with no trailing newline — the v0.42.0 bug.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; agents) echo "[]";; --bg) echo "backgrounded · deadbeef";; stop) :;; esac\n' > "$alt/claude"
+  sed -e "s|{{SKILL_NAME}}|probe|g" -e "s|{{SKILL_SLUG}}|fan|g" -e "s|{{MAX_TURNS}}|3|g" \
+      -e "s|{{ALLOWED_TOOLS}}|Read|g" -e "s|{{DISALLOWED_TOOLS}}|Bash(rm -rf *)|g" \
+      -e "s|{{TASK_LIST_COMMAND}}|printf 'a\\\\nb\\\\nc'|g" -e "s|{{TASK_PROMPT_PREFIX}}|Do|g" \
+      templates/run-fanout.sh.tpl > "$repo/scripts/run-fan.sh"
+  local fout
+  fout=$(cd "$repo" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+         CLAUDEWARP_FANOUT_POLL=0 /bin/bash scripts/run-fan.sh --max-minutes 1 2>&1 || true)
+  # Assert BOTH the count and the launches. Asserting only the count let a mutant that restored the
+  # read-loop drop pass: TOTAL said 3 while the loop launched 2 — the same "internally consistent
+  # summary over dropped work" this check exists to catch.
+  local counted launched
+  counted=$(printf '%s' "$fout" | grep -o 'Tasks generated: [0-9]*' | head -1 | grep -o '[0-9]*' || echo 0)
+  launched=$(printf '%s' "$fout" | grep -c 'Launching: ' || true)
+  if [ "${counted:-0}" = "3" ] && [ "${launched:-0}" = "3" ]; then
+    note_ok "fan-out counts AND launches an unterminated final task (3 counted, 3 launched)"
+  else
+    note_fail "fan-out dropped an unterminated final task: counted=${counted:-0}, launched=${launched:-0}, expected 3/3"
+  fi
+  rm -rf "$tmp"
 }
 
 verify() {
@@ -281,6 +365,7 @@ verify() {
   check_claim_count_coherence
   check_plugin_version_coherence
   check_scheduled_env_preflight
+  check_runner_execution
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   if [ "$FAIL" -eq 0 ]; then

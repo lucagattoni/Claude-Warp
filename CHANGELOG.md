@@ -7,6 +7,80 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.42.4] — 2026-09-05 05:10 UTC
+
+**An independent six-lens adversarial review of v0.42.0–v0.42.3 found ten defects in those four
+releases, two of them critical.** 22 findings, one refuter per finding, an Opus judge, and a
+completeness critic; 6/6 lenses returned, no agents lost, 21 findings survived refutation. Its
+verdict on the code shipped hours earlier was *"not safe to ship as it stands"* — and the common
+thread it named was not the code but the gate: nine checks that grepped source text, three of which
+it defeated live with whitespace, quotes and a name prefix while `VERIFY PASSED` still printed.
+
+### Fixed
+- **CRITICAL — an unresolved slash command exits 0, and every runner read that as success.**
+  `claude -p "/nope"` prints `Unknown command: /nope` and **exits 0** (verified on v2.1.261). The
+  documented scaffold-then-schedule flow reaches that state by default: `new-loop` commits the skill
+  locally and never pushes, while both worktree runners check out `origin/<default-branch>`, where
+  the skill is absent — so a freshly scaffolded L3 two-stage loop would log `Stage A done / Stage B
+  done / Done (exit 0)` on every scheduled run while executing nothing. Runners now preflight that
+  `.claude/skills/<slug>/SKILL.md` exists in the checkout they are about to run in, and scan each
+  attempt's own output for the marker; either fires a FATAL and exit 4, and the marker check is
+  deterministic so it is never retried.
+- **CRITICAL — `stage_b_landed()` matched an unanchored substring.** Any commit subject containing
+  `loop(<slug>)` — a chore commit, or git's own `Revert "loop(<slug>): run …"` — made the pipeline
+  skip Stage B and exit 0. The comment three lines above asserted the opposite; the code now
+  implements what the comment claimed, anchored to `^loop\(<slug>\): run `.
+- **The v0.42.3 python3 safety net crashed instead of firing.** Its preflight sat ~20 lines above the
+  `LOG=` assignment, so under `set -u` it died with `LOG: unbound variable` and **exit 1, not 127**,
+  writing nothing anywhere — failing in exactly the condition it was written for. It also contained
+  live backticks inside a double-quoted string. `LOG` is now assigned first and every preflight
+  reports through a shared `fatal()`.
+- **`CLAUDE_BIN` was inert whenever it was needed.** v0.42.2 prepended its directory and *then*
+  prepended the default install dirs, so an existing `~/.local/bin/claude` silently outranked the
+  override the FATAL message itself tells operators to set. Now prepended last, validated as
+  executable, and resolved to an absolute path.
+- **The harness runner never received the v0.42.2 binary preflight** — check 9 looped only
+  `templates/`, so `verify` stayed green on the one runner whose own docs advertise headless cron
+  re-entry. It now has the claude/python3 preflight, the `CLAUDE_BIN` override and the
+  unknown-command guard, and check 9 covers it.
+- **Stage A's deny-list replaced `{{DISALLOWED_TOOLS}}` instead of extending it**, dropping the
+  destructive floor and every `DO_NOT`-derived rule from the stage that runs under
+  `--permission-mode auto` — where, as this project's own deployment guide says, `--disallowedTools`
+  is the only thing that holds.
+- **One failed read of `claude agents --json --all` was reported as "the sessions are gone."**
+  `|| echo "[]"` in the fan-out and `|| printf 'missing\t\n'` in the harness turned a transient
+  hiccup into MISSING for every live session. Both now distinguish a failed read from an empty list
+  and retry up to three cycles before reporting status as **unknown** — `not_observed != absent`,
+  which this project states as a rule and was violating.
+- **`--parallel-waves` could hang forever** — its poll had no wall-clock deadline (`max_iter` bounds
+  only the sequential branch). Added, with `claude stop` and a surfaced note, matching the fan-out.
+- **The fan-out silently dropped the last task** when the task list had no trailing newline: `wc -l`
+  undercounted *identically* to the `while read` loop, so the summary was internally consistent while
+  a real task was never launched. Counts with `grep -c ''` and reads with `|| [ -n "$item" ]`.
+- **The `--converge` call was the only Bash-granting invocation without `--disallowedTools`, and its
+  exit code was never inspected** — convergence was inferred purely from an unchanged task count, so
+  a converge that never ran logged `converged — actual state satisfies intent`.
+
+### Added
+- **`verify` check 10/10 — runner execution.** The gate now FILLS a runner template and RUNS it
+  against stub binaries instead of grepping it: `CLAUDE_BIN` must outrank a planted native install;
+  a missing `claude` must exit 127; a stub that prints `Unknown command` and exits 0 must NOT be
+  reported as success; the fan-out must count **and launch** all three tasks from a list with no
+  trailing newline. Every one of these is a bug that shipped past nine grep-based checks.
+- Check 9 extended to the harness runner (claude preflight, `CLAUDE_BIN`, unknown-command guard).
+
+### Changed
+- `docs/reference/developing.md` said "eight deterministic checks"; it runs ten.
+- `guides/scheduling.md` documents `CLAUDE_BIN`'s precedence; `guides/deployment.md` states that the
+  search stage's denies compose with the loop's rather than replacing them.
+
+**Method note.** Check 10 was itself mutation-tested, and its first two versions were broken: one
+aborted the whole gate under `set -e` at its first intentional non-zero run (a check for broken gates
+that was a broken gate), and the next asserted the fan-out's *count* without its *launches*, so
+restoring the drop still passed. Both were caught only by mutating it. That is now three separate
+occasions in two days where a checker written by someone who had just fixed the same class of defect
+reintroduced it — the argument for mutation-testing every gate, not for trying harder.
+
 ## [0.42.3] — 2026-09-04 21:26 UTC
 
 A harness runner could report **"Harness complete", exit 0, having executed nothing**, with pending

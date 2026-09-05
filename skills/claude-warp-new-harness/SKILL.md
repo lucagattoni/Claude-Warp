@@ -551,6 +551,38 @@ REPRO_MODEL="${CLAUDEWARP_QA_MODEL:-sonnet}"
 # progressing). Operator-overridable via CLAUDEWARP_REPEAT_THRESHOLD.
 REPEAT_THRESHOLD="${CLAUDEWARP_REPEAT_THRESHOLD:-2}"
 
+# LOG first: every preflight below reports through it, and a preflight that crashes on an unbound
+# $LOG is a safety net that fails in exactly the condition it exists for (it did — v0.42.3 shipped
+# the python3 preflight above the LOG assignment, so it died with "LOG: unbound variable", exit 1,
+# and wrote nothing anywhere).
+mkdir -p logs
+LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
+
+fatal() {  # fatal <exit-code> <message>
+  local code="$1"; shift
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: $*" | tee -a "$LOG" >&2
+  exit "$code"
+}
+
+# ── Preflight: resolve the claude binary ──────────────────────────────────────
+# cron and launchd run with a minimal PATH (often /usr/bin:/bin) that omits ~/.local/bin, where the
+# native installer puts claude — and this runner is documented as a headless cron re-entry point.
+# CLAUDE_BIN is prepended LAST so it actually wins: prepending it first and then prepending the
+# default install dirs (as v0.42.2 did) let an existing native install silently outrank the override.
+PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+if [ -n "${CLAUDE_BIN:-}" ]; then
+  [ -x "$CLAUDE_BIN" ] || fatal 127 "CLAUDE_BIN=$CLAUDE_BIN is not an executable file."
+  PATH="$(cd "$(dirname "$CLAUDE_BIN")" && pwd):$PATH"
+fi
+export PATH
+command -v claude >/dev/null 2>&1 || fatal 127 "'claude' not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment."
+
+# python3 reads every task count this runner branches on. A missing or broken interpreter made each
+# read fall back to a benign number — `|| echo 0` means "no pending tasks", `|| echo -1` means
+# "nothing left" — so the runner skipped every wave, executed nothing, and reported "Harness
+# complete" with exit 0 while features.json still held pending work. Measured, not theorised.
+command -v python3 >/dev/null 2>&1 || fatal 127 "'python3' not found on PATH ($PATH) — this runner counts tasks with it, and a missing parser reads as an empty queue."
+
 # Fail-closed permissions. `--permission-prompts none` (Claude Code v2.1.259+) denies anything the
 # auto-mode classifier would have asked a human about — nobody is at the terminal. Probed once so an
 # older CLI (which rejects unknown flags) still runs; ${arr[@]+...} is the bash-3.2-safe splice.
@@ -560,34 +592,29 @@ PERM_PROMPTS=()
 claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
 HARNESS_DENY="Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)"
 
-# python3 reads every task count this runner branches on. A missing or broken interpreter made
-# each read fall back to a benign number — `|| echo 0` means "no pending tasks", `|| echo -1`
-# means "nothing left" — so the runner skipped every wave, executed nothing, and reported
-# "Harness complete" with exit 0 while features.json still held pending work. Measured, not
-# theorised. Preflight it, and read counts through jnum() which ABORTS instead of substituting
-# a number that happens to mean success.
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: `python3` not found on PATH ($PATH) — this runner counts tasks with it, and a missing parser reads as an empty queue." | tee -a "$LOG" >&2
-  exit 127
-fi
-
 # jnum <python-snippet> — echo an integer, or abort loudly. Never returns a default.
 jnum() {
   local out
   if ! out=$(python3 -c "$1" 2>&1); then
-    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: reading $FEATURES failed — refusing to infer a task count from a failed read (that is how a harness reports complete having done nothing). python3 said: $out" | tee -a "$LOG" >&2
-    exit 3
+    fatal 3 "reading $FEATURES failed — refusing to infer a task count from a failed read (that is how a harness reports complete having done nothing). python3 said: $out"
   fi
   case "$out" in
-    ''|*[!0-9-]*)
-      echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: expected an integer from $FEATURES, got: $out" | tee -a "$LOG" >&2
-      exit 3 ;;
+    ''|*[!0-9-]*) fatal 3 "expected an integer from $FEATURES, got: $out" ;;
   esac
   printf '%s' "$out"
 }
 
-mkdir -p logs
-LOG="logs/<HARNESS_SLUG>-$(date '+%Y%m%d-%H%M').log"
+# An unresolvable slash command is NOT a failure to the CLI: `claude -p "/nope"` prints
+# "Unknown command: /nope" and exits 0 (verified on v2.1.261). Every invocation below would read
+# that as success, so a scheduled harness could log "complete" having run nothing. Grep the run's
+# own output for the marker and fail loudly instead.
+UNKNOWN_CMD_MARKER="Unknown command:"
+assert_command_resolved() {  # assert_command_resolved <log-file> <what>
+  grep -q "$UNKNOWN_CMD_MARKER" "$1" 2>/dev/null \
+    && fatal 4 "$2 did not resolve — the CLI printed '$UNKNOWN_CMD_MARKER' and exited 0. The skill/agent is missing from this checkout (a worktree run reads origin/<default-branch>: has the skill been pushed?)."
+  return 0
+}
+
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Harness start: <HARNESS_NAME>${RETRY:+ (--retry)}" >> "$LOG"
 
 FEATURES="<HARNESS_SLUG>-features.json"
@@ -675,13 +702,37 @@ print(' '.join(ids))") || {
       # Poll `claude agents --json --all` (without --all a finished session vanishes from the list)
       # until every wave session has exited; stop a blocked one and surface what it waited on.
       # ${arr[@]+...} keeps an empty AGENT_IDS safe under `set -u` on bash 3.2.
+      # A wall-clock deadline for the wave. Without it the `*)` branch below sleeps 10s forever on a
+      # session that never leaves "working" — max_iter bounds only the sequential branch.
+      WAVE_DEADLINE=$(( $(date +%s) + ${CLAUDEWARP_WAVE_MAX_MINUTES:-120} * 60 ))
       for agent_id in ${AGENT_IDS[@]+"${AGENT_IDS[@]}"}; do
         while : ; do
-          row=$(claude agents --json --all 2>/dev/null | python3 -c "
+          if [ "$(date +%s)" -ge "$WAVE_DEADLINE" ]; then
+            claude stop "$agent_id" >/dev/null 2>&1 || true
+            echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: wave $wave exceeded ${CLAUDEWARP_WAVE_MAX_MINUTES:-120}m — stopped background session $agent_id; its task stays pending." >> "$LOG"
+            break
+          fi
+          # not_observed != absent: a failed READ of the agent list is not evidence the session is
+          # gone. Separate the two, and only conclude "missing" after several consecutive clean
+          # reads that genuinely do not list it.
+          agents_json=$(claude agents --json --all 2>/dev/null) || agents_json=""
+          if [ -z "$agents_json" ]; then
+            read_fails=$(( ${read_fails:-0} + 1 ))
+            if [ "$read_fails" -ge 3 ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M %Z')] SURFACE: could not read \`claude agents --json --all\` $read_fails times in a row while waiting on $agent_id — status unknown, NOT assumed finished." >> "$LOG"
+              break
+            fi
+            sleep 10; continue
+          fi
+          read_fails=0
+          row=$(printf '%s' "$agents_json" | python3 -c "
 import json,sys
-agents=json.load(sys.stdin)
+try:
+    agents=json.load(sys.stdin)
+except Exception:
+    sys.exit(9)
 a=next((x for x in agents if x.get('id')=='$agent_id'),None)
-print('missing\t' if a is None else '%s\t%s' % (a.get('state') or a.get('status') or 'unknown', a.get('waitingFor') or ''))" 2>/dev/null || printf 'missing\t\n')
+print('missing\t' if a is None else '%s\t%s' % (a.get('state') or a.get('status') or 'unknown', a.get('waitingFor') or ''))") || { sleep 10; continue; }
           case "${row%%	*}" in
             done|missing) break ;;
             blocked)
@@ -939,14 +990,26 @@ if [ "$CONVERGE" -eq 1 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] --converge: reconciling actual state vs intent..." >> "$LOG"
   BEFORE=$(jnum "import json; print(len(json.load(open('$FEATURES'))['tasks']))")
 
+  # This is a SLASH COMMAND: if it does not resolve, the CLI prints "Unknown command:" and exits 0,
+  # so neither the exit code nor the unchanged task count below would reveal that converge never ran
+  # — and the runner would log "converged". Capture the exit code AND check the marker.
+  CONVERGE_LOG="$(mktemp)"
+  set +e
   claude \
     --permission-mode auto \
     ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
     --max-turns 20 \
     --effort high \
     --allowedTools "Read,Glob,Grep,Bash,Edit" \
+    --disallowedTools "$HARNESS_DENY" \
     -p "/claude-warp-converge --slug <HARNESS_SLUG> --contract contract.yaml" \
-    >> "$LOG" 2>&1
+    >> "$CONVERGE_LOG" 2>&1
+  CONVERGE_RC=$?
+  set -e
+  cat "$CONVERGE_LOG" >> "$LOG"
+  assert_command_resolved "$CONVERGE_LOG" "/claude-warp-converge"
+  rm -f "$CONVERGE_LOG"
+  [ "$CONVERGE_RC" -eq 0 ] || fatal 5 "converge exited $CONVERGE_RC — refusing to read an unchanged task count as 'converged'."
 
   AFTER=$(jnum "import json; print(len(json.load(open('$FEATURES'))['tasks']))")
   if [ "$AFTER" -gt "$BEFORE" ]; then

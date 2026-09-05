@@ -65,8 +65,17 @@ LOG="logs/{{SKILL_SLUG}}-$(date '+%Y%m%d').log"
 # scheduled run dies at its first invocation with 127 and the loop simply never runs —
 # a failure that only appears when you exercise the scaffold the way the scheduler
 # does, not when you run it by hand with your own shell. Set CLAUDE_BIN to override.
-[ -n "${CLAUDE_BIN:-}" ] && PATH="$(dirname "$CLAUDE_BIN"):$PATH"
+# CLAUDE_BIN is prepended LAST so it actually wins. Prepending it first and then prepending the
+# default install dirs (v0.42.2) let an existing ~/.local/bin/claude silently outrank the override —
+# i.e. the one mechanism the FATAL below tells the operator to use was inert exactly when needed.
 PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+if [ -n "${CLAUDE_BIN:-}" ]; then
+  if [ ! -x "$CLAUDE_BIN" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: CLAUDE_BIN=$CLAUDE_BIN is not an executable file." | tee -a "$LOG" >&2
+    exit 127
+  fi
+  PATH="$(cd "$(dirname "$CLAUDE_BIN")" && pwd):$PATH"
+fi
 export PATH
 if ! command -v claude >/dev/null 2>&1; then
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude in the cron/launchd environment." | tee -a "$LOG" >&2
@@ -110,9 +119,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# `claude -p "/nope"` prints "Unknown command: /nope" and EXITS 0 (verified on v2.1.261), so a stage
+# whose skill is absent would be logged as done. This runner ALWAYS uses a worktree off
+# origin/<default-branch>, so a skill committed locally but never pushed is absent here — the single
+# most likely way to hit it.
+UNKNOWN_CMD_MARKER="Unknown command:"
+
 # run_stage <skill-slug> <disallowed-tools>
 run_stage() {
   local slug="$1" deny="$2"
+  local f="$WORK_DIR/.claude/skills/${slug}/SKILL.md"
+  if [ ! -f "$f" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: $f not found — \`claude -p \"/${slug}\"\` would print 'Unknown command' and exit 0, which this runner would log as a completed stage. This run uses a worktree off origin/${DEFAULT_BRANCH}: has the skill been pushed?" | tee -a "$LOG" >&2
+    exit 4
+  fi
+  local before_bytes; before_bytes=$(wc -c < "$LOG" 2>/dev/null || echo 0)
   ( cd "$WORK_DIR" && ${TIMEOUT_CMD[@]+"${TIMEOUT_CMD[@]}"} claude \
     --permission-mode auto \
     ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
@@ -123,6 +144,12 @@ run_stage() {
     --disallowedTools "$deny" \
     -p "/${slug}" ) \
     >> "$LOG" 2>&1
+  local rc=$?
+  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /${slug} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2
+    exit 4
+  fi
+  return $rc
 }
 
 # True if origin/<default-branch> gained a Stage B commit for THIS loop since base SHA $1
@@ -130,13 +157,21 @@ run_stage() {
 # commit does not match, so it is not mistaken for this run's publish.
 stage_b_landed() {
   git fetch origin "$DEFAULT_BRANCH" -q
-  git log --format=%s "$1..origin/${DEFAULT_BRANCH}" 2>/dev/null | grep -q "loop({{STAGE_B_SLUG}})"
+  # ANCHORED to the loop skill's own commit convention (`loop(<slug>): run <date>`) at the START of
+  # the subject. An unanchored substring match also fired on a chore commit mentioning the slug, and
+  # on git's own `Revert "loop(<slug>): run ..."` — skipping Stage B and exiting 0 on work that
+  # never published. The comment above used to claim this; now the code implements it.
+  git log --format=%s "$1..origin/${DEFAULT_BRANCH}" 2>/dev/null \
+    | grep -qE '^loop\({{STAGE_B_SLUG}}\): run '
 }
 
 # run_pipeline <base-sha>
 run_pipeline() {
   local base="$1"
-  run_stage "{{STAGE_A_SLUG}}" "Skill,Bash(git *),Bash(gh *)" || return $?
+  # EXTEND the loop's own deny-list, never replace it: passing only the stage-escalation denies
+  # dropped every DO_NOT-derived rule (e.g. Edit(src/**)) and the destructive floor from Stage A,
+  # which runs under --permission-mode auto where --allowedTools is not a deny.
+  run_stage "{{STAGE_A_SLUG}}" "{{DISALLOWED_TOOLS}},Skill,Bash(git *),Bash(gh *)" || return $?
   echo "[$(date '+%Y-%m-%d %H:%M %Z')] Stage A ({{STAGE_A_SLUG}}) done" >> "$LOG"
   if stage_b_landed "$base"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: a loop({{STAGE_B_SLUG}}) commit already landed on origin/${DEFAULT_BRANCH} since ${base} — Stage A escalated into Stage B (deny-list breached?) or a concurrent run published. Skipping Stage B; inspect the log." >> "$LOG"
