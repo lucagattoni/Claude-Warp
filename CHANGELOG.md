@@ -7,6 +7,64 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.44.0] — 2026-09-05 12:56 UTC
+
+Second live dogfood, this time of the **harness** — the most complex artifact in the repo and, until
+now, the one with zero execution coverage despite taking 203 changed lines in v0.42.x. Two defects,
+both found by reading the skills against each other before a single token was spent.
+
+### Fixed
+- **`/claude-warp-new-harness` silently ignored `--contract`.** `/claude-warp-contract` Phase 10
+  documents handing off `/claude-warp-new-harness "<name>" --contract contract.yaml`, and
+  `new-loop` and `new-goal` both open with a "Phase 0 — Contract input (optional)" that maps the
+  fields. `new-harness` had no Phase 0 at all: it parsed `$ARGUMENTS` only as prose, so everything
+  the contract negotiated — risk, budget, scope, stop-check, guardrails — was dropped, and the
+  literal `--contract contract.yaml` text leaked into the goal string. Two of three scaffolders
+  honoured the interface; the third quietly did not. It now has the same Phase 0.
+- **`RISK` was emitted into the runner but derived by no phase.** It gates three `case` branches,
+  and at `R2+` it makes the QA evaluator and the decomposition approval gate mandatory and
+  non-overridable. With no derivation the scaffolding agent inferred a plausible tier: a live
+  scaffold produced `RISK="R1"`, which leaves **both gates off** — and nothing downstream reveals
+  it, because the generated runner is otherwise complete and syntactically perfect. Phase 1 now
+  derives it from blast radius, and names **`R2` as the fail-closed default when the tier is
+  unclear**, because guessing low disables two gates the docs call mandatory.
+
+- **Four runtime scripts the emitted instructions depend on never reached an install.** Surfaced by
+  the live harness worker itself, which honestly reported the mandated residual scan as `not run`:
+  `templates/honesty-rules.md.tpl` — injected into every harness worker's session-init — requires
+  `scripts/check-ai-residuals.sh` before a task may be `done` and calls it **blocking at R2+**, and
+  `install.sh` never copied it. Same for `scripts/ledger.sh`, which `/claude-warp-ledger` is a thin
+  wrapper over and `/claude-warp-retro` Phase 6 records to — so the ledger silently never worked in
+  any installed project. Both are now installed to `<project>/scripts/` and marked executable;
+  `dev.sh` and `verifier-lib.sh` are deliberately left out as source-repo tooling. This is the same
+  class as v0.43.0's missing templates: an artifact the emitted instructions require, absent from
+  the install, with the failure only visible to something that tried to follow the instruction.
+
+### Added
+- **`verify` check 12/12 — scaffolder contract.** Every `<TOKEN>` a skill emits into a runner must
+  have a derivation bullet (a placeholder no phase derives is filled by guesswork); all three
+  scaffolders must carry a Phase 0 contract input; and the risk derivation must name a fail-closed
+  default rather than merely mentioning risk. Mutation-tested four ways — removing `RISK`'s
+  derivation, removing Phase 0 from `new-harness`, removing it from `new-goal`, and softening the
+  default — each fails the gate.
+- **check 11 extended to runtime scripts** — `install.sh` must carry a copy loop installing
+  `check-ai-residuals.sh` and `ledger.sh`. Anchored to the loop rather than the script name, because
+  the first version matched the explanatory comment above it and passed with the copy deleted: the
+  fourth assertion in this repo to match its own prose, and the fourth caught only by mutating it.
+
+**What the dogfood validated:** the install produced manifest `0.43.0` with 13 templates (the
+v0.43.0 fixes, third independent confirmation); the scaffolder emitted a **543-line runner against
+the skill's 542**, carrying every mechanism intact — `jnum()`, `fatal()`, both binary preflights,
+`HARNESS_DENY`, the unknown-command guard, the wave deadline, the oscillation guard and the
+agent-list read retry; and both scaffolded agents pinned `claude-sonnet-5`, confirming the v0.42.0
+model-lineup fix.
+
+**Correction.** An intermediate reading here claimed the generated runner was missing its `case
+"$RISK"` gate blocks. It was not — `grep 'case "$RISK"'` inside double quotes let the shell expand
+`$RISK` to empty, so the search was for `case ""`. The instrument was broken, not the artifact. That
+is the third instance this session of a checking tool being the faulty part, and it is recorded for
+the same reason as the others.
+
 ## [0.43.0] — 2026-09-05 05:27 UTC
 
 **First live end-to-end dogfood.** A throwaway project, a real local git remote, the real
