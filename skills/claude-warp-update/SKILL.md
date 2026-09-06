@@ -145,12 +145,14 @@ if [ -f harness-manifest.json ]; then git add harness-manifest.json; fi
 git commit -m "chore(claude-warp-update): sync skills to ClaudeWarp v<REMOTE_VERSION>"
 ```
 
-Add the two paths **separately**, and use an `if` rather than `[ -f … ] && …`: the AND-list
-returns 1 when the manifest is absent, which would abort a `set -e` script on its last statement.
- `git add .claude/skills/ harness-manifest.json` is atomic: in a
-project without a manifest it fails with `fatal: pathspec 'harness-manifest.json' did not match
-any files`, exits 128, and stages **nothing** — so a run that had already rewritten skill files on
-disk loses the entire commit. (Reproduced.)
+Add the two paths in **separate** `git add` calls. The combined form
+`git add .claude/skills/ harness-manifest.json` is atomic: in a project without a manifest it
+fails with `fatal: pathspec 'harness-manifest.json' did not match any files`, exits 128, and
+stages **nothing** — so a run that had already rewritten skill files on disk loses the entire
+commit. (Reproduced.)
+
+Use an `if` rather than `[ -f … ] && …` for the second add: the AND-list returns 1 when the
+manifest is absent, which would abort a `set -e` script on its last statement.
 
 If no skill changed but the manifest was stamped, commit the manifest alone. If nothing changed at
 all, print "ClaudeWarp skills are up to date — no changes." and skip the commit.
