@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.46.0] — 2026-09-06 08:11 UTC
+
+The four items left open by the v0.45.1 handoff, closed by **executing** them — and the run that
+mattered most was the one that revealed the gate itself could not report a failure. Seven defects,
+two of them in the checking instruments rather than the artifacts. Ordered by dependency: nothing
+downstream can demonstrate RED→GREEN through a gate that dies at the first red.
+
 ### Fixed
 - **CRITICAL — `scripts/dev.sh verify` could not report a failure.** The gate ran under
   `set -euo pipefail` and called all thirteen checks bare, while six of them ended in
