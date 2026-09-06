@@ -7,6 +7,33 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Fixed
+- **CRITICAL — `scripts/dev.sh verify` could not report a failure.** The gate ran under
+  `set -euo pipefail` and called all thirteen checks bare, while six of them ended in
+  `[ "$FAIL" -eq 0 ] && note_ok …` — an AND-list that returns 1 once the tally is non-zero. So the
+  **first** failing check killed the run: measured, a bad skill name in check 1 reached **1 of 13**
+  checks and printed **no verdict banner at all**; a drifted claim count in check 7 reached 7 of 13.
+  Every "VERIFY PASSED" in this repo's history was green only because nothing had ever failed —
+  the failure path itself had never once executed. Checks now report their **own** result
+  (`check_begin`/`check_ok` against a per-check baseline, not the global counter, so one early
+  failure no longer suppresses every later ✓) and every check returns 0 explicitly, leaving
+  `errexit` active *inside* each body where a broken `mktemp`/`git init` must still be fatal.
+  Guarding the call sites with `|| true` instead would have disabled `errexit` for the whole body
+  — a worse defect than the one being fixed.
+- **`verify --live` aborted instead of reporting.** Its two early-exit paths printed a bare `✗` and
+  `return 1`, which tripped `errexit` at the call site: with `claude` off `PATH` the run died with
+  no banner, so a live gate that never ran looked indistinguishable from a crash. Both are now
+  counted failures.
+
+### Added
+- **`scripts/gate-selftest.sh` — the gate on the gate.** Mirrors the **working tree** (not `HEAD`,
+  so an uncommitted fix is what gets tested) into a sandbox, plants known failures, and asserts
+  `verify` reaches all 13 checks, prints `VERIFY FAILED`, counts issues independently, and keeps a
+  later passing check's ✓ intact. Proven by mutation: reverting `dev.sh` to the broken gate, or
+  restoring either individual defect, each turns exactly the matching assertion red. Runs in CI
+  next to `verify`.
+
+
 ## [0.45.1] — 2026-09-06 00:26 UTC
 
 A four-lane parallel dogfood of the seven never-executed skills — `contract`, `new-goal`,

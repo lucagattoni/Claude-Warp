@@ -65,9 +65,17 @@ unhost() {
 FAIL=0
 note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
+# A check reports its OWN result, not the global tally: check_begin snapshots the counter and
+# check_ok prints only if THIS check added nothing to it. Both always return 0 — a check whose
+# last statement returned non-zero used to trip `set -e` and kill the run before its own verdict
+# banner (measured: one planted failure reached 7 of 13 checks and printed no banner at all).
+CHECK_FAIL0=0
+check_begin() { CHECK_FAIL0=$FAIL; return 0; }
+check_ok()    { [ "$FAIL" -eq "$CHECK_FAIL0" ] && note_ok "$1"; return 0; }
 
 check_source_integrity() {
   echo "[1/13] Source integrity — every skill is well-formed"
+  check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -77,7 +85,9 @@ check_source_integrity() {
     local declared; declared="$(grep -m1 '^name:' "$f" | sed 's/^name:[[:space:]]*//')"
     [ "$declared" = "$name" ] || note_fail "$name: frontmatter name '$declared' != directory name"
   done
-  [ "$FAIL" -eq 0 ] && note_ok "$(ls -d skills/*/ | wc -l | tr -d ' ') skills well-formed"
+  check_ok "$(ls -d skills/*/ | wc -l | tr -d ' ') skills well-formed"
+  return 0
+  return 0
 }
 
 check_setup_dynamic() {
@@ -88,6 +98,7 @@ check_setup_dynamic() {
   else
     note_fail "setup no longer uses the dynamic skills/*/ loop — it may have regressed to a hardcoded list (see v0.11.1)"
   fi
+  return 0
 }
 
 check_copy_contract() {
@@ -110,6 +121,7 @@ check_copy_contract() {
     [ -s "$f" ] || note_fail "empty after copy: $f"
   done
   rm -rf "$tmp"
+  return 0
 }
 
 check_placeholder_fill() {
@@ -138,16 +150,19 @@ check_placeholder_fill() {
   else
     note_ok "harness-manifest.json.tpl fully fillable and valid JSON"
   fi
+  return 0
 }
 
 check_docs_coherence() {
   echo "[5/13] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
     grep -q "/$name" README.md                      || note_fail "$name: not listed in README.md"
   done
-  [ "$FAIL" -eq 0 ] && note_ok "all skills documented in reference/skills.md and README"
+  check_ok "all skills documented in reference/skills.md and README"
+  return 0
 }
 
 check_executable_selftests() {
@@ -175,17 +190,19 @@ check_executable_selftests() {
   else
     note_ok "reviewer-guard.sh absent — skipped"
   fi
+  return 0
 }
 
 check_claim_count_coherence() {
   echo "[7/13] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  check_begin
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
   # in BOTH the backlog and the docs — so a count update can't half-land (retro: corroboration-rigor).
   local total verified expected
-  total="$(grep -cE '^### [0-9]+\. ' "$bc")"
-  verified="$(grep -cE '^### [0-9]+\..*verified-live' "$bc")"
+  total="$(grep -cE '^### [0-9]+\. ' "$bc" || true)"
+  verified="$(grep -cE '^### [0-9]+\..*verified-live' "$bc" || true)"
   expected="${verified}/${total}"
   grep -qF "$expected" "$bc" \
     || note_fail "BEHAVIOURAL-CLAIMS.md states no '$expected' (computed: $verified verified-live of $total claims)"
@@ -193,7 +210,8 @@ check_claim_count_coherence() {
     grep -qF "$expected" docs/reference/architecture.md \
       || note_fail "docs/reference/architecture.md count drifted from the registry's '$expected'"
   fi
-  [ "$FAIL" -eq 0 ] && note_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
+  check_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
+  return 0
 }
 
 check_plugin_version_coherence() {
@@ -221,10 +239,10 @@ check_plugin_version_coherence() {
 verify_live() {
   echo
   echo "[live] Real /claude-warp-setup into a throwaway repo (costs tokens)…"
-  command -v claude >/dev/null || { echo "  ✗ 'claude' not on PATH"; return 1; }
+  command -v claude >/dev/null || { note_fail "'claude' not on PATH — the live gate could not run"; return 0; }
   local tmp; tmp="$(mktemp -d)"
   ( cd "$tmp" && git init -q && git commit -q --allow-empty -m init )
-  bash "$REPO_ROOT/install.sh" "$tmp" || { echo "  ✗ install.sh failed"; rm -rf "$tmp"; return 1; }
+  bash "$REPO_ROOT/install.sh" "$tmp" || { note_fail "install.sh failed"; rm -rf "$tmp"; return 0; }
   local src_count got
   src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   got="$(ls -d "$tmp"/.claude/skills/*/ 2>/dev/null | wc -l | tr -d ' ')"
@@ -232,10 +250,12 @@ verify_live() {
   [ -f "$tmp/CLAUDE.md" ] && ! grep -q '{{' "$tmp/CLAUDE.md" && note_ok "CLAUDE.md filled" || note_fail "CLAUDE.md missing or has placeholders"
   [ -f "$tmp/harness-manifest.json" ] && python3 -m json.tool "$tmp/harness-manifest.json" >/dev/null 2>&1 && note_ok "harness-manifest.json valid" || note_fail "harness-manifest.json missing or invalid"
   rm -rf "$tmp"
+  return 0
 }
 
 check_scheduled_env_preflight() {
   echo "[9/13] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  check_begin
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
   # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
@@ -282,7 +302,8 @@ check_scheduled_env_preflight() {
   fi
   grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' templates/run-fanout.sh.tpl \
     || note_fail "run-fanout: parses JSON with python3 but does not preflight it"
-  [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
+  check_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
+  return 0
 }
 
 check_runner_execution() {
@@ -386,6 +407,7 @@ check_runner_execution() {
     note_fail "fan-out dropped an unterminated final task: counted=${counted:-0}, launched=${launched:-0}, expected 3/3"
   fi
   rm -rf "$tmp"
+  return 0
 }
 
 check_install_completeness() {
@@ -469,10 +491,12 @@ check_install_completeness() {
       || note_fail "$sk does not forbid improvising a missing template (improvising drops every runner guard)"
   done
   rm -rf "$tmp"
+  return 0
 }
 
 check_scaffolder_contract() {
   echo "[12/13] Scaffolder contract — placeholders are derived, and --contract is honored"
+  check_begin
   # A <TOKEN> in an emitted runner that no phase derives is filled by guesswork. RISK shipped that
   # way: it gates the mandatory QA evaluator and the approval gate in three `case` branches, no
   # phase derived it, and a live scaffold guessed R1 — silently leaving both gates off. Nothing
@@ -495,11 +519,13 @@ check_scaffolder_contract() {
   # And the risk derivation must state a fail-closed default, not merely mention risk.
   grep -q 'use `R2`' skills/claude-warp-new-harness/SKILL.md \
     || note_fail "new-harness does not name a fail-closed default tier for an unclear RISK"
-  [ "$FAIL" -eq 0 ] && note_ok "every emitted placeholder is derived; all 3 scaffolders honor --contract"
+  check_ok "every emitted placeholder is derived; all 3 scaffolders honor --contract"
+  return 0
 }
 
 check_emitted_gates() {
   echo "[13/13] Emitted gates — hooks read the real payload, and every runner shape is hardened"
+  check_begin
   local hk="skills/claude-warp-new-hook/SKILL.md"
   # A PreToolUse payload nests the command at tool_input.command. destructive-block read the
   # top-level `command`, which is always empty, so it blocked NOTHING while looking like a gate —
@@ -523,7 +549,7 @@ check_emitted_gates() {
       grep -qE "${pat}([^A-Za-z0-9_-]|\$)" "$gs" || { note_fail "new-goal's runner lacks '$pat' — the loop runners guarantee it; goals must not drift"; missing=$((missing+1)); }
     done
   fi
-  [ "$FAIL" -eq 0 ] && note_ok "hook templates read tool_input and fail closed; goal runner at parity with loop runners"
+  check_ok "hook templates read tool_input and fail closed; goal runner at parity with loop runners"
 }
 
 verify() {
