@@ -28,6 +28,11 @@ jobs:
       - name: Run scripts/dev.sh verify
         run: bash scripts/dev.sh verify
 
+      # Proves the gate above can still REPORT a failure. Without this, `verify` passing in CI
+      # says nothing: it used to die at the first failing check and print no verdict at all.
+      - name: Run scripts/gate-selftest.sh
+        run: bash scripts/gate-selftest.sh
+
   actionlint:
     runs-on: ubuntu-latest
     steps:

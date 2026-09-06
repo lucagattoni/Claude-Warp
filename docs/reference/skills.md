@@ -121,7 +121,7 @@ cleanup maintenance prompt in-session.
 | `.claude/skills/<slug>/SKILL.md` | Loop procedure with phases: guard → state → work → verify → write → stop |
 | `scripts/guard-<slug>.sh` | Prevents double-runs (once per day / weekdays only) |
 | `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, one `claude --bg --worktree` session per item) based on goal shape |
-| `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
+| `<SLUG>_LOG.md` | Append-only state, seeded with the `<!-- state:` header the loop reads (`last_run: never`, `runs_total: 0`, …) so run #1 updates a block that exists rather than inventing one; IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
 **Retry-with-backoff + safe-to-retry guard (v0.34.0).** The headless runner (`run-headless.sh.tpl`) wraps
@@ -433,11 +433,18 @@ Install path: `skills/claude-warp-inventory/SKILL.md`
 Retrospective over a loop, goal, or harness (or all). Reads state files and git history —
 does not modify any loop/goal files (RETRO.md is the only output).
 
-1. Detects each state file's schema (loop `<!-- state:` header / §2.2 `GOAL.md` / harness
+1. Scopes its git query to the **resolved** `STATE_FILE` and skill directory — collecting run
+   commits and fix commits for this loop only — and derives `--since` from the oldest of the last
+   10 dated sections rather than a fixed 30 days (a weekly loop's last 10 runs span ~70 days).
+   Reads `logs/<slug>-*.log` for guard-fired skips, which write neither the state file nor a
+   commit — with no such evidence the guard question is answered *"not observable"* rather than
+   silently passed.
+2. Detects each state file's schema (loop `<!-- state:` header / §2.2 `GOAL.md` / harness
    `features.json`) and reads it accordingly — for a goal it analyses completion + rework,
    not a run series
-2. Reads git log for run commits and fix commits in the past 30 days
-3. Scans last 10 dated sections for verdict distribution and recurring failures
+3. Scans the **newest** 10 dated sections for verdict distribution and recurring failures, across
+   all six verdicts (`pass`/`skip`/`fail`/`handoff`/`timeout`/`stopped`) so the reported total
+   equals the sum of its buckets
 4. Analyses patterns: what worked, what failed, what caused handoffs/timeouts — and applies the
    **removal test** (v0.42.0): which guard, checker, or corroboration pass would the last N runs
    still have passed without on the current model? A component whose absence changes nothing is
@@ -505,11 +512,22 @@ Install path: `skills/claude-warp-sync/SKILL.md`
 
 Pulls the latest ClaudeWarp skills from GitHub into this project.
 
-1. Reads `harness-manifest.json` for the current installed version
-2. Fetches the skills directory listing from the ClaudeWarp GitHub repo
-3. For each installed skill: fetches the remote SKILL.md and compares with local
-4. Applies updates, installs new skills, and reports orphans (removed upstream)
-5. Updates `harness-manifest.json` version and commits
+0. Refuses to run in a self-hosted source repo (`.claude/skills/` entries are symlinks)
+1. Reads `harness-manifest.json` for the current installed **top-level** `version` (`harness` is
+   the string `"ClaudeWarp"`; `version`/`last_update` are its siblings, not fields under it)
+2. Fetches the skills listing with `curl`, **not** `WebFetch` — Phase 3 requires a byte diff, and
+   an LLM-mediated relay cannot satisfy that. Aborts without touching anything if the response is
+   not a JSON array of directories (an unauthenticated rate-limit reply is a **403** whose
+   body `curl -f` turns into an empty result — and any unexpected non-array body would otherwise
+   mark every installed skill an orphan)
+3. For each installed skill: fetches the remote SKILL.md and byte-compares it. Treats an empty or
+   frontmatter-less 200 body as **fetch-failed**, not as "differs" — otherwise a truncated
+   response replaces a working skill with nothing
+4. Applies updates, installs new skills, and reports orphans (removed upstream — never deleted)
+5. Stamps `version` and `last_update` (on every completed check, including a no-op — the field
+   means "when did we last verify"), then commits. Adds `.claude/skills/` and the manifest as
+   **separate** `git add` calls: the combined form is atomic and stages nothing in a project
+   without a manifest
 
 Install path: `skills/claude-warp-update/SKILL.md`
 

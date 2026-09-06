@@ -65,9 +65,32 @@ unhost() {
 FAIL=0
 note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
+# A check reports its OWN result, not the global tally: check_begin snapshots the counter and
+# check_ok prints only if THIS check added nothing to it. Both always return 0 — a check whose
+# last statement returned non-zero used to trip `set -e` and kill the run before its own verdict
+# banner (measured: one planted failure reached 7 of 13 checks and printed no banner at all).
+CHECK_FAIL0=0
+check_begin() { CHECK_FAIL0=$FAIL; return 0; }
+check_ok()    { [ "$FAIL" -eq "$CHECK_FAIL0" ] && note_ok "$1"; return 0; }
+
+# errexit stays live INSIDE each check body on purpose — a broken `mktemp`/`git init` must be
+# fatal rather than silently producing garbage. The cost is that a check which CRASHES ends the
+# run before the verdict, reproducing the exact no-banner symptom that per-check returns fixed for
+# a check that merely REPORTS a failure. Measured while adding the state-header check: one
+# uncaptured `( … )` exiting 1 killed the run after printing only its own header. This trap
+# guarantees the gate always says something.
+VERDICT_PRINTED=0
+verify_crash_guard() {
+  [ "$VERDICT_PRINTED" -eq 1 ] && return 0
+  echo
+  echo "VERIFY CRASHED ✗ — a check aborted before the verdict banner."
+  echo "  This is a fault in the CHECK itself, not necessarily in the artifact it inspects."
+  echo "  The last '[N/14]' line above names the check that died."
+}
 
 check_source_integrity() {
-  echo "[1/13] Source integrity — every skill is well-formed"
+  echo "[1/14] Source integrity — every skill is well-formed"
+  check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -77,21 +100,24 @@ check_source_integrity() {
     local declared; declared="$(grep -m1 '^name:' "$f" | sed 's/^name:[[:space:]]*//')"
     [ "$declared" = "$name" ] || note_fail "$name: frontmatter name '$declared' != directory name"
   done
-  [ "$FAIL" -eq 0 ] && note_ok "$(ls -d skills/*/ | wc -l | tr -d ' ') skills well-formed"
+  check_ok "$(ls -d skills/*/ | wc -l | tr -d ' ') skills well-formed"
+  return 0
+  return 0
 }
 
 check_setup_dynamic() {
-  echo "[2/13] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/14] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
   else
     note_fail "setup no longer uses the dynamic skills/*/ loop — it may have regressed to a hardcoded list (see v0.11.1)"
   fi
+  return 0
 }
 
 check_copy_contract() {
-  echo "[3/13] Copy contract — the documented loop lands every skill"
+  echo "[3/14] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -110,10 +136,11 @@ check_copy_contract() {
     [ -s "$f" ] || note_fail "empty after copy: $f"
   done
   rm -rf "$tmp"
+  return 0
 }
 
 check_placeholder_fill() {
-  echo "[4/13] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/14] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -138,20 +165,23 @@ check_placeholder_fill() {
   else
     note_ok "harness-manifest.json.tpl fully fillable and valid JSON"
   fi
+  return 0
 }
 
 check_docs_coherence() {
-  echo "[5/13] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/14] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
     grep -q "/$name" README.md                      || note_fail "$name: not listed in README.md"
   done
-  [ "$FAIL" -eq 0 ] && note_ok "all skills documented in reference/skills.md and README"
+  check_ok "all skills documented in reference/skills.md and README"
+  return 0
 }
 
 check_executable_selftests() {
-  echo "[6/13] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/14] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -175,17 +205,19 @@ check_executable_selftests() {
   else
     note_ok "reviewer-guard.sh absent — skipped"
   fi
+  return 0
 }
 
 check_claim_count_coherence() {
-  echo "[7/13] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/14] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  check_begin
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
   # in BOTH the backlog and the docs — so a count update can't half-land (retro: corroboration-rigor).
   local total verified expected
-  total="$(grep -cE '^### [0-9]+\. ' "$bc")"
-  verified="$(grep -cE '^### [0-9]+\..*verified-live' "$bc")"
+  total="$(grep -cE '^### [0-9]+\. ' "$bc" || true)"
+  verified="$(grep -cE '^### [0-9]+\..*verified-live' "$bc" || true)"
   expected="${verified}/${total}"
   grep -qF "$expected" "$bc" \
     || note_fail "BEHAVIOURAL-CLAIMS.md states no '$expected' (computed: $verified verified-live of $total claims)"
@@ -193,11 +225,12 @@ check_claim_count_coherence() {
     grep -qF "$expected" docs/reference/architecture.md \
       || note_fail "docs/reference/architecture.md count drifted from the registry's '$expected'"
   fi
-  [ "$FAIL" -eq 0 ] && note_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
+  check_ok "backlog count coherent: $expected verified-live (registry == prose in both files)"
+  return 0
 }
 
 check_plugin_version_coherence() {
-  echo "[8/13] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/14] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -221,10 +254,10 @@ check_plugin_version_coherence() {
 verify_live() {
   echo
   echo "[live] Real /claude-warp-setup into a throwaway repo (costs tokens)…"
-  command -v claude >/dev/null || { echo "  ✗ 'claude' not on PATH"; return 1; }
+  command -v claude >/dev/null || { note_fail "'claude' not on PATH — the live gate could not run"; return 0; }
   local tmp; tmp="$(mktemp -d)"
   ( cd "$tmp" && git init -q && git commit -q --allow-empty -m init )
-  bash "$REPO_ROOT/install.sh" "$tmp" || { echo "  ✗ install.sh failed"; rm -rf "$tmp"; return 1; }
+  bash "$REPO_ROOT/install.sh" "$tmp" || { note_fail "install.sh failed"; rm -rf "$tmp"; return 0; }
   local src_count got
   src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   got="$(ls -d "$tmp"/.claude/skills/*/ 2>/dev/null | wc -l | tr -d ' ')"
@@ -232,10 +265,12 @@ verify_live() {
   [ -f "$tmp/CLAUDE.md" ] && ! grep -q '{{' "$tmp/CLAUDE.md" && note_ok "CLAUDE.md filled" || note_fail "CLAUDE.md missing or has placeholders"
   [ -f "$tmp/harness-manifest.json" ] && python3 -m json.tool "$tmp/harness-manifest.json" >/dev/null 2>&1 && note_ok "harness-manifest.json valid" || note_fail "harness-manifest.json missing or invalid"
   rm -rf "$tmp"
+  return 0
 }
 
 check_scheduled_env_preflight() {
-  echo "[9/13] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  echo "[9/14] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  check_begin
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
   # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
@@ -282,11 +317,12 @@ check_scheduled_env_preflight() {
   fi
   grep -qE 'command -v python3([^A-Za-z0-9_-]|$)' templates/run-fanout.sh.tpl \
     || note_fail "run-fanout: parses JSON with python3 but does not preflight it"
-  [ "$FAIL" -eq 0 ] && note_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
+  check_ok "runners preflight claude/timeout/python3; crontab sets PATH; task counts fail closed"
+  return 0
 }
 
 check_runner_execution() {
-  echo "[10/13] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
+  echo "[10/14] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
   # Checks 1-9 read source text. Three of their assertions were defeated live by whitespace, quotes
   # and a name prefix while still printing VERIFY PASSED, and two real behaviour bugs (CLAUDE_BIN
   # being outranked by a native install; the fan-out dropping an unterminated last line) were
@@ -350,6 +386,150 @@ check_runner_execution() {
     note_fail "budget exhaustion: expected exit 6 after 1 attempt, got exit $rc after $attempts attempt(s)"
   fi
 
+  # (d2) A FATAL exit must still report whether the attempt left work behind. Before this, a run
+  # that committed and THEN hit its cap logged a bare failure, losing the one fact that decides
+  # whether re-running is safe. The stub commits, then reports budget exhaustion.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo landed > landed.txt; git add landed.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "work landed" >/dev/null 2>&1; echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  attempts=$(grep -c 'Starting probe' "$repo"/logs/*.log 2>/dev/null || echo 0)
+  if [ "$rc" -eq 6 ] && [ "$attempts" = "1" ] && grep -q 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "budget exhaustion after work landed reports the durable trace (exit 6, 1 attempt)"
+  else
+    note_fail "budget exhaustion that COMMITTED work: expected exit 6, 1 attempt and a DURABLE TRACE note; got exit $rc, $attempts attempt(s), trace=$(grep -c 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null || echo 0)"
+  fi
+
+  # (d3) The timeout branch had the same hole, three lines above code that already did this.
+  # Anchor on the literal sentence: a bare 'TIMEOUT' also matches CLAUDEWARP_REQUIRE_TIMEOUT in
+  # the no-timeout-binary notice, which prints on hosts with neither timeout nor gtimeout.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo landed2 > landed2.txt; git add landed2.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "work landed 2" >/dev/null 2>&1; exit 124;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 1 ] && grep -q 'TIMEOUT: attempt exceeded' "$repo"/logs/*.log 2>/dev/null \
+       && grep -q 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "timeout after work landed reports the durable trace (exit 1)"
+  else
+    note_fail "timeout that COMMITTED work: expected exit 1 with both 'TIMEOUT: attempt exceeded' and a DURABLE TRACE note; got exit $rc"
+  fi
+
+  # (d5) A session/usage limit is a wall, not a transient drop. Found live: `claude -p` printed
+  # "You've hit your session limit · resets 3:10am" and exited 1 — the generic code this runner
+  # retries — so a scheduled loop would burn its whole backoff window failing identically and
+  # report a bare failure, losing the reset time. Must exit 7 after exactly one attempt.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "You'"'"'ve hit your session limit \xc2\xb7 resets 3:10am (Europe/Dublin)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  attempts=$(grep -c 'Starting probe' "$repo"/logs/*.log 2>/dev/null || echo 0)
+  if [ "$rc" -eq 7 ] && [ "$attempts" = "1" ]; then
+    note_ok "session limit is a wall, not a transient: exit 7 after 1 attempt (executed)"
+  else
+    note_fail "session limit: expected exit 7 after 1 attempt, got exit $rc after $attempts attempt(s) — a limit that reads as a generic transient burns the whole backoff window"
+  fi
+  # The reset time is the one fact the operator needs; a bare "it failed" loses it. Anchor on the
+  # runner's OWN diagnostic line: the stub's raw output is appended to the same log, so a bare
+  # `grep 'resets 3:10am'` passes even with the echo deleted (caught by mutating exactly that).
+  grep -qE 'FATAL: the account hit its session/usage limit .*resets 3:10am' "$repo"/logs/*.log 2>/dev/null \
+    || note_fail "session-limit branch did not carry the CLI's reset time into its own FATAL line"
+  # Markers must DISCRIMINATE: the budget stub above exits 6, this one 7. If either matched both,
+  # the two branches would be interchangeable and neither assertion would mean anything.
+  grep -q 'exhausted its --max-budget-usd cap' "$repo"/logs/*.log 2>/dev/null \
+    && note_fail "a session-limit run was reported as budget exhaustion — the two markers do not discriminate"
+
+  # (d6) NEGATIVE POLE for (d5). The marker is two ordinary English phrases, so it must not fire on
+  # a run that SUCCEEDED and merely discussed them. Measured before the rc gate: a stub exiting 0
+  # while printing "Documented the usage limit handling" was reported FATAL, exit 7 — the guard
+  # would have killed a working loop.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Done. Documented the usage limit handling. 2 files changed."; exit 0;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 0 ] && ! grep -q 'hit its session/usage limit' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "a successful run that merely mentions a usage limit is not killed (negative pole)"
+  else
+    note_fail "(d6) a SUCCESSFUL run mentioning 'usage limit' exited $rc and/or was reported as a session limit — the marker fires on prose, so (d5) proves nothing"
+  fi
+
+  # (d4) NEGATIVE POLE — mandatory. The probe repo above leaves .claude/ untracked, so
+  # `git status --porcelain` is never empty there and tree_dirty() is unconditionally true: a
+  # positive-only assertion cannot tell "durable_trace was consulted" from "the note prints
+  # always". This repo is genuinely clean (logs/ gitignored, as claude-warp-setup guarantees),
+  # and the stub changes nothing — so the note must be ABSENT.
+  local clean="$tmp/clean"
+  mkdir -p "$clean/scripts" "$clean/logs" "$clean/.claude/skills/probe"
+  printf 'x\n' > "$clean/.claude/skills/probe/SKILL.md"
+  printf 'logs/\n' > "$clean/.gitignore"
+  fill_runner templates/run-headless.sh.tpl "$clean/scripts/run-probe.sh" probe
+  ( cd "$clean" && git init -q && git add -A \
+      && git -c user.email=v@x -c user.name=v commit -q -m init )
+  local dirty; dirty="$( cd "$clean" && git status --porcelain )"
+  if [ -n "$dirty" ]; then
+    note_fail "(d4) setup error: the clean probe repo is not clean [$dirty] — the negative pole would be vacuous"
+  else
+    printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+    rc=0
+    ( cd "$clean" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+        /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+    if [ "$rc" -eq 6 ] && ! grep -q 'DURABLE TRACE' "$clean"/logs/*.log 2>/dev/null; then
+      note_ok "a fatal exit that left NOTHING behind reports no durable trace (negative pole)"
+    else
+      note_fail "(d4) a run that changed nothing still reported a DURABLE TRACE (exit $rc) — the trace note is unconditional, so (d2)/(d3) prove nothing"
+    fi
+  fi
+
+  # (w) --worktree mode had NO coverage at all (`grep -c worktree scripts/dev.sh` was 0), yet it is
+  # the mode the template header recommends for unattended L3 loops, and durable_trace() behaves
+  # differently there: it keys on origin advancing rather than on the local tree. report_trace now
+  # runs on that path too, calling snapshot() -> `git fetch origin`. All of it, until now, unrun.
+  local ori="$tmp/origin.git" wrepo="$tmp/wrepo"
+  git init -q --bare "$ori"
+  git clone -q "$ori" "$wrepo" 2>/dev/null
+  mkdir -p "$wrepo/scripts" "$wrepo/logs" "$wrepo/.claude/skills/probe"
+  printf 'x\n' > "$wrepo/.claude/skills/probe/SKILL.md"
+  printf 'logs/\n' > "$wrepo/.gitignore"
+  fill_runner templates/run-headless.sh.tpl "$wrepo/scripts/run-probe.sh" probe
+  ( cd "$wrepo" && git add -A && git -c user.email=v@x -c user.name=v commit -q -m init \
+      && git push -q origin HEAD:main 2>/dev/null && git remote set-head origin main 2>/dev/null )
+  # (w1) Happy path: a successful --worktree run exits 0 and LEAVES NOTHING BEHIND. A leaked
+  # worktree or branch on every cron fire is the failure mode nobody notices until disk fills.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo WT-OK;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  local leaked_wt leaked_br
+  leaked_wt=$( cd "$wrepo" && git worktree list 2>/dev/null | grep -c 'probe-worktree' || true )
+  leaked_br=$( cd "$wrepo" && git branch --list 'probe-2*' 2>/dev/null | grep -c . || true )
+  if [ "$rc" -eq 0 ] && [ "$leaked_wt" = "0" ] && [ "$leaked_br" = "0" ]; then
+    note_ok "--worktree: clean run exits 0 and leaks no worktree or branch (executed)"
+  else
+    note_fail "--worktree: exit $rc, leaked worktrees=$leaked_wt branches=$leaked_br (a cron loop would accumulate both)"
+  fi
+  # (w2) The real test of report_trace on this path: the stub PUSHES, then fails. durable_trace
+  # keys on origin here, so the trace must be reported — and a bare failure would hide that a
+  # push already landed.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo pushed > landed.txt; git add landed.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "landed" >/dev/null 2>&1; git push -q origin HEAD:main >/dev/null 2>&1; echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 6 ] && grep -q 'DURABLE TRACE' "$wrepo"/logs/*.log 2>/dev/null \
+       && grep -q 'origin/main advanced' "$wrepo"/logs/*.log 2>/dev/null; then
+    note_ok "--worktree: a push that landed before the cap is reported as a durable trace (executed)"
+  else
+    note_fail "--worktree: expected exit 6 with a DURABLE TRACE naming origin advancement; got exit $rc"
+  fi
+  # (w3) NEGATIVE POLE: same mode, stub pushes nothing. origin did not move, so no trace.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 6 ] && ! grep -q 'DURABLE TRACE' "$wrepo"/logs/*.log 2>/dev/null; then
+    note_ok "--worktree: a run that pushed nothing reports no durable trace (negative pole)"
+  else
+    note_fail "--worktree (w3): a run that advanced origin by nothing still reported a DURABLE TRACE (exit $rc) — (w2) proves nothing"
+  fi
+
   # (e) A run that did NOT complete must not consume the day. Observed live: a handoff wrote its
   # dated section and the guard then blocked the retry for the rest of the day.
   local gsh="$repo/scripts/guard-probe.sh"
@@ -386,10 +566,11 @@ check_runner_execution() {
     note_fail "fan-out dropped an unterminated final task: counted=${counted:-0}, launched=${launched:-0}, expected 3/3"
   fi
   rm -rf "$tmp"
+  return 0
 }
 
 check_install_completeness() {
-  echo "[11/13] Install completeness — every template a scaffolder reads survives an install"
+  echo "[11/14] Install completeness — every template a scaffolder reads survives an install"
   # checks 3-4 verify that SKILLS land and that the two SETUP-filled templates are fillable. Nothing
   # verified that the templates the SCAFFOLDERS read are present in an installed project — and they
   # were not: install.sh deletes .claudewarp-templates/, so a real install had no templates at all
@@ -469,10 +650,61 @@ check_install_completeness() {
       || note_fail "$sk does not forbid improvising a missing template (improvising drops every runner guard)"
   done
   rm -rf "$tmp"
+  return 0
 }
 
 check_scaffolder_contract() {
-  echo "[12/13] Scaffolder contract — placeholders are derived, and --contract is honored"
+  echo "[12/14] Scaffolder contract — placeholders are derived, and --contract is honored"
+  check_begin
+  # The scaffolder's state-file stub must satisfy the two consumers it hands the file to: the
+  # generated loop's Phase 2 (which READS six fields) and guard-<slug>.sh (which parses last_run /
+  # last_verdict out of it). The shipped stub seeded none of them, so run #1 read a header that was
+  # never written and Phase 4 "incremented" counters that did not exist. Extract the stub the
+  # scaffolder actually emits and EXECUTE the guard against it — a grep for the field names would
+  # equally match the template's own prose describing them.
+  local stub; stub="$(python3 - <<'PYX'
+import re
+s = open('skills/claude-warp-new-loop/SKILL.md').read()
+m = re.search(r'\*\*2d\. State file stub\*\*.*?```markdown\n(.*?)```', s, re.S)
+print(m.group(1) if m else '', end='')
+PYX
+)"
+  if [ -z "$stub" ]; then
+    note_fail "new-loop: could not extract the 2d state-file stub (its fenced markdown block moved or vanished)"
+  else
+    local fld
+    for fld in last_run last_verdict runs_total consecutive_fails consecutive_stagnation acting_on; do
+      printf '%s\n' "$stub" | grep -qE "^${fld}:" \
+        || note_fail "new-loop stub seeds no '$fld:' — the generated loop's Phase 2 reads it on run #1"
+    done
+    printf '%s\n' "$stub" | grep -q '<!-- state:' \
+      || note_fail "new-loop stub has no '<!-- state:' block — Phase 4 has nothing to update"
+    # Behavioural: the seeded stub must leave a freshly scaffolded loop CLEAR TO RUN. An empty
+    # last_run would instead drop the guard into its conservative legacy branch.
+    local gtmp; gtmp="$(mktemp -d)"
+    mkdir -p "$gtmp/scripts"
+    printf '%s\n' "$stub" > "$gtmp/PROBE_LOG.md"
+    sed -e 's|{{SKILL_NAME}}|Probe|g' -e 's|{{STATE_FILE}}|PROBE_LOG.md|g' \
+        templates/guard.sh.tpl > "$gtmp/scripts/guard.sh"
+    # errexit is deliberately live inside check bodies, so an expected non-zero must be captured
+    # explicitly rather than left to trip it.
+    local grc; grc=0; ( cd "$gtmp" && bash scripts/guard.sh >/dev/null 2>&1 ) || grc=$?
+    [ "$grc" -eq 0 ] \
+      || note_fail "the seeded stub makes guard.sh exit $grc on a never-run loop (expected 0 = clear to run)"
+    # Negative pole: the same guard must still CLOSE the day on a completed run, or the assertion
+    # above is satisfied by a guard that can only ever say yes.
+    sed -e "s|^last_run: never|last_run: $(date '+%Y-%m-%d') 09:00 UTC|" \
+        -e 's|^last_verdict: none|last_verdict: pass|' "$gtmp/PROBE_LOG.md" > "$gtmp/PROBE_LOG.md.new"
+    mv "$gtmp/PROBE_LOG.md.new" "$gtmp/PROBE_LOG.md"
+    grc=0; ( cd "$gtmp" && bash scripts/guard.sh >/dev/null 2>&1 ) || grc=$?
+    [ "$grc" -eq 1 ] \
+      || note_fail "guard.sh exits $grc after a completed run today (expected 1 = skip); the clear-to-run assertion above is vacuous"
+    rm -rf "$gtmp"
+  fi
+  # Phase 2 must initialise on a MISSING BLOCK, not merely a missing file — the scaffolder always
+  # creates the file, so keying on existence skips initialisation for every scaffolded loop.
+  grep -q 'exists without a `<!-- state:` block' templates/loop.SKILL.md.tpl \
+    || note_fail "loop template's Phase 2 still keys the create-branch on file existence, which the scaffolder guarantees is false"
   # A <TOKEN> in an emitted runner that no phase derives is filled by guesswork. RISK shipped that
   # way: it gates the mandatory QA evaluator and the approval gate in three `case` branches, no
   # phase derived it, and a live scaffold guessed R1 — silently leaving both gates off. Nothing
@@ -495,11 +727,13 @@ check_scaffolder_contract() {
   # And the risk derivation must state a fail-closed default, not merely mention risk.
   grep -q 'use `R2`' skills/claude-warp-new-harness/SKILL.md \
     || note_fail "new-harness does not name a fail-closed default tier for an unclear RISK"
-  [ "$FAIL" -eq 0 ] && note_ok "every emitted placeholder is derived; all 3 scaffolders honor --contract"
+  check_ok "every emitted placeholder is derived; all 3 scaffolders honor --contract"
+  return 0
 }
 
 check_emitted_gates() {
-  echo "[13/13] Emitted gates — hooks read the real payload, and every runner shape is hardened"
+  echo "[13/14] Emitted gates — hooks read the real payload, and every runner shape is hardened"
+  check_begin
   local hk="skills/claude-warp-new-hook/SKILL.md"
   # A PreToolUse payload nests the command at tool_input.command. destructive-block read the
   # top-level `command`, which is always empty, so it blocked NOTHING while looking like a gate —
@@ -523,12 +757,14 @@ check_emitted_gates() {
       grep -qE "${pat}([^A-Za-z0-9_-]|\$)" "$gs" || { note_fail "new-goal's runner lacks '$pat' — the loop runners guarantee it; goals must not drift"; missing=$((missing+1)); }
     done
   fi
-  [ "$FAIL" -eq 0 ] && note_ok "hook templates read tool_input and fail closed; goal runner at parity with loop runners"
+  check_ok "hook templates read tool_input and fail closed; goal runner at parity with loop runners"
 }
 
 verify() {
   echo "ClaudeWarp verify — deterministic source + install-contract checks"
   echo
+  VERDICT_PRINTED=0
+  trap verify_crash_guard EXIT
   check_source_integrity
   check_setup_dynamic
   check_copy_contract
@@ -542,14 +778,82 @@ verify() {
   check_install_completeness
   check_scaffolder_contract
   check_emitted_gates
+  check_skill_contracts
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
+  # Disarm only AFTER the banner is on screen. Setting VERDICT_PRINTED before the echo left a
+  # window in which a fault printed nothing at all — the exact pre-fix symptom this trap exists to
+  # close, and the invariant three lines above claims to hold.
   if [ "$FAIL" -eq 0 ]; then
     echo "VERIFY PASSED ✓"
   else
     echo "VERIFY FAILED ✗  ($FAIL issue(s))"
-    exit 1
   fi
+  VERDICT_PRINTED=1
+  trap - EXIT
+  [ "$FAIL" -eq 0 ] || exit 1
+}
+
+check_skill_contracts() {
+  echo "[14/14] Skill contracts — retro's inputs and vocabulary match the loop it reads"
+  check_begin
+  local rt="skills/claude-warp-retro/SKILL.md"
+  # A retro is only as honest as its verdict vocabulary. `stopped` is a first-class verdict in the
+  # loop template; omitting it from FAIL_ENTRIES hides a security/permission gate firing, and
+  # omitting it (and `timeout`) from the Runs: line makes stated-total != sum-of-buckets by
+  # construction. Verified live against a 12-run fixture: the fixed skill emitted
+  # "10 total | 5 pass | 2 fail | 1 handoff | 1 skip | 1 timeout | 0 stopped", which sums to 10.
+  grep -qE '^- `FAIL_ENTRIES`.*stopped' "$rt" \
+    || note_fail "retro: FAIL_ENTRIES omits 'stopped' — a fired permission gate reads as a clean run"
+  local v
+  for v in pass fail handoff skip timeout stopped; do
+    grep -qE '^\*\*Runs:\*\*.*<'"$v"'>' "$rt" \
+      || note_fail "retro: the Runs: line names no <$v> bucket — the stated total cannot equal the sum"
+  done
+  # The git-history query must be scoped to THIS loop. A pathspec union pulls a sibling loop's
+  # commits into the retro, and the loop template explicitly anticipates several loops per repo.
+  grep -qE "git log .*'\*_LOG\.md'" "$rt" \
+    && note_fail "retro: git log still unions the generic '*_LOG.md' pathspec — a sibling loop's commits enter the retro"
+  grep -q 'git log --oneline --since="$SINCE" -- "$STATE_FILE"' "$rt" \
+    || note_fail "retro: git log is not scoped to the resolved STATE_FILE"
+  # The window must follow the runs, not a constant: a weekly loop's last 10 runs span ~70 days.
+  # Only the git query is forbidden from hard-coding the window; "30 days ago" survives as the
+  # documented FALLBACK for a state file with no dated sections yet, which is correct.
+  grep -qE 'git log .*--since="30 days ago"' "$rt" \
+    && note_fail "retro: the git window is still a hard-coded 30 days, which disagrees with the 10-run window Phase 3 reads"
+  grep -q 'SINCE="$(grep -oE' "$rt" \
+    || note_fail "retro: --since is not derived from the dated sections Phase 3 actually reads"
+  # An append-only file read top-down yields the OLDEST ten, the opposite of what Phase 3 wants.
+  grep -qE "grep -nE '\^## \[0-9\]\{4\}" "$rt" \
+    || note_fail "retro: Phase 3 gives no bounded command for the NEWEST 10 sections (a top-down read returns the oldest)"
+  # A guard-fired skip writes neither STATE_FILE nor a commit, so silence must not read as success.
+  grep -q 'GUARD_EVIDENCE' "$rt" \
+    || note_fail "retro: no GUARD_EVIDENCE input — the guard question is answered from data that cannot contain the answer"
+
+  local up="skills/claude-warp-update/SKILL.md"
+  # These assertions must not match the skill's own PROSE explaining why the old forms are wrong —
+  # an unanchored grep matching its own explanatory comment is this repo's most-repeated defect.
+  # So each anchors on the INSTRUCTION form: a fenced command, or a bullet that assigns a field.
+  grep -qE '^\s*(WebFetch|`?WebFetch) https://' "$up" \
+    && note_fail "update: still instructs a WebFetch of a raw URL — LLM-mediated content cannot satisfy the byte-diff contract it also requires"
+  grep -qE '^- `harness\.(version|last_update)`' "$up" \
+    && note_fail "update: still writes harness.version/harness.last_update — 'harness' is the string \"ClaudeWarp\"; that would clobber it with an object"
+  grep -q 'curl -fsSL' "$up" \
+    || note_fail "update: no curl fetch — Phase 3's byte diff has no byte-exact source"
+  # git's multi-pathspec add is atomic: without the guard a manifest-less project stages NOTHING
+  # and loses the whole commit after the skills were already rewritten on disk (exit 128).
+  grep -qF 'if [ -f harness-manifest.json ]; then git add harness-manifest.json; fi' "$up" \
+    || note_fail "update: Phase 6 does not add the manifest conditionally — a project without one loses the entire commit (git add is atomic)"
+  grep -qE '^git add \.claude/skills/ harness-manifest\.json' "$up" \
+    && note_fail "update: Phase 6 still adds both paths in one atomic git add"
+  # A 200 with an empty/truncated body is neither a network error nor an HTTP error, so without
+  # this criterion it reads as "differs" and Phase 4 replaces a working skill with nothing.
+  grep -q 'the body is empty' "$up" \
+    || note_fail "update: fetch-failed does not cover an empty 200 body — a working skill would be overwritten with nothing"
+  grep -q 'could not reach GitHub' "$up" \
+    || note_fail "update: Phase 2 has no abort branch — a non-array response (403 rate limit, truncation) marks every installed skill an orphan"
+  check_ok "retro reads this loop only, over the window it analyses, with all six verdicts; update fetches byte-exact and fails closed"
+  return 0
 }
 
 # ── dispatch ────────────────────────────────────────────────────────────────

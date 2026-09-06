@@ -6,6 +6,9 @@
 # splits into a noisy retrieval stage and a sequential reasoning/write stage
 # that should not share context (the "KB Tracker" pattern).
 #
+# Exit codes: 0 done · 1 timeout/gave-up · 4 slash command did not resolve · 6 budget cap
+#             7 session/usage limit (reschedule after the reset) · 127 no `claude` binary
+#
 # {{ARTIFACT_PATH}} MUST be gitignored — it is the handoff between stages and
 # must survive the worktree's per-attempt reset (plain `git clean -fd`, no
 # `-x`, leaves ignored paths alone).
@@ -129,6 +132,12 @@ UNKNOWN_CMD_MARKER="Unknown command:"
 # fails identically: observed live, a loop scaffolded with $0.25 burned all three attempts and
 # ~$0.75 to fail three times. Detected by message because the CLI exits 1, which is generic.
 BUDGET_MARKER="Exceeded USD budget"
+# A session/usage limit is a wall that lifts at a fixed clock time, not a transient drop, so every
+# retry inside the backoff window fails identically. Observed live 2026-09-06: `claude -p` printed
+# "You've hit your session limit · resets 3:10am" and exited 1 — the generic retryable code.
+# Matched case-insensitively on a punctuation-free substring (the real message carries a
+# typographic apostrophe and a U+00B7 middle dot).
+SESSION_LIMIT_MARKER="session limit|usage limit"
 
 # run_stage <skill-slug> <disallowed-tools>
 run_stage() {
@@ -153,6 +162,15 @@ run_stage() {
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$BUDGET_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
     exit 6
+  fi
+  # Gated on a NON-ZERO exit: the marker is two ordinary English phrases, so a SUCCESSFUL run whose
+  # own output discusses rate limits would otherwise be killed as a FATAL. Measured: a stub exiting
+  # 0 while printing "Documented the usage limit handling" was reported exit 7. A real limit exits
+  # non-zero (observed: 1). Deliberately NOT applied to UNKNOWN_CMD_MARKER, which must fire on rc=0.
+  if [ "$rc" -ne 0 ] && tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
+    local when; when="$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -iE "$SESSION_LIMIT_MARKER" | head -1 | tr -d '\r')"
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the account hit its session/usage limit — \"${when}\". That is a wall which lifts at a fixed time, not a transient drop, so retrying now would fail identically. NOT retried; reschedule after the stated reset." | tee -a "$LOG" >&2
+    exit 7
   fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /${slug} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2

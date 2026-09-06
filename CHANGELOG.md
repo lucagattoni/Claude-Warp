@@ -7,6 +7,156 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.46.0] — 2026-09-06 08:11 UTC
+
+An independent six-lens adversarial review of this branch (every finding put to its own refuter,
+adjudicated in one pass) found **three defects in the new instruments themselves** before merge.
+They are recorded here because the pattern is the point:
+
+- **`gate-selftest.sh` mirrored only *tracked* files.** `git ls-files` lists indexed paths, so a
+  fix in a file not yet `git add`-ed was absent from the sandbox while the real gate saw it.
+  Reproduced end-to-end: with an untracked malformed skill present, `dev.sh verify` printed
+  `VERIFY FAILED ✗ (3 issues)` while `gate-selftest.sh` printed `GATE SELF-TEST PASSED ✓` — the
+  gate-on-the-gate certifying a tree it never tested, which is exactly the class it exists to
+  catch. Now `--cached --others --exclude-standard`, with a file-count guard on the mirror.
+- **The new session-limit guard killed successful runs.** The marker is two ordinary English
+  phrases matched case-insensitively over the whole transcript, before `rc` was consulted.
+  Measured: a stub exiting **0** while printing "Done. Documented the usage limit handling."
+  was reported `FATAL … exit 7`. Now gated on a non-zero exit — deliberately *not* applied to the
+  unknown-command marker, which must fire on `rc=0` by design.
+- **The crash guard was disarmed before the banner it guarantees.** `VERDICT_PRINTED=1` and
+  `trap - EXIT` ran two statements ahead of the `echo`, so a fault in that window printed nothing —
+  the pre-fix symptom. Zero-width today, but the stated invariant was false.
+
+Two further corrections of fact: GitHub's unauthenticated rate-limit reply is **403**, not a 200
+(the abort still fired correctly, via `curl -f`, but the stated reason was wrong), and `main`'s
+`Runs:` line listed **four** of six verdicts, not five.
+
+The review also named a blind spot worth closing: **`--worktree` mode had no coverage at all**
+(`grep -c worktree scripts/dev.sh` was 0) despite being the mode the runner header recommends for
+unattended L3 loops — and `durable_trace` behaves differently there, keying on origin advancing
+rather than the local tree, which is exactly the path `report_trace` was just added to. Check 10
+now executes it against a real bare origin: a clean run exits 0 and **leaks no worktree or branch**
+(proven by breaking the cleanup trap: leaked worktrees=1, branches=1), a stub that pushes and then
+hits the cap is reported as `origin/main advanced`, and a stub that pushes nothing is not.
+
+The self-test gained a sixth case, and check 10 a negative pole for the session marker. The first
+version of that sixth case did **not** discriminate — the planted fault landed before the disarm in
+both orderings, so it stayed green under the mutation it was written to catch; it now asserts the
+ordering directly.
+
+The four items left open by the v0.45.1 handoff, closed by **executing** them — and the run that
+mattered most was the one that revealed the gate itself could not report a failure. Seven defects,
+two of them in the checking instruments rather than the artifacts. Ordered by dependency: nothing
+downstream can demonstrate RED→GREEN through a gate that dies at the first red.
+
+### Fixed
+- **CRITICAL — `scripts/dev.sh verify` could not report a failure.** The gate ran under
+  `set -euo pipefail` and called all thirteen checks bare, while six of them ended in
+  `[ "$FAIL" -eq 0 ] && note_ok …` — an AND-list that returns 1 once the tally is non-zero. So the
+  **first** failing check killed the run: measured, a bad skill name in check 1 reached **1 of 13**
+  checks and printed **no verdict banner at all**; a drifted claim count in check 7 reached 7 of 13.
+  Every "VERIFY PASSED" in this repo's history was green only because nothing had ever failed —
+  the failure path itself had never once executed. Checks now report their **own** result
+  (`check_begin`/`check_ok` against a per-check baseline, not the global counter, so one early
+  failure no longer suppresses every later ✓) and every check returns 0 explicitly, leaving
+  `errexit` active *inside* each body where a broken `mktemp`/`git init` must still be fatal.
+  Guarding the call sites with `|| true` instead would have disabled `errexit` for the whole body
+  — a worse defect than the one being fixed.
+- **`verify --live` aborted instead of reporting.** Its two early-exit paths printed a bare `✗` and
+  `return 1`, which tripped `errexit` at the call site: with `claude` off `PATH` the run died with
+  no banner, so a live gate that never ran looked indistinguishable from a crash. Both are now
+  counted failures.
+
+- **The loop scaffolder seeded a state file its own generated loop could not read.** Phase 2d
+  created `<STATE_FILE>` with a prose header and **none** of the six `<!-- state:` fields, while
+  the generated loop's Phase 2 reads all six on run #1 and Phase 4 *updates* them — "increment by
+  1", "reset to 0" — with nothing to increment. Phase 2's escape hatch ("if the file doesn't exist
+  yet, create it") could never fire, because the scaffolder always created the file. `guard.sh`'s
+  own comment called a missing header an "older state file"; it was true of every file the current
+  scaffolder produced. The stub now seeds the full block, Phase 2 keys initialisation on the
+  **block** being absent rather than the file, and Phase 4 states its first-write behaviour.
+  `last_run: never` is deliberate: an *empty* `last_run` drops the guard into its conservative
+  legacy branch, while `never` matches no date and leaves a fresh loop cleanly clear-to-run.
+- **Two fatal exits in `run-headless.sh.tpl` threw away the durable-trace check.** The generic
+  failure branch consults `durable_trace` before giving up, but the budget-exhaustion (`exit 6`)
+  and timeout (`exit 1`) branches exited without asking — the timeout one sitting three lines above
+  code that already did it. So a run that **committed work and then hit its cap** reported a bare
+  failure, losing the single fact that decides whether re-running is safe. Both now call a shared
+  `report_trace`, and the generic branch reuses the same `trace_desc` describer instead of
+  rebuilding the string inline. Retry semantics are unchanged: budget still fails after exactly one
+  attempt. Under `--worktree` this adds a `git fetch` to those two paths — the same network
+  exposure the generic branch already carried there, stated rather than widened silently.
+- **A session/usage limit was retried as a transient drop.** Found by execution, not review: the
+  live retro dogfood died with `You've hit your session limit · resets 3:10am (Europe/Dublin)` and
+  `claude -p` exited **1** — the generic code `run-headless.sh.tpl` treats as retryable. A limit is
+  a wall that lifts at a fixed clock time hours away, so all three attempts fail identically inside
+  a 30s/60s backoff window, and the run reports a bare failure that discards the one fact the
+  operator needs: when it resets. Both `run-headless` and `run-two-stage` now detect it, carry the
+  CLI's own reset line into their diagnostic, and exit **7** without retrying — **gated on a
+  non-zero exit**, because the marker is two ordinary English phrases and an otherwise successful
+  run discussing rate limits would otherwise be killed as fatal (measured: a stub exiting 0 while
+  printing "Documented the usage limit handling" was reported exit 7). Exit codes are documented in
+  both runner headers.
+- **`/claude-warp-retro` was wrong in five ways on any loop with more than one run** — a shape it
+  had never been executed against. Its git query unioned `'*<slug>*' '*_LOG.md' '*-STATE.md'`, so a
+  **sibling loop's commits entered the retrospective** (the loop template explicitly anticipates
+  several loops per repo). Its `--since="30 days ago"` silently disagreed with the last-10-runs
+  window Phase 3 reads. "Read the last 10 dated sections" had no command, and the file is
+  append-only, so a top-down read returns the **oldest** ten. `FAIL_ENTRIES` omitted `stopped`,
+  hiding exactly the failures most worth reading. And the `Runs:` line listed only four of the six verdicts,
+  so the stated total could not equal the sum of its buckets. All five fixed and verified live.
+- **`/claude-warp-update` had six defects, one of which loses an entire commit.** It had never been
+  executed. `git add .claude/skills/ harness-manifest.json` is **atomic**: in a project without a
+  manifest it fails with `fatal: pathspec … did not match any files`, exits 128 and stages
+  **nothing** — after Phase 4 has already rewritten skill files on disk (reproduced). It read and
+  wrote `harness.version` / `harness.last_update`, but `harness` is the *string* `"ClaudeWarp"` and
+  those fields are its top-level **siblings**, so literal compliance would clobber the identity
+  field with an object. It fetched through `WebFetch` while Phase 3 demanded a byte diff "not LLM
+  judgment" — a contract an LLM-mediated relay cannot satisfy; now `curl -fsSL`. Its fetch-failed
+  criteria covered network and HTTP errors but **not an empty or truncated 200 body**, which
+  therefore read as "differs" and would replace a working skill with nothing. Phase 2 had no
+  failure branch at all, so an unauthenticated rate-limit reply — a **403** with a JSON *object*, or any non-array body —
+  would mark all 15 installed skills orphans. And `last_update` was unreachable: Phase 5 wrote it
+  unconditionally while Phase 6 skipped the commit when nothing changed.
+- **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
+  bodies (a broken `mktemp` must be fatal), so a bug in a check aborted the run before the banner —
+  the same no-banner symptom fixed above for a check that merely *reports* a failure. Found by
+  hitting it: the new state-header check's uncaptured `( … )` exit-1 killed the run after printing
+  only its own header. `verify` now traps EXIT and prints `VERIFY CRASHED ✗`, naming the check.
+
+### Added
+- **`scripts/gate-selftest.sh` — the gate on the gate.** Mirrors the **working tree** (not `HEAD`,
+  so an uncommitted fix is what gets tested) into a sandbox, plants known failures, and asserts
+  `verify` reaches all 14 checks, prints `VERIFY FAILED`, counts issues independently, and keeps a
+  later passing check's ✓ intact. Proven by mutation: reverting `dev.sh` to the broken gate, or
+  restoring either individual defect, each turns exactly the matching assertion red. Runs in CI
+  next to `verify`. Five cases, including a deliberately crashing check.
+- **`verify` check 10 gained three executed cases for the above** — a stub that commits and *then*
+  reports budget exhaustion, one that commits and *then* exits 124, and a mandatory **negative
+  pole**: a genuinely clean repo (`logs/` gitignored, as `claude-warp-setup` guarantees) where the
+  stub changes nothing and the trace note must be **absent**. Without that pole the two positive
+  cases prove nothing — the existing probe repo leaves `.claude/` untracked, so `tree_dirty()` is
+  unconditionally true there. Mutations confirm: removing either call reddens only its own case;
+  making the note unconditional reddens only the negative pole.
+- **`verify` check 14 (new) — skill contracts.** Pins retro's scoped pathspec, derived window,
+  newest-10 command, `GUARD_EVIDENCE` input and full six-verdict vocabulary, plus update's `curl`
+  fetch, conditional `git add`, empty-body criterion and Phase 2 abort. Twelve mutations, each
+  reddening only its own assertion. Every assertion is anchored to an **instruction** line rather
+  than a bare substring, because both skills now carry prose explaining why the old forms were
+  wrong — and a grep matching its own explanatory comment is this repo's most-repeated defect.
+- **`verify` check 10 gained an executed session-limit case** — a stub reproducing the real message
+  must exit 7 after exactly one attempt, and the runner's own FATAL line must carry the reset time.
+  The first version of that assertion was **vacuous**: the stub's raw output lands in the same log,
+  so `grep 'resets 3:10am'` passed with the echo deleted. Caught by mutating it; now anchored to
+  the runner's diagnostic line.
+- **`tests/dogfood/retro-multirun/`** — a zero-token, rebuildable 12-run fixture with an answer key,
+  plus the first passing retro output as a reference.
+- **`verify` check 12 now executes the guard against the scaffolder's own seeded stub** — extracting
+  the fenced block the scaffolder emits and running `guard.sh.tpl` on it, with a negative pole (a
+  completed run today must still close the day) so the clear-to-run assertion cannot be vacuous.
+
+
 ## [0.45.1] — 2026-09-06 00:26 UTC
 
 A four-lane parallel dogfood of the seven never-executed skills — `contract`, `new-goal`,

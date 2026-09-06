@@ -249,14 +249,33 @@ chmod +x scripts/run-<SKILL_SLUG>.sh
 
 **2d. State file stub** — `<STATE_FILE>`
 
-Create the state file with a minimal header:
+Create the state file with the machine-readable state header **already seeded**. The generated
+loop's Phase 2 reads these six fields and its Phase 4 *updates* them, and `guard-<SKILL_SLUG>.sh`
+parses `last_run`/`last_verdict` out of them — so a stub without this block leaves run #1 reading
+a header that was never written and incrementing counters that do not exist. Seed it, do not
+leave it for the first run to invent:
+
 ```markdown
+<!-- state:
+last_run: never
+last_verdict: none
+runs_total: 0
+consecutive_fails: 0
+consecutive_stagnation: 0
+acting_on: null
+-->
+
 # <SKILL_NAME> Log
 
 Append-only run log. Updated by `/<SKILL_SLUG>` each run.
 
 ---
 ```
+
+`last_run: never` is deliberate rather than an empty value: the guard treats an **empty**
+`last_run` as "no usable state header" and falls back to a conservative dated-section check,
+which cannot tell a completed run from a handoff. A literal `never` matches no date, so a freshly
+scaffolded loop is cleanly clear-to-run on its first invocation.
 
 **2e. Trigger snippet** — `scripts/trigger-<SKILL_SLUG>.crontab`
 

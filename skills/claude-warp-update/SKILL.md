@@ -28,8 +28,10 @@ Otherwise continue.
    date '+%Y-%m-%d %H:%M %Z'
    ```
 
-2. Read `harness-manifest.json` if present — get current `harness.version` (treat as "unknown"
-   if there is no manifest).
+2. Read `harness-manifest.json` if present — get current top-level `version` (treat as "unknown"
+   if there is no manifest). **Note the schema:** `harness` is the *string* `"ClaudeWarp"`, and
+   `version` / `last_update` are its top-level **siblings**, not fields under it. Writing
+   `harness.version` would replace the identity string with an object.
 
 3. List skills currently installed in this project:
    ```bash
@@ -39,36 +41,72 @@ Otherwise continue.
 
 ## Phase 2 — Fetch skill list from GitHub
 
-Fetch the directory listing of skills in the ClaudeWarp repo:
-```
-WebFetch https://api.github.com/repos/lucagattoni/Claude-Warp/contents/skills
+**Fetch with `curl`, not `WebFetch`.** Phase 3 requires a *byte* diff ("not LLM judgment"), and
+`WebFetch` passes content through a summarising model — a contract it cannot satisfy. Use Bash:
+
+```bash
+REPO="lucagattoni/Claude-Warp"
+RAW="https://raw.githubusercontent.com/$REPO/main"
+LIST="$(curl -fsSL "https://api.github.com/repos/$REPO/contents/skills" 2>/dev/null)" || LIST=""
 ```
 
-Parse the JSON array — each entry has `name` (skill directory) and `type: "dir"`.
-Record as `REMOTE_SKILLS`.
+**Validate before trusting it.** Unauthenticated `api.github.com` is rate-limited to 60 requests
+per hour and answers with **403** (bad credentials give 401) and a JSON *object* describing the
+error. `curl -f` already turns those into a non-zero exit and an empty `LIST`, but the validation
+below is what makes the failure *safe* rather than merely likely: any body that is not a JSON
+**array** — an error object, truncated output, or an unexpected schema — parses without error and
+contains no `type: "dir"` entries, and treating it as the remote list marks every installed skill
+an orphan:
 
-Also fetch the latest CHANGELOG.md to determine the current released version:
+```bash
+REMOTE_SKILLS="$(printf '%s' "$LIST" | python3 -c "
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(1)
+if not isinstance(d,list): sys.exit(1)          # an error object, not a listing
+print('\n'.join(e['name'] for e in d if e.get('type')=='dir'))
+" 2>/dev/null)" || REMOTE_SKILLS=""
 ```
-WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/CHANGELOG.md
+
+If `REMOTE_SKILLS` is empty: **stop the whole skill**, change nothing, and print
+`could not reach GitHub (rate limit, network, or unexpected response) — nothing changed`.
+An empty remote list is never a reason to touch a local file.
+
+Then the released version:
+
+```bash
+REMOTE_VERSION="$(curl -fsSL "$RAW/CHANGELOG.md" 2>/dev/null \
+  | grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' | tr -d '## []')"
 ```
-Extract the topmost versioned heading (e.g. `## [0.4.0]`) as `REMOTE_VERSION`.
+If `REMOTE_VERSION` is empty, keep going but record it as `unknown` — do **not** stamp the
+manifest with an empty value.
 
 ## Phase 3 — Compare
 
 For each skill in `INSTALLED_SKILLS`:
-- Fetch the remote SKILL.md:
-  ```
-  WebFetch https://raw.githubusercontent.com/lucagattoni/Claude-Warp/main/skills/<name>/SKILL.md
-  ```
-- **If the fetch fails or returns an HTTP error (404, 5xx, network error):** mark as
-  **fetch-failed** — do NOT overwrite the local copy. Log the error and continue.
-- Compare with local `.claude/skills/<name>/SKILL.md` using a line-by-line diff
-  (not LLM judgment — look for actual content differences)
-- If remote differs → mark as **update available**
-- If skill not found in `REMOTE_SKILLS` → mark as **orphan** (removed upstream)
 
-For each skill in `REMOTE_SKILLS` not in `INSTALLED_SKILLS`:
-→ mark as **new skill available**
+```bash
+BODY="$(curl -fsSL "$RAW/skills/<name>/SKILL.md" 2>/dev/null)" || BODY=""
+```
+
+Mark it **fetch-failed** — and do **NOT** overwrite the local copy — when any of these hold:
+- `curl` failed (network error, 404, 5xx: `-f` makes those non-zero), **or**
+- the body is empty, **or**
+- the body does not begin with `---` and contain a `name:` line.
+
+That last condition is not paranoia: a 200 response with an empty or truncated body matches
+neither "fetch failed" nor "HTTP error", so without it the body "differs" from the local file, is
+marked *update available*, and Phase 4 replaces a working skill with nothing.
+
+Otherwise compare byte-for-byte with the local `.claude/skills/<name>/SKILL.md`
+(`diff -q`, not LLM judgment):
+- differs → **update available**
+- identical → up to date
+- not present in `REMOTE_SKILLS` → **orphan** (removed upstream)
+
+For each skill in `REMOTE_SKILLS` not in `INSTALLED_SKILLS`: fetch its `SKILL.md` by the same
+rule above and, if it passes, mark it **new skill available**. (A skill cannot be installed in
+Phase 4 without having been fetched here first.)
 
 ## Phase 4 — Apply updates
 
@@ -85,20 +123,37 @@ For each skill marked **orphan**: do NOT delete — report it and let the user d
 
 ## Phase 5 — Update manifest
 
-In `harness-manifest.json` update:
-- `harness.version` → `REMOTE_VERSION`
-- `harness.last_update` → current local timestamp
+If `harness-manifest.json` is **absent** (a hand-installed project): skip this phase and say so in
+the report. Do not create one — `/claude-warp-setup` owns that file's shape.
 
-Write back.
+If present, update the two **top-level** fields (see the schema note in Phase 1):
+- `version` → `REMOTE_VERSION` (skip if it came back `unknown`)
+- `last_update` → current local timestamp
+
+Stamp `last_update` on **every completed check**, including one that found nothing to update —
+its meaning is "when did we last verify against the remote", which is exactly the fact a no-op run
+establishes. Leaving it null after a successful check makes a working install look like it has
+never been checked.
+
+Write it back.
 
 ## Phase 6 — Commit
 
 ```bash
-git add .claude/skills/ harness-manifest.json
+git add .claude/skills/
+if [ -f harness-manifest.json ]; then git add harness-manifest.json; fi
 git commit -m "chore(claude-warp-update): sync skills to ClaudeWarp v<REMOTE_VERSION>"
 ```
 
-If nothing changed: print "ClaudeWarp skills are up to date — no changes." and skip commit.
+Add the two paths **separately**, and use an `if` rather than `[ -f … ] && …`: the AND-list
+returns 1 when the manifest is absent, which would abort a `set -e` script on its last statement.
+ `git add .claude/skills/ harness-manifest.json` is atomic: in a
+project without a manifest it fails with `fatal: pathspec 'harness-manifest.json' did not match
+any files`, exits 128, and stages **nothing** — so a run that had already rewritten skill files on
+disk loses the entire commit. (Reproduced.)
+
+If no skill changed but the manifest was stamped, commit the manifest alone. If nothing changed at
+all, print "ClaudeWarp skills are up to date — no changes." and skip the commit.
 
 ## Phase 7 — Report
 

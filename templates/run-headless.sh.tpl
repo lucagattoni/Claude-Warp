@@ -8,6 +8,9 @@
 #   --max-retries N  Retry a transient failure up to N times with exponential
 #                    backoff (default: 2) — but ONLY when the failed attempt is
 #                    safe to retry (see below). A timeout is never retried.
+# Exit codes: 0 done · 1 timeout/gave-up · 4 slash command did not resolve · 6 budget cap
+#             7 session/usage limit (reschedule after the reset) · 127 no `claude` binary
+#
 #   --worktree       Run the session in a throwaway git worktree branched off
 #                     origin/<default-branch> instead of the primary checkout.
 #                     Use this for an AUTONOMY_LEVEL L3 loop (writes to production
@@ -148,6 +151,14 @@ UNKNOWN_CMD_MARKER="Unknown command:"
 # fails identically: observed live, a loop scaffolded with $0.25 burned all three attempts and
 # ~$0.75 to fail three times. Detected by message because the CLI exits 1, which is generic.
 BUDGET_MARKER="Exceeded USD budget"
+# A session/usage limit is a WALL, not a transient drop: it lifts at a fixed clock time that can be
+# hours away, so every retry inside the 30s/60s backoff window fails identically — the same
+# reasoning the budget branch above already applies. Observed live 2026-09-06 while dogfooding the
+# retro skill: `claude -p` printed "You've hit your session limit · resets 3:10am (Europe/Dublin)"
+# and exited **1**, the generic code this runner otherwise treats as a retryable transient. Matched
+# case-insensitively on a punctuation-free substring — the real message contains a typographic
+# apostrophe and a U+00B7 middle dot, neither of which is safe to hard-code.
+SESSION_LIMIT_MARKER="session limit|usage limit"
 
 run_once() {
   assert_skill_present
@@ -166,7 +177,18 @@ run_once() {
   # Only inspect what THIS attempt appended, so a marker from an earlier attempt cannot re-trigger.
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$BUDGET_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
+    report_trace "$BEFORE"
     exit 6
+  fi
+  # Gated on a NON-ZERO exit: the marker is two ordinary English phrases, so a SUCCESSFUL run whose
+  # own output discusses rate limits would otherwise be killed as a FATAL. Measured: a stub exiting
+  # 0 while printing "Documented the usage limit handling" was reported exit 7. A real limit exits
+  # non-zero (observed: 1). Deliberately NOT applied to UNKNOWN_CMD_MARKER, which must fire on rc=0.
+  if [ "$rc" -ne 0 ] && tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
+    local when; when="$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -iE "$SESSION_LIMIT_MARKER" | head -1 | tr -d '\r')"
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the account hit its session/usage limit — \"${when}\". That is a wall which lifts at a fixed time, not a transient drop, so every retry inside the backoff window would fail identically. NOT retried; reschedule after the stated reset." | tee -a "$LOG" >&2
+    report_trace "$BEFORE"
+    exit 7
   fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /{{SKILL_SLUG}} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2
@@ -194,6 +216,29 @@ durable_trace() {
     [ "$before" != "$after" ]
   else
     tree_dirty || [ "$before" != "$after" ]
+  fi
+}
+
+trace_desc() {
+  local before="$1" after="$2"
+  if [ "$WORKTREE" -eq 1 ]; then
+    echo "origin/${DEFAULT_BRANCH} advanced ${before} -> ${after}"
+  else
+    echo "tree dirty or HEAD moved ${before} -> ${after}"
+  fi
+}
+
+# A FATAL, non-retried exit still has to say whether the attempt left work behind. The
+# generic-failure branch below consults durable_trace before giving up; the budget and timeout
+# branches exited without asking, so a run that committed and THEN hit its cap reported a bare
+# failure and the operator could not tell it from one that did nothing. Under --worktree this
+# calls snapshot(), which fetches origin — the same network exposure the generic branch already
+# carries on this path.
+report_trace() {
+  local before="$1" after
+  after="$(snapshot)"
+  if durable_trace "$before" "$after"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: that attempt left a DURABLE TRACE ($(trace_desc "$before" "$after")) — work landed before it failed; review it before re-running." | tee -a "$LOG" >&2
   fi
 }
 
@@ -225,14 +270,14 @@ while : ; do
   if [ "$RC" -eq 124 ]; then
     # A timeout is a wall-clock cap, not a transient drop — do not retry.
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] TIMEOUT: attempt exceeded ${MAX_MINUTES}m wall-clock limit — verdict: timeout (not retried)" >> "$LOG"
+    report_trace "$BEFORE"
     exit 1
   fi
 
   # Non-zero, non-timeout: candidate transient failure. Gate the retry on safe-to-retry.
   AFTER="$(snapshot)"
   if durable_trace "$BEFORE" "$AFTER"; then
-    TRACE_DESC="tree dirty or HEAD moved ${BEFORE} -> ${AFTER}"
-    [ "$WORKTREE" -eq 1 ] && TRACE_DESC="origin/${DEFAULT_BRANCH} advanced ${BEFORE} -> ${AFTER}"
+    TRACE_DESC="$(trace_desc "$BEFORE" "$AFTER")"
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: attempt failed (exit $RC) and left a DURABLE TRACE (${TRACE_DESC}) — NOT safe to retry; surfacing instead of looping." >> "$LOG"
     exit "$RC"
   fi
