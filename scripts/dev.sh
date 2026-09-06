@@ -386,6 +386,61 @@ check_runner_execution() {
     note_fail "budget exhaustion: expected exit 6 after 1 attempt, got exit $rc after $attempts attempt(s)"
   fi
 
+  # (d2) A FATAL exit must still report whether the attempt left work behind. Before this, a run
+  # that committed and THEN hit its cap logged a bare failure, losing the one fact that decides
+  # whether re-running is safe. The stub commits, then reports budget exhaustion.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo landed > landed.txt; git add landed.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "work landed" >/dev/null 2>&1; echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  attempts=$(grep -c 'Starting probe' "$repo"/logs/*.log 2>/dev/null || echo 0)
+  if [ "$rc" -eq 6 ] && [ "$attempts" = "1" ] && grep -q 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "budget exhaustion after work landed reports the durable trace (exit 6, 1 attempt)"
+  else
+    note_fail "budget exhaustion that COMMITTED work: expected exit 6, 1 attempt and a DURABLE TRACE note; got exit $rc, $attempts attempt(s), trace=$(grep -c 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null || echo 0)"
+  fi
+
+  # (d3) The timeout branch had the same hole, three lines above code that already did this.
+  # Anchor on the literal sentence: a bare 'TIMEOUT' also matches CLAUDEWARP_REQUIRE_TIMEOUT in
+  # the no-timeout-binary notice, which prints on hosts with neither timeout nor gtimeout.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo landed2 > landed2.txt; git add landed2.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "work landed 2" >/dev/null 2>&1; exit 124;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 1 ] && grep -q 'TIMEOUT: attempt exceeded' "$repo"/logs/*.log 2>/dev/null \
+       && grep -q 'DURABLE TRACE' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "timeout after work landed reports the durable trace (exit 1)"
+  else
+    note_fail "timeout that COMMITTED work: expected exit 1 with both 'TIMEOUT: attempt exceeded' and a DURABLE TRACE note; got exit $rc"
+  fi
+
+  # (d4) NEGATIVE POLE — mandatory. The probe repo above leaves .claude/ untracked, so
+  # `git status --porcelain` is never empty there and tree_dirty() is unconditionally true: a
+  # positive-only assertion cannot tell "durable_trace was consulted" from "the note prints
+  # always". This repo is genuinely clean (logs/ gitignored, as claude-warp-setup guarantees),
+  # and the stub changes nothing — so the note must be ABSENT.
+  local clean="$tmp/clean"
+  mkdir -p "$clean/scripts" "$clean/logs" "$clean/.claude/skills/probe"
+  printf 'x\n' > "$clean/.claude/skills/probe/SKILL.md"
+  printf 'logs/\n' > "$clean/.gitignore"
+  fill_runner templates/run-headless.sh.tpl "$clean/scripts/run-probe.sh" probe
+  ( cd "$clean" && git init -q && git add -A \
+      && git -c user.email=v@x -c user.name=v commit -q -m init )
+  local dirty; dirty="$( cd "$clean" && git status --porcelain )"
+  if [ -n "$dirty" ]; then
+    note_fail "(d4) setup error: the clean probe repo is not clean [$dirty] — the negative pole would be vacuous"
+  else
+    printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+    rc=0
+    ( cd "$clean" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+        /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+    if [ "$rc" -eq 6 ] && ! grep -q 'DURABLE TRACE' "$clean"/logs/*.log 2>/dev/null; then
+      note_ok "a fatal exit that left NOTHING behind reports no durable trace (negative pole)"
+    else
+      note_fail "(d4) a run that changed nothing still reported a DURABLE TRACE (exit $rc) — the trace note is unconditional, so (d2)/(d3) prove nothing"
+    fi
+  fi
+
   # (e) A run that did NOT complete must not consume the day. Observed live: a handoff wrote its
   # dated section and the guard then blocked the retry for the rest of the day.
   local gsh="$repo/scripts/guard-probe.sh"

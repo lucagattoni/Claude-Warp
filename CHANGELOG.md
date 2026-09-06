@@ -35,6 +35,15 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   **block** being absent rather than the file, and Phase 4 states its first-write behaviour.
   `last_run: never` is deliberate: an *empty* `last_run` drops the guard into its conservative
   legacy branch, while `never` matches no date and leaves a fresh loop cleanly clear-to-run.
+- **Two fatal exits in `run-headless.sh.tpl` threw away the durable-trace check.** The generic
+  failure branch consults `durable_trace` before giving up, but the budget-exhaustion (`exit 6`)
+  and timeout (`exit 1`) branches exited without asking — the timeout one sitting three lines above
+  code that already did it. So a run that **committed work and then hit its cap** reported a bare
+  failure, losing the single fact that decides whether re-running is safe. Both now call a shared
+  `report_trace`, and the generic branch reuses the same `trace_desc` describer instead of
+  rebuilding the string inline. Retry semantics are unchanged: budget still fails after exactly one
+  attempt. Under `--worktree` this adds a `git fetch` to those two paths — the same network
+  exposure the generic branch already carried there, stated rather than widened silently.
 - **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
   bodies (a broken `mktemp` must be fatal), so a bug in a check aborted the run before the banner —
   the same no-banner symptom fixed above for a check that merely *reports* a failure. Found by
@@ -48,6 +57,13 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   later passing check's ✓ intact. Proven by mutation: reverting `dev.sh` to the broken gate, or
   restoring either individual defect, each turns exactly the matching assertion red. Runs in CI
   next to `verify`. Five cases, including a deliberately crashing check.
+- **`verify` check 10 gained three executed cases for the above** — a stub that commits and *then*
+  reports budget exhaustion, one that commits and *then* exits 124, and a mandatory **negative
+  pole**: a genuinely clean repo (`logs/` gitignored, as `claude-warp-setup` guarantees) where the
+  stub changes nothing and the trace note must be **absent**. Without that pole the two positive
+  cases prove nothing — the existing probe repo leaves `.claude/` untracked, so `tree_dirty()` is
+  unconditionally true there. Mutations confirm: removing either call reddens only its own case;
+  making the note unconditional reddens only the negative pole.
 - **`verify` check 12 now executes the guard against the scaffolder's own seeded stub** — extracting
   the fenced block the scaffolder emits and running `guard.sh.tpl` on it, with a negative pole (a
   completed run today must still close the day) so the clear-to-run assertion cannot be vacuous.

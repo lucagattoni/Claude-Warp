@@ -166,6 +166,7 @@ run_once() {
   # Only inspect what THIS attempt appended, so a marker from an earlier attempt cannot re-trigger.
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$BUDGET_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
+    report_trace "$BEFORE"
     exit 6
   fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
@@ -197,6 +198,29 @@ durable_trace() {
   fi
 }
 
+trace_desc() {
+  local before="$1" after="$2"
+  if [ "$WORKTREE" -eq 1 ]; then
+    echo "origin/${DEFAULT_BRANCH} advanced ${before} -> ${after}"
+  else
+    echo "tree dirty or HEAD moved ${before} -> ${after}"
+  fi
+}
+
+# A FATAL, non-retried exit still has to say whether the attempt left work behind. The
+# generic-failure branch below consults durable_trace before giving up; the budget and timeout
+# branches exited without asking, so a run that committed and THEN hit its cap reported a bare
+# failure and the operator could not tell it from one that did nothing. Under --worktree this
+# calls snapshot(), which fetches origin — the same network exposure the generic branch already
+# carries on this path.
+report_trace() {
+  local before="$1" after
+  after="$(snapshot)"
+  if durable_trace "$before" "$after"; then
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: that attempt left a DURABLE TRACE ($(trace_desc "$before" "$after")) — work landed before it failed; review it before re-running." | tee -a "$LOG" >&2
+  fi
+}
+
 attempt=0
 while : ; do
   BEFORE="$(snapshot)"
@@ -225,14 +249,14 @@ while : ; do
   if [ "$RC" -eq 124 ]; then
     # A timeout is a wall-clock cap, not a transient drop — do not retry.
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] TIMEOUT: attempt exceeded ${MAX_MINUTES}m wall-clock limit — verdict: timeout (not retried)" >> "$LOG"
+    report_trace "$BEFORE"
     exit 1
   fi
 
   # Non-zero, non-timeout: candidate transient failure. Gate the retry on safe-to-retry.
   AFTER="$(snapshot)"
   if durable_trace "$BEFORE" "$AFTER"; then
-    TRACE_DESC="tree dirty or HEAD moved ${BEFORE} -> ${AFTER}"
-    [ "$WORKTREE" -eq 1 ] && TRACE_DESC="origin/${DEFAULT_BRANCH} advanced ${BEFORE} -> ${AFTER}"
+    TRACE_DESC="$(trace_desc "$BEFORE" "$AFTER")"
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] NOTIFY: attempt failed (exit $RC) and left a DURABLE TRACE (${TRACE_DESC}) — NOT safe to retry; surfacing instead of looping." >> "$LOG"
     exit "$RC"
   fi
