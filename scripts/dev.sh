@@ -479,6 +479,57 @@ check_runner_execution() {
     fi
   fi
 
+  # (w) --worktree mode had NO coverage at all (`grep -c worktree scripts/dev.sh` was 0), yet it is
+  # the mode the template header recommends for unattended L3 loops, and durable_trace() behaves
+  # differently there: it keys on origin advancing rather than on the local tree. report_trace now
+  # runs on that path too, calling snapshot() -> `git fetch origin`. All of it, until now, unrun.
+  local ori="$tmp/origin.git" wrepo="$tmp/wrepo"
+  git init -q --bare "$ori"
+  git clone -q "$ori" "$wrepo" 2>/dev/null
+  mkdir -p "$wrepo/scripts" "$wrepo/logs" "$wrepo/.claude/skills/probe"
+  printf 'x\n' > "$wrepo/.claude/skills/probe/SKILL.md"
+  printf 'logs/\n' > "$wrepo/.gitignore"
+  fill_runner templates/run-headless.sh.tpl "$wrepo/scripts/run-probe.sh" probe
+  ( cd "$wrepo" && git add -A && git -c user.email=v@x -c user.name=v commit -q -m init \
+      && git push -q origin HEAD:main 2>/dev/null && git remote set-head origin main 2>/dev/null )
+  # (w1) Happy path: a successful --worktree run exits 0 and LEAVES NOTHING BEHIND. A leaked
+  # worktree or branch on every cron fire is the failure mode nobody notices until disk fills.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo WT-OK;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  local leaked_wt leaked_br
+  leaked_wt=$( cd "$wrepo" && git worktree list 2>/dev/null | grep -c 'probe-worktree' || true )
+  leaked_br=$( cd "$wrepo" && git branch --list 'probe-2*' 2>/dev/null | grep -c . || true )
+  if [ "$rc" -eq 0 ] && [ "$leaked_wt" = "0" ] && [ "$leaked_br" = "0" ]; then
+    note_ok "--worktree: clean run exits 0 and leaks no worktree or branch (executed)"
+  else
+    note_fail "--worktree: exit $rc, leaked worktrees=$leaked_wt branches=$leaked_br (a cron loop would accumulate both)"
+  fi
+  # (w2) The real test of report_trace on this path: the stub PUSHES, then fails. durable_trace
+  # keys on origin here, so the trace must be reported — and a bare failure would hide that a
+  # push already landed.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo pushed > landed.txt; git add landed.txt >/dev/null 2>&1; git -c user.email=v@x -c user.name=v commit -q -m "landed" >/dev/null 2>&1; git push -q origin HEAD:main >/dev/null 2>&1; echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 6 ] && grep -q 'DURABLE TRACE' "$wrepo"/logs/*.log 2>/dev/null \
+       && grep -q 'origin/main advanced' "$wrepo"/logs/*.log 2>/dev/null; then
+    note_ok "--worktree: a push that landed before the cap is reported as a durable trace (executed)"
+  else
+    note_fail "--worktree: expected exit 6 with a DURABLE TRACE naming origin advancement; got exit $rc"
+  fi
+  # (w3) NEGATIVE POLE: same mode, stub pushes nothing. origin did not move, so no trace.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Error: Exceeded USD budget (0.25)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$wrepo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 --worktree >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 6 ] && ! grep -q 'DURABLE TRACE' "$wrepo"/logs/*.log 2>/dev/null; then
+    note_ok "--worktree: a run that pushed nothing reports no durable trace (negative pole)"
+  else
+    note_fail "--worktree (w3): a run that advanced origin by nothing still reported a DURABLE TRACE (exit $rc) — (w2) proves nothing"
+  fi
+
   # (e) A run that did NOT complete must not consume the day. Observed live: a handoff wrote its
   # dated section and the guard then blocked the retry for the rest of the day.
   local gsh="$repo/scripts/guard-probe.sh"

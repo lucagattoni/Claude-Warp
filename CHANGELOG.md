@@ -32,6 +32,14 @@ Two further corrections of fact: GitHub's unauthenticated rate-limit reply is **
 (the abort still fired correctly, via `curl -f`, but the stated reason was wrong), and `main`'s
 `Runs:` line listed **four** of six verdicts, not five.
 
+The review also named a blind spot worth closing: **`--worktree` mode had no coverage at all**
+(`grep -c worktree scripts/dev.sh` was 0) despite being the mode the runner header recommends for
+unattended L3 loops — and `durable_trace` behaves differently there, keying on origin advancing
+rather than the local tree, which is exactly the path `report_trace` was just added to. Check 10
+now executes it against a real bare origin: a clean run exits 0 and **leaks no worktree or branch**
+(proven by breaking the cleanup trap: leaked worktrees=1, branches=1), a stub that pushes and then
+hits the cap is reported as `origin/main advanced`, and a stub that pushes nothing is not.
+
 The self-test gained a sixth case, and check 10 a negative pole for the session marker. The first
 version of that sixth case did **not** discriminate — the planted fault landed before the disarm in
 both orderings, so it stayed green under the mutation it was written to catch; it now asserts the
