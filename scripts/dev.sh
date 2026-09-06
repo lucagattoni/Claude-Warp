@@ -761,7 +761,30 @@ check_skill_contracts() {
   # A guard-fired skip writes neither STATE_FILE nor a commit, so silence must not read as success.
   grep -q 'GUARD_EVIDENCE' "$rt" \
     || note_fail "retro: no GUARD_EVIDENCE input — the guard question is answered from data that cannot contain the answer"
-  check_ok "retro reads this loop only, over the window it analyses, with all six verdicts"
+
+  local up="skills/claude-warp-update/SKILL.md"
+  # These assertions must not match the skill's own PROSE explaining why the old forms are wrong —
+  # an unanchored grep matching its own explanatory comment is this repo's most-repeated defect.
+  # So each anchors on the INSTRUCTION form: a fenced command, or a bullet that assigns a field.
+  grep -qE '^\s*(WebFetch|`?WebFetch) https://' "$up" \
+    && note_fail "update: still instructs a WebFetch of a raw URL — LLM-mediated content cannot satisfy the byte-diff contract it also requires"
+  grep -qE '^- `harness\.(version|last_update)`' "$up" \
+    && note_fail "update: still writes harness.version/harness.last_update — 'harness' is the string \"ClaudeWarp\"; that would clobber it with an object"
+  grep -q 'curl -fsSL' "$up" \
+    || note_fail "update: no curl fetch — Phase 3's byte diff has no byte-exact source"
+  # git's multi-pathspec add is atomic: without the guard a manifest-less project stages NOTHING
+  # and loses the whole commit after the skills were already rewritten on disk (exit 128).
+  grep -qF 'if [ -f harness-manifest.json ]; then git add harness-manifest.json; fi' "$up" \
+    || note_fail "update: Phase 6 does not add the manifest conditionally — a project without one loses the entire commit (git add is atomic)"
+  grep -qE '^git add \.claude/skills/ harness-manifest\.json' "$up" \
+    && note_fail "update: Phase 6 still adds both paths in one atomic git add"
+  # A 200 with an empty/truncated body is neither a network error nor an HTTP error, so without
+  # this criterion it reads as "differs" and Phase 4 replaces a working skill with nothing.
+  grep -q 'the body is empty' "$up" \
+    || note_fail "update: fetch-failed does not cover an empty 200 body — a working skill would be overwritten with nothing"
+  grep -q 'could not reach GitHub' "$up" \
+    || note_fail "update: Phase 2 has no abort branch — a rate-limit response marks every installed skill an orphan"
+  check_ok "retro reads this loop only, over the window it analyses, with all six verdicts; update fetches byte-exact and fails closed"
   return 0
 }
 

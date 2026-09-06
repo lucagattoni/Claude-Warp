@@ -60,6 +60,19 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   append-only, so a top-down read returns the **oldest** ten. `FAIL_ENTRIES` omitted `stopped`,
   hiding exactly the failures most worth reading. And the `Runs:` line listed five of six verdicts,
   so the stated total could not equal the sum of its buckets. All five fixed and verified live.
+- **`/claude-warp-update` had six defects, one of which loses an entire commit.** It had never been
+  executed. `git add .claude/skills/ harness-manifest.json` is **atomic**: in a project without a
+  manifest it fails with `fatal: pathspec … did not match any files`, exits 128 and stages
+  **nothing** — after Phase 4 has already rewritten skill files on disk (reproduced). It read and
+  wrote `harness.version` / `harness.last_update`, but `harness` is the *string* `"ClaudeWarp"` and
+  those fields are its top-level **siblings**, so literal compliance would clobber the identity
+  field with an object. It fetched through `WebFetch` while Phase 3 demanded a byte diff "not LLM
+  judgment" — a contract an LLM-mediated relay cannot satisfy; now `curl -fsSL`. Its fetch-failed
+  criteria covered network and HTTP errors but **not an empty or truncated 200 body**, which
+  therefore read as "differs" and would replace a working skill with nothing. Phase 2 had no
+  failure branch at all, so an unauthenticated rate-limit reply — a 200 with a JSON *object* —
+  would mark all 15 installed skills orphans. And `last_update` was unreachable: Phase 5 wrote it
+  unconditionally while Phase 6 skipped the commit when nothing changed.
 - **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
   bodies (a broken `mktemp` must be fatal), so a bug in a check aborted the run before the banner —
   the same no-banner symptom fixed above for a check that merely *reports* a failure. Found by
@@ -81,8 +94,11 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   unconditionally true there. Mutations confirm: removing either call reddens only its own case;
   making the note unconditional reddens only the negative pole.
 - **`verify` check 14 (new) — skill contracts.** Pins retro's scoped pathspec, derived window,
-  newest-10 command, `GUARD_EVIDENCE` input and full six-verdict vocabulary. Six mutations, each
-  reddening only its own assertion.
+  newest-10 command, `GUARD_EVIDENCE` input and full six-verdict vocabulary, plus update's `curl`
+  fetch, conditional `git add`, empty-body criterion and Phase 2 abort. Twelve mutations, each
+  reddening only its own assertion. Every assertion is anchored to an **instruction** line rather
+  than a bare substring, because both skills now carry prose explaining why the old forms were
+  wrong — and a grep matching its own explanatory comment is this repo's most-repeated defect.
 - **`verify` check 10 gained an executed session-limit case** — a stub reproducing the real message
   must exit 7 after exactly one attempt, and the runner's own FATAL line must carry the reset time.
   The first version of that assertion was **vacuous**: the stub's raw output lands in the same log,
