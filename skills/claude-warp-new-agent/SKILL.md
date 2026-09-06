@@ -29,8 +29,16 @@ Derive from it:
   configured. A 1h cache write costs 2× base input against 1.25× for 5m: worth it only for an
   agent re-invoked over an hour (a long QA loop), wasted on a one-shot lookup. Add it per the
   [sub-agents reference](https://code.claude.com/docs/en/sub-agents) only when the role needs it.
-- `AGENT_TOOLS` — minimum tool set for the role (e.g. `Read,Grep,Glob,Bash` for
-  a code reviewer; `Read,WebFetch` for a research agent)
+- `AGENT_TOOLS` — minimum tool set for the role (e.g. `Read,Grep,Glob` for a code reviewer;
+  `Read,WebFetch` for a research agent).
+
+  **A constraint in the role description must be enforced by the tool list, not only by the
+  persona.** If the role says "never edits", "read-only", "reports findings", or similar, then
+  `Edit`, `Write` and `NotebookEdit` MUST be absent, and a bare `Bash` MUST NOT be granted — bare
+  `Bash` permits `sed -i`, `rm`, `git commit` and every other mutation, leaving nothing but a
+  system-prompt sentence between the agent and the thing it was told never to do. Grant scoped Bash
+  instead (e.g. `Bash(git diff*),Bash(grep*)`) or omit it. A dogfood run asked for a security
+  reviewer that "never edits code" and got `Bash` — a gate that cannot fail.
 - `AGENT_PERSONA` — 2–4 sentences describing the agent's expertise, focus, and
   what it should and should not do
 

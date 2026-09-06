@@ -147,7 +147,14 @@ Open with a `**Do not:** <DO_NOT>` constraint line before the sub-steps.
 Add a Loop Contract line: `LEVEL : L<N> (<label>)` under the existing REPORT line.
 
 For L2/L3 loops: uncomment and fill the Phase 3c checker invocation — do not leave
-it optional. For L3: also add an explicit note that Phase 3a stagnation guard is active
+it optional.
+
+**At L2/L3 the checker agent is REQUIRED, and creating it is part of this phase, not a suggestion.**
+Write `.claude/agents/<SKILL_SLUG>-checker.md` before finishing, and reference it from Phase 3c. A
+loop scaffolded at L2+ without that file on disk is incomplete — re-read this step rather than
+reasoning that the loop's own verifier makes the checker redundant. (Two runs of this skill against
+a byte-identical `contract.yaml` at `autonomy: L2` disagreed: one created the checker, the other
+narrated skipping it as a deliberate decision. The requirement is not a judgement call.) For L3: also add an explicit note that Phase 3a stagnation guard is active
 and `consecutive_stagnation >= 3` triggers handoff.
 
 **Cross-model checker:** if a checker agent is created, it must use a *different model*

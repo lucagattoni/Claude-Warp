@@ -101,7 +101,23 @@ exit 0
 set -euo pipefail
 
 INPUT=$(cat)
-CMD=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('command',''))" 2>/dev/null || echo "")
+TOOL=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
+# The command lives at tool_input.command, NOT at the top level. Reading `command` returns the empty
+# string for every real PreToolUse event, so the grep below never matched and this hook blocked
+# NOTHING while looking like a working gate — the exact failure this pattern exists to prevent. Its
+# sibling patterns in this file already read tool_input; this one did not until v0.45.1.
+CMD=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+
+# A command-running tool always carries tool_input.command. Empty means the payload shape changed:
+# fail CLOSED on those tools rather than allow blindly. Other tools legitimately have no command.
+if [ -z "$CMD" ]; then
+  case "$TOOL" in
+    Bash|PowerShell)
+      echo "destructive-block: empty tool_input.command on a $TOOL event — failing closed" >&2
+      exit 2 ;;
+    *) exit 0 ;;
+  esac
+fi
 
 # Add patterns to block; use grep -E for regex
 if echo "$CMD" | grep -qE '<BLOCK_PATTERN>'; then

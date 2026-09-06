@@ -7,6 +7,58 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+## [0.45.1] — 2026-09-06 00:26 UTC
+
+A four-lane parallel dogfood of the seven never-executed skills — `contract`, `new-goal`,
+`new-agent`, `new-hook`, `retro`, `converge`, `sync`. **4/4 lanes returned, 0 died, 6 candidate
+findings, 38 behaviours confirmed working.** Every candidate was re-verified here before becoming a
+fix; four held, and one of them is the worst shape this project has shipped.
+
+### Fixed
+- **CRITICAL — `destructive-block` blocked nothing.** The hook pattern whose entire purpose is
+  denying dangerous commands extracted them from the top-level JSON key `command`. A real
+  `PreToolUse` payload nests it at `tool_input.command`, so `CMD` was the empty string on every
+  event and the `grep` never matched — a gate that could not fail, in the pattern documented as
+  giving "hard guarantees, not best-effort behaviour". Its four sibling patterns in the same file
+  already read `tool_input`. Verified directly: with the shipped template, `rm -rf /` passed; with
+  the fix it exits 2. It now also reads `tool_name` and **fails closed** when a command-running tool
+  arrives with an empty `tool_input.command`, rather than allowing on a payload it does not
+  recognise. Tested across five payloads (dangerous `rm`, dangerous `push`, harmless, malformed,
+  non-command tool).
+- **Goal runners had 1 of 7 hardening mechanisms.** `new-goal` writes its runner inline in Phase 4
+  rather than filling `templates/run-headless.sh.tpl`, so none of the v0.42.x work reached it: no
+  `claude` binary preflight, no `CLAUDE_BIN`, no `--disallowedTools`, no `gtimeout` fallback — and
+  critically **no unknown-command guard and no budget guard**, meaning the `exit 0`-on-unresolved-
+  slash-command defect fixed for loops in v0.42.4 was still live in every scaffolded goal, and
+  budget exhaustion was still treated as retryable. Now at parity, with `DISALLOWED_TOOLS` derived
+  in Phase 1 like the loop shapes.
+- **`new-agent` let a role constraint live only in prose.** Asked for a security reviewer that
+  "reports findings but never edits code", it produced an agent with `Bash` — which permits
+  `sed -i`, `rm`, `git commit`. The skill now requires that a read-only role's constraint is
+  enforced by the **tool list**: `Edit`/`Write`/`NotebookEdit` absent and no bare `Bash` (scoped
+  `Bash(git diff*)`-style grants instead).
+- **`new-loop`'s "mandatory" L2 checker was a judgement call in practice.** Two runs against a
+  byte-identical `contract.yaml` at `autonomy: L2` disagreed — one created the checker agent, the
+  other narrated skipping it as deliberate. The requirement is now stated as non-negotiable, with
+  the file to write named explicitly.
+
+### Added
+- **`verify` check 13/13 — emitted gates.** No hook template may read a top-level `command`;
+  `destructive-block` must read `tool_input.command` and must fail closed; and the goal runner must
+  carry all six hardening markers the loop runners guarantee. Mutation-tested; the parity
+  assertions are **word-anchored**, because the first version accepted a mutated
+  `command -v claudeXX` — the eighth time this repo has reintroduced that exact unanchored-grep
+  false negative, and again caught only by mutating the thing the assertion guards.
+
+**Confirmed working (38 observations across four lanes)**, including: `/claude-warp-contract`'s
+resume detection and its genuinely substantive interview — it surfaced and corrected an off-by-one
+in its own answer unprompted; exact budget/turn/scope fidelity from `contract.yaml` into the
+generated runner in two independent scaffolds; a generated `stop.check` that failed closed before
+the work existed and passed after it, i.e. a discriminating verifier rather than theatre;
+`/claude-warp-retro` writing `RETRO.md` and its ledger event without touching the loop files it is
+documented not to touch; and `/claude-warp-sync` correctly refusing an empty scan window without
+committing.
+
 ## [0.45.0] — 2026-09-05 16:44 UTC
 
 Closes the last environment gap on the adversarial review's UNVERIFIED list: *"darwin only — no Linux

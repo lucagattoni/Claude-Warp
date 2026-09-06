@@ -159,6 +159,17 @@ GOAL_FILE="<GOAL_SLUG>-GOAL.md"
 LOG="logs/<GOAL_SLUG>-$(date '+%Y%m%d-%H%M').log"
 mkdir -p logs
 
+# ── Preflight: resolve the claude binary ──────────────────────────────────────
+# cron and launchd run with a minimal PATH that omits ~/.local/bin, where the native installer puts
+# claude. CLAUDE_BIN is prepended LAST so it actually outranks an existing install.
+PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+if [ -n "${CLAUDE_BIN:-}" ]; then
+  [ -x "$CLAUDE_BIN" ] || { echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: CLAUDE_BIN=$CLAUDE_BIN is not executable." | tee -a "$LOG" >&2; exit 127; }
+  PATH="$(cd "$(dirname "$CLAUDE_BIN")" && pwd):$PATH"
+fi
+export PATH
+command -v claude >/dev/null 2>&1 || { echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: \`claude\` not found on PATH ($PATH) — a scheduled run cannot start. Set CLAUDE_BIN=/full/path/to/claude." | tee -a "$LOG" >&2; exit 127; }
+
 echo "[$(date '+%Y-%m-%d %H:%M %Z')] Goal start: <GOAL_NAME>" | tee -a "$LOG"
 
 # Fail-closed: `--permission-prompts none` (Claude Code v2.1.259+) denies anything the auto-mode
@@ -167,20 +178,53 @@ echo "[$(date '+%Y-%m-%d %H:%M %Z')] Goal start: <GOAL_NAME>" | tee -a "$LOG"
 PERM_PROMPTS=()
 claude --help 2>/dev/null | grep -q -- '--permission-prompts' && PERM_PROMPTS=(--permission-prompts none)
 
+# `claude -p "/goal ..."` exits 0 even when the slash command does not resolve, printing
+# "Unknown command:" — and budget exhaustion is a CAP, not a transient failure. Both are checked
+# against THIS run's own output below, exactly as the loop runners do.
+UNKNOWN_CMD_MARKER="Unknown command:"
+BUDGET_MARKER="Exceeded USD budget"
+before_bytes=$(wc -c < "$LOG" 2>/dev/null || echo 0)
+
 claude \
   --permission-mode auto \
   ${PERM_PROMPTS[@]+"${PERM_PROMPTS[@]}"} \
   --max-turns <MAX_TURNS> \
   --max-budget-usd <MAX_BUDGET_USD> \
   --effort high \
+  --disallowedTools "<DISALLOWED_TOOLS>" \
   -p "/goal Every Done condition in $GOAL_FILE is checked off, the verifier command
 \`<VERIFIER_CMD>\` has been run with its output shown and exit code 0, and a final entry has
 been appended to the Execution log in $GOAL_FILE — or stop after <MAX_TURNS> turns.
 Constraint: read $GOAL_FILE first and never touch what its Guardrails section forbids." \
   >> "$LOG" 2>&1
+RC=$?
 
-echo "[$(date '+%Y-%m-%d %H:%M %Z')] Goal runner exited." | tee -a "$LOG"
+# Inspect only what THIS run appended.
+NEW_OUTPUT=$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null || true)
+if printf '%s' "$NEW_OUTPUT" | grep -q "$UNKNOWN_CMD_MARKER"; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $RC — /goal did not resolve. This is deterministic; not retrying." | tee -a "$LOG" >&2
+  exit 4
+fi
+if printf '%s' "$NEW_OUTPUT" | grep -q "$BUDGET_MARKER"; then
+  echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: exhausted the --max-budget-usd cap. Each run gets a fresh cap, so re-running spends the same to fail the same way. Raise MAX_BUDGET_USD or narrow the goal. Check $GOAL_FILE — partial work may have landed." | tee -a "$LOG" >&2
+  exit 6
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M %Z')] Goal runner exited (rc=$RC)." | tee -a "$LOG"
+exit $RC
 ```
+
+**Derive `DISALLOWED_TOOLS` in Phase 1** alongside the other parameters — the same hard deny-list the
+loop runners carry, because `--allowedTools` is pre-approval the auto-mode classifier can expand
+beyond while `--disallowedTools` holds. Always include the destructive floor
+`Bash(git push --force*),Bash(git reset --hard*),Bash(git clean*),Bash(rm -rf *)`, plus anything the
+goal's Guardrails section forbids that maps to a tool pattern.
+
+> A goal runner carries the same environment hardening as a loop runner — binary preflight,
+> `CLAUDE_BIN` override, fail-closed prompts, a hard deny-list, and guards for the two failures that
+> otherwise read as success (an unresolved slash command exits 0; budget exhaustion is a cap, not a
+> transient). `scripts/dev.sh verify` asserts that parity, because this runner is written inline here
+> rather than filled from `templates/`, and it drifted out of parity once already.
 
 **Legacy variant** (Claude Code < 2.1.139, or hooks disabled): replace the `-p "/goal …"` prompt
 with the self-judged instruction — weaker, because the working agent grades its own doneness:
