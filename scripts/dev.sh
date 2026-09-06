@@ -67,7 +67,7 @@ note_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 note_ok()   { echo "  ✓ $1"; }
 
 check_source_integrity() {
-  echo "[1/12] Source integrity — every skill is well-formed"
+  echo "[1/13] Source integrity — every skill is well-formed"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     local f="$dir/SKILL.md"
@@ -81,7 +81,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/12] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/13] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -91,7 +91,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/12] Copy contract — the documented loop lands every skill"
+  echo "[3/13] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -113,7 +113,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/12] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/13] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -141,7 +141,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/12] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/13] Docs coherence — every skill has a section in reference/skills.md + a README row"
   for dir in skills/*/; do
     name="$(basename "$dir")"
     grep -q "### \`/$name" docs/reference/skills.md || note_fail "$name: no section in docs/reference/skills.md"
@@ -151,7 +151,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/12] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/13] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -178,7 +178,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/12] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/13] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
   # Compute the count from the registry itself (claim headings), then assert the prose matches it
@@ -197,7 +197,7 @@ check_claim_count_coherence() {
 }
 
 check_plugin_version_coherence() {
-  echo "[8/12] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/13] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -235,7 +235,7 @@ verify_live() {
 }
 
 check_scheduled_env_preflight() {
-  echo "[9/12] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  echo "[9/13] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
   # is exercised the way a scheduler runs it — so they are gated here, not left to prose.
@@ -286,7 +286,7 @@ check_scheduled_env_preflight() {
 }
 
 check_runner_execution() {
-  echo "[10/12] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
+  echo "[10/13] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
   # Checks 1-9 read source text. Three of their assertions were defeated live by whitespace, quotes
   # and a name prefix while still printing VERIFY PASSED, and two real behaviour bugs (CLAUDE_BIN
   # being outranked by a native install; the fan-out dropping an unterminated last line) were
@@ -389,7 +389,7 @@ check_runner_execution() {
 }
 
 check_install_completeness() {
-  echo "[11/12] Install completeness — every template a scaffolder reads survives an install"
+  echo "[11/13] Install completeness — every template a scaffolder reads survives an install"
   # checks 3-4 verify that SKILLS land and that the two SETUP-filled templates are fillable. Nothing
   # verified that the templates the SCAFFOLDERS read are present in an installed project — and they
   # were not: install.sh deletes .claudewarp-templates/, so a real install had no templates at all
@@ -472,7 +472,7 @@ check_install_completeness() {
 }
 
 check_scaffolder_contract() {
-  echo "[12/12] Scaffolder contract — placeholders are derived, and --contract is honored"
+  echo "[12/13] Scaffolder contract — placeholders are derived, and --contract is honored"
   # A <TOKEN> in an emitted runner that no phase derives is filled by guesswork. RISK shipped that
   # way: it gates the mandatory QA evaluator and the approval gate in three `case` branches, no
   # phase derived it, and a live scaffold guessed R1 — silently leaving both gates off. Nothing
@@ -498,6 +498,34 @@ check_scaffolder_contract() {
   [ "$FAIL" -eq 0 ] && note_ok "every emitted placeholder is derived; all 3 scaffolders honor --contract"
 }
 
+check_emitted_gates() {
+  echo "[13/13] Emitted gates — hooks read the real payload, and every runner shape is hardened"
+  local hk="skills/claude-warp-new-hook/SKILL.md"
+  # A PreToolUse payload nests the command at tool_input.command. destructive-block read the
+  # top-level `command`, which is always empty, so it blocked NOTHING while looking like a gate —
+  # found by dogfooding, and the worst shape possible in the pattern sold as a hard guarantee.
+  if [ -f "$hk" ]; then
+    grep -qE "d\.get\('command'" "$hk" \
+      && note_fail "new-hook: a template reads top-level 'command'; a PreToolUse payload nests it at tool_input.command, so the hook would block nothing"
+    grep -qE "tool_input.*command" "$hk" \
+      || note_fail "new-hook: destructive-block does not read tool_input.command"
+    grep -q 'failing closed' "$hk" \
+      || note_fail "new-hook: destructive-block does not fail closed on an empty/unexpected payload"
+  fi
+  # Every runner shape must carry the same hardening. The goal runner is written inline in its skill
+  # rather than filled from templates/, and it silently drifted to 1-of-7 until v0.45.1.
+  local gs="skills/claude-warp-new-goal/SKILL.md" pat missing=0
+  if [ -f "$gs" ]; then
+    # Word-anchored: a plain substring match also accepts a mutated `command -v claudeXX`. That is
+    # the same unanchored-grep false negative this repo has now reintroduced eight times; it is
+    # never caught by reading the assertion, only by mutating the thing it guards.
+    for pat in 'command -v claude' 'CLAUDE_BIN' 'permission-prompts' 'disallowedTools' 'Unknown command' 'Exceeded USD budget'; do
+      grep -qE "${pat}([^A-Za-z0-9_-]|\$)" "$gs" || { note_fail "new-goal's runner lacks '$pat' — the loop runners guarantee it; goals must not drift"; missing=$((missing+1)); }
+    done
+  fi
+  [ "$FAIL" -eq 0 ] && note_ok "hook templates read tool_input and fail closed; goal runner at parity with loop runners"
+}
+
 verify() {
   echo "ClaudeWarp verify — deterministic source + install-contract checks"
   echo
@@ -513,6 +541,7 @@ verify() {
   check_runner_execution
   check_install_completeness
   check_scaffolder_contract
+  check_emitted_gates
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   if [ "$FAIL" -eq 0 ]; then
