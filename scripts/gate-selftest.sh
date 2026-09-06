@@ -47,7 +47,7 @@ echo "ClaudeWarp gate self-test — can \`dev.sh verify\` report a failure?"
 echo
 
 # ── 1. Baseline: the unmutated tree must pass, all 13 checks, exit 0 ────────────────────────
-echo "[1/4] Baseline — clean tree passes"
+echo "[1/5] Baseline — clean tree passes"
 rc="$(run_gate)"
 n="$(checks_reached)"
 [ "$rc" = "0" ] || fail "clean tree: expected exit 0, got $rc"
@@ -57,7 +57,7 @@ grep -q 'VERIFY PASSED' "$SANDBOX/out.txt" || fail "clean tree: no 'VERIFY PASSE
 
 # ── 2. A failure in the FIRST check must not hide the other twelve ─────────────────────────
 # This is the load-bearing case. Under the old gate this aborted at check 1.
-echo "[2/4] Failure in check 1 — the remaining checks still run, and the banner still prints"
+echo "[2/5] Failure in check 1 — the remaining checks still run, and the banner still prints"
 before="$FAIL"
 perl -pi -e 's{^name: claude-warp-retro$}{name: DELIBERATELY-WRONG}' "$SANDBOX/skills/claude-warp-retro/SKILL.md"
 rc="$(run_gate)"; n="$(checks_reached)"
@@ -72,7 +72,7 @@ perl -pi -e 's{^name: DELIBERATELY-WRONG$}{name: claude-warp-retro}' "$SANDBOX/s
 [ "$FAIL" -eq "$before" ] && pass "check-1 failure: 13 checks, VERIFY FAILED (1 issue), exit 1, later ✓ intact"
 
 # ── 3. Two independent failures must be counted as two ─────────────────────────────────────
-echo "[3/4] Two failures — counted independently"
+echo "[3/5] Two failures — counted independently"
 before="$FAIL"
 perl -pi -e 's{5/6}{4/6}g' "$SANDBOX/docs/reference/architecture.md"
 perl -pi -e 's{^name: claude-warp-ledger$}{name: ALSO-WRONG}' "$SANDBOX/skills/claude-warp-ledger/SKILL.md"
@@ -87,13 +87,27 @@ perl -pi -e 's{^name: ALSO-WRONG$}{name: claude-warp-ledger}' "$SANDBOX/skills/c
 # ── 4. The --live branch must COUNT its own failure, not print a bare ✗ and die ─────────────
 # Its two early-exit paths printed "  ✗ …" directly and `return 1`, which tripped errexit at the
 # call site: the run died before the banner, so a broken live gate looked like a crash.
-echo "[4/4] --live with no \`claude\` on PATH — a counted failure, not an abort"
+echo "[4/5] --live with no \`claude\` on PATH — a counted failure, not an abort"
 before="$FAIL"
 rc="$( cd "$SANDBOX" && PATH=/usr/bin:/bin bash scripts/dev.sh verify --live > "$SANDBOX/live.txt" 2>&1; echo $? )"
 [ "$rc" = "1" ] || fail "--live: expected exit 1, got $rc"
 grep -q 'VERIFY FAILED' "$SANDBOX/live.txt" || fail "--live: no 'VERIFY FAILED' banner — the live branch aborts instead of reporting"
 grep -q 'not on PATH'   "$SANDBOX/live.txt" || fail "--live: missing the diagnostic naming the cause"
 [ "$FAIL" -eq "$before" ] && pass "--live: counted failure, VERIFY FAILED, exit 1"
+
+# ── 5. A check that CRASHES must still produce a verdict line ──────────────────────────────
+# errexit is deliberately live inside check bodies, so a bug in a check can abort the run. That
+# must never look like silence: it is indistinguishable from "the gate never ran".
+echo "[5/5] A crashing check — the run still says something"
+before="$FAIL"
+perl -0pi -e 's{(echo "\[1/13\] Source integrity[^\n]*\n  check_begin\n)}{$1  ( exit 3 )\n}' "$SANDBOX/scripts/dev.sh"
+grep -q '( exit 3 )' "$SANDBOX/scripts/dev.sh" || fail "crash case: could not plant the crash (dev.sh check-1 preamble moved)"
+rc="$(run_gate)"
+[ "$rc" != "0" ] || fail "crash case: a crashing check returned exit 0"
+grep -q 'VERIFY CRASHED' "$SANDBOX/out.txt" \
+  || fail "crash case: no 'VERIFY CRASHED' line — the gate ends silently when a check aborts"
+perl -0pi -e 's{\n  \( exit 3 \)}{}' "$SANDBOX/scripts/dev.sh"
+[ "$FAIL" -eq "$before" ] && pass "crashing check: VERIFY CRASHED reported, non-zero exit"
 
 echo
 if [ "$FAIL" -eq 0 ]; then

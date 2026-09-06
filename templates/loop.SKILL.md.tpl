@@ -25,7 +25,10 @@ If the guard exits non-zero, stop immediately and log "already ran today — ski
 
 ## Phase 2 — Load state
 
-1. Read `{{STATE_FILE}}`. If the file doesn't exist yet, create it with the header below.
+1. Read `{{STATE_FILE}}`. If the file doesn't exist, **or exists without a `<!-- state:` block**,
+   write the header below before going further. (The scaffolder seeds this block, so normally it
+   is already present — but keying on the file merely *existing* would skip initialisation for
+   every scaffolded loop, which is exactly the case that needs it.)
 2. Read the `<!-- state:` header block at the top of the file:
    ```
    <!-- state:
@@ -174,7 +177,10 @@ claude -p '/claude-warp-new-agent "checker for {{SKILL_SLUG}}: validates finding
 
 ## Phase 4 — Write results
 
-1. Update the `<!-- state:` header block at the top of `{{STATE_FILE}}` with current values:
+1. Update the `<!-- state:` header block at the top of `{{STATE_FILE}}` with current values
+   (on the header's **first** write, initialise instead: `runs_total: 1`, both counters `0` or `1`
+   per the rules below, and `last_run`/`last_verdict` from this run — there is nothing to
+   increment yet):
    - `last_run`: today's timestamp
    - `last_verdict`: the verdict from this run
    - `runs_total`: increment by 1

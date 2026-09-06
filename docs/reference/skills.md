@@ -121,7 +121,7 @@ cleanup maintenance prompt in-session.
 | `.claude/skills/<slug>/SKILL.md` | Loop procedure with phases: guard → state → work → verify → write → stop |
 | `scripts/guard-<slug>.sh` | Prevents double-runs (once per day / weekdays only) |
 | `scripts/run-<slug>.sh` | Headless runner (`run-headless.sh.tpl`) or fan-out runner (`run-fanout.sh.tpl`, one `claude --bg --worktree` session per item) based on goal shape |
-| `<SLUG>_LOG.md` | Append-only state with IN_PROGRESS recovery |
+| `<SLUG>_LOG.md` | Append-only state, seeded with the `<!-- state:` header the loop reads (`last_run: never`, `runs_total: 0`, …) so run #1 updates a block that exists rather than inventing one; IN_PROGRESS recovery |
 | `scripts/trigger-<slug>.crontab` | Reference cron snippet (not installed automatically) |
 
 **Retry-with-backoff + safe-to-retry guard (v0.34.0).** The headless runner (`run-headless.sh.tpl`) wraps

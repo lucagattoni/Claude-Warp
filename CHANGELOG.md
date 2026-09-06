@@ -25,13 +25,32 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   no banner, so a live gate that never ran looked indistinguishable from a crash. Both are now
   counted failures.
 
+- **The loop scaffolder seeded a state file its own generated loop could not read.** Phase 2d
+  created `<STATE_FILE>` with a prose header and **none** of the six `<!-- state:` fields, while
+  the generated loop's Phase 2 reads all six on run #1 and Phase 4 *updates* them — "increment by
+  1", "reset to 0" — with nothing to increment. Phase 2's escape hatch ("if the file doesn't exist
+  yet, create it") could never fire, because the scaffolder always created the file. `guard.sh`'s
+  own comment called a missing header an "older state file"; it was true of every file the current
+  scaffolder produced. The stub now seeds the full block, Phase 2 keys initialisation on the
+  **block** being absent rather than the file, and Phase 4 states its first-write behaviour.
+  `last_run: never` is deliberate: an *empty* `last_run` drops the guard into its conservative
+  legacy branch, while `never` matches no date and leaves a fresh loop cleanly clear-to-run.
+- **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
+  bodies (a broken `mktemp` must be fatal), so a bug in a check aborted the run before the banner —
+  the same no-banner symptom fixed above for a check that merely *reports* a failure. Found by
+  hitting it: the new state-header check's uncaptured `( … )` exit-1 killed the run after printing
+  only its own header. `verify` now traps EXIT and prints `VERIFY CRASHED ✗`, naming the check.
+
 ### Added
 - **`scripts/gate-selftest.sh` — the gate on the gate.** Mirrors the **working tree** (not `HEAD`,
   so an uncommitted fix is what gets tested) into a sandbox, plants known failures, and asserts
   `verify` reaches all 13 checks, prints `VERIFY FAILED`, counts issues independently, and keeps a
   later passing check's ✓ intact. Proven by mutation: reverting `dev.sh` to the broken gate, or
   restoring either individual defect, each turns exactly the matching assertion red. Runs in CI
-  next to `verify`.
+  next to `verify`. Five cases, including a deliberately crashing check.
+- **`verify` check 12 now executes the guard against the scaffolder's own seeded stub** — extracting
+  the fenced block the scaffolder emits and running `guard.sh.tpl` on it, with a negative pole (a
+  completed run today must still close the day) so the clear-to-run assertion cannot be vacuous.
 
 
 ## [0.45.1] — 2026-09-06 00:26 UTC

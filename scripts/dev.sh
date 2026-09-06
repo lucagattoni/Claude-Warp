@@ -73,6 +73,21 @@ CHECK_FAIL0=0
 check_begin() { CHECK_FAIL0=$FAIL; return 0; }
 check_ok()    { [ "$FAIL" -eq "$CHECK_FAIL0" ] && note_ok "$1"; return 0; }
 
+# errexit stays live INSIDE each check body on purpose — a broken `mktemp`/`git init` must be
+# fatal rather than silently producing garbage. The cost is that a check which CRASHES ends the
+# run before the verdict, reproducing the exact no-banner symptom that per-check returns fixed for
+# a check that merely REPORTS a failure. Measured while adding the state-header check: one
+# uncaptured `( … )` exiting 1 killed the run after printing only its own header. This trap
+# guarantees the gate always says something.
+VERDICT_PRINTED=0
+verify_crash_guard() {
+  [ "$VERDICT_PRINTED" -eq 1 ] && return 0
+  echo
+  echo "VERIFY CRASHED ✗ — a check aborted before the verdict banner."
+  echo "  This is a fault in the CHECK itself, not necessarily in the artifact it inspects."
+  echo "  The last '[N/13]' line above names the check that died."
+}
+
 check_source_integrity() {
   echo "[1/13] Source integrity — every skill is well-formed"
   check_begin
@@ -497,6 +512,55 @@ check_install_completeness() {
 check_scaffolder_contract() {
   echo "[12/13] Scaffolder contract — placeholders are derived, and --contract is honored"
   check_begin
+  # The scaffolder's state-file stub must satisfy the two consumers it hands the file to: the
+  # generated loop's Phase 2 (which READS six fields) and guard-<slug>.sh (which parses last_run /
+  # last_verdict out of it). The shipped stub seeded none of them, so run #1 read a header that was
+  # never written and Phase 4 "incremented" counters that did not exist. Extract the stub the
+  # scaffolder actually emits and EXECUTE the guard against it — a grep for the field names would
+  # equally match the template's own prose describing them.
+  local stub; stub="$(python3 - <<'PYX'
+import re
+s = open('skills/claude-warp-new-loop/SKILL.md').read()
+m = re.search(r'\*\*2d\. State file stub\*\*.*?```markdown\n(.*?)```', s, re.S)
+print(m.group(1) if m else '', end='')
+PYX
+)"
+  if [ -z "$stub" ]; then
+    note_fail "new-loop: could not extract the 2d state-file stub (its fenced markdown block moved or vanished)"
+  else
+    local fld
+    for fld in last_run last_verdict runs_total consecutive_fails consecutive_stagnation acting_on; do
+      printf '%s\n' "$stub" | grep -qE "^${fld}:" \
+        || note_fail "new-loop stub seeds no '$fld:' — the generated loop's Phase 2 reads it on run #1"
+    done
+    printf '%s\n' "$stub" | grep -q '<!-- state:' \
+      || note_fail "new-loop stub has no '<!-- state:' block — Phase 4 has nothing to update"
+    # Behavioural: the seeded stub must leave a freshly scaffolded loop CLEAR TO RUN. An empty
+    # last_run would instead drop the guard into its conservative legacy branch.
+    local gtmp; gtmp="$(mktemp -d)"
+    mkdir -p "$gtmp/scripts"
+    printf '%s\n' "$stub" > "$gtmp/PROBE_LOG.md"
+    sed -e 's|{{SKILL_NAME}}|Probe|g' -e 's|{{STATE_FILE}}|PROBE_LOG.md|g' \
+        templates/guard.sh.tpl > "$gtmp/scripts/guard.sh"
+    # errexit is deliberately live inside check bodies, so an expected non-zero must be captured
+    # explicitly rather than left to trip it.
+    local grc; grc=0; ( cd "$gtmp" && bash scripts/guard.sh >/dev/null 2>&1 ) || grc=$?
+    [ "$grc" -eq 0 ] \
+      || note_fail "the seeded stub makes guard.sh exit $grc on a never-run loop (expected 0 = clear to run)"
+    # Negative pole: the same guard must still CLOSE the day on a completed run, or the assertion
+    # above is satisfied by a guard that can only ever say yes.
+    sed -e "s|^last_run: never|last_run: $(date '+%Y-%m-%d') 09:00 UTC|" \
+        -e 's|^last_verdict: none|last_verdict: pass|' "$gtmp/PROBE_LOG.md" > "$gtmp/PROBE_LOG.md.new"
+    mv "$gtmp/PROBE_LOG.md.new" "$gtmp/PROBE_LOG.md"
+    grc=0; ( cd "$gtmp" && bash scripts/guard.sh >/dev/null 2>&1 ) || grc=$?
+    [ "$grc" -eq 1 ] \
+      || note_fail "guard.sh exits $grc after a completed run today (expected 1 = skip); the clear-to-run assertion above is vacuous"
+    rm -rf "$gtmp"
+  fi
+  # Phase 2 must initialise on a MISSING BLOCK, not merely a missing file — the scaffolder always
+  # creates the file, so keying on existence skips initialisation for every scaffolded loop.
+  grep -q 'exists without a `<!-- state:` block' templates/loop.SKILL.md.tpl \
+    || note_fail "loop template's Phase 2 still keys the create-branch on file existence, which the scaffolder guarantees is false"
   # A <TOKEN> in an emitted runner that no phase derives is filled by guesswork. RISK shipped that
   # way: it gates the mandatory QA evaluator and the approval gate in three `case` branches, no
   # phase derived it, and a live scaffold guessed R1 — silently leaving both gates off. Nothing
@@ -555,6 +619,8 @@ check_emitted_gates() {
 verify() {
   echo "ClaudeWarp verify — deterministic source + install-contract checks"
   echo
+  VERDICT_PRINTED=0
+  trap verify_crash_guard EXIT
   check_source_integrity
   check_setup_dynamic
   check_copy_contract
@@ -570,6 +636,8 @@ verify() {
   check_emitted_gates
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
+  VERDICT_PRINTED=1
+  trap - EXIT
   if [ "$FAIL" -eq 0 ]; then
     echo "VERIFY PASSED ✓"
   else
