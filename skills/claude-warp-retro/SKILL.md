@@ -82,7 +82,7 @@ The file is append-only and never rotated, so reading top-down returns the **old
 is the opposite of what this phase wants:
 
 ```bash
-grep -n '^## ' "$STATE_FILE" | tail -10        # line numbers of the newest 10 sections
+grep -nE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' "$STATE_FILE" | tail -10   # newest 10 dated sections
 ```
 
 Read from the first of those line numbers to end of file. For each entry, extract:

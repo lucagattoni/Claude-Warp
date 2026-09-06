@@ -9,6 +9,34 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [0.46.0] — 2026-09-06 08:11 UTC
 
+An independent six-lens adversarial review of this branch (every finding put to its own refuter,
+adjudicated in one pass) found **three defects in the new instruments themselves** before merge.
+They are recorded here because the pattern is the point:
+
+- **`gate-selftest.sh` mirrored only *tracked* files.** `git ls-files` lists indexed paths, so a
+  fix in a file not yet `git add`-ed was absent from the sandbox while the real gate saw it.
+  Reproduced end-to-end: with an untracked malformed skill present, `dev.sh verify` printed
+  `VERIFY FAILED ✗ (3 issues)` while `gate-selftest.sh` printed `GATE SELF-TEST PASSED ✓` — the
+  gate-on-the-gate certifying a tree it never tested, which is exactly the class it exists to
+  catch. Now `--cached --others --exclude-standard`, with a file-count guard on the mirror.
+- **The new session-limit guard killed successful runs.** The marker is two ordinary English
+  phrases matched case-insensitively over the whole transcript, before `rc` was consulted.
+  Measured: a stub exiting **0** while printing "Done. Documented the usage limit handling."
+  was reported `FATAL … exit 7`. Now gated on a non-zero exit — deliberately *not* applied to the
+  unknown-command marker, which must fire on `rc=0` by design.
+- **The crash guard was disarmed before the banner it guarantees.** `VERDICT_PRINTED=1` and
+  `trap - EXIT` ran two statements ahead of the `echo`, so a fault in that window printed nothing —
+  the pre-fix symptom. Zero-width today, but the stated invariant was false.
+
+Two further corrections of fact: GitHub's unauthenticated rate-limit reply is **403**, not a 200
+(the abort still fired correctly, via `curl -f`, but the stated reason was wrong), and `main`'s
+`Runs:` line listed **four** of six verdicts, not five.
+
+The self-test gained a sixth case, and check 10 a negative pole for the session marker. The first
+version of that sixth case did **not** discriminate — the planted fault landed before the disarm in
+both orderings, so it stayed green under the mutation it was written to catch; it now asserts the
+ordering directly.
+
 The four items left open by the v0.45.1 handoff, closed by **executing** them — and the run that
 mattered most was the one that revealed the gate itself could not report a failure. Seven defects,
 two of them in the checking instruments rather than the artifacts. Ordered by dependency: nothing
@@ -57,15 +85,18 @@ downstream can demonstrate RED→GREEN through a gate that dies at the first red
   a wall that lifts at a fixed clock time hours away, so all three attempts fail identically inside
   a 30s/60s backoff window, and the run reports a bare failure that discards the one fact the
   operator needs: when it resets. Both `run-headless` and `run-two-stage` now detect it, carry the
-  CLI's own reset line into their diagnostic, and exit **7** without retrying. Exit codes are
-  documented in the runner header.
+  CLI's own reset line into their diagnostic, and exit **7** without retrying — **gated on a
+  non-zero exit**, because the marker is two ordinary English phrases and an otherwise successful
+  run discussing rate limits would otherwise be killed as fatal (measured: a stub exiting 0 while
+  printing "Documented the usage limit handling" was reported exit 7). Exit codes are documented in
+  both runner headers.
 - **`/claude-warp-retro` was wrong in five ways on any loop with more than one run** — a shape it
   had never been executed against. Its git query unioned `'*<slug>*' '*_LOG.md' '*-STATE.md'`, so a
   **sibling loop's commits entered the retrospective** (the loop template explicitly anticipates
   several loops per repo). Its `--since="30 days ago"` silently disagreed with the last-10-runs
   window Phase 3 reads. "Read the last 10 dated sections" had no command, and the file is
   append-only, so a top-down read returns the **oldest** ten. `FAIL_ENTRIES` omitted `stopped`,
-  hiding exactly the failures most worth reading. And the `Runs:` line listed five of six verdicts,
+  hiding exactly the failures most worth reading. And the `Runs:` line listed only four of the six verdicts,
   so the stated total could not equal the sum of its buckets. All five fixed and verified live.
 - **`/claude-warp-update` had six defects, one of which loses an entire commit.** It had never been
   executed. `git add .claude/skills/ harness-manifest.json` is **atomic**: in a project without a
@@ -77,7 +108,7 @@ downstream can demonstrate RED→GREEN through a gate that dies at the first red
   judgment" — a contract an LLM-mediated relay cannot satisfy; now `curl -fsSL`. Its fetch-failed
   criteria covered network and HTTP errors but **not an empty or truncated 200 body**, which
   therefore read as "differs" and would replace a working skill with nothing. Phase 2 had no
-  failure branch at all, so an unauthenticated rate-limit reply — a 200 with a JSON *object* —
+  failure branch at all, so an unauthenticated rate-limit reply — a **403** with a JSON *object*, or any non-array body —
   would mark all 15 installed skills orphans. And `last_update` was unreachable: Phase 5 wrote it
   unconditionally while Phase 6 skipped the commit when nothing changed.
 - **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
@@ -89,7 +120,7 @@ downstream can demonstrate RED→GREEN through a gate that dies at the first red
 ### Added
 - **`scripts/gate-selftest.sh` — the gate on the gate.** Mirrors the **working tree** (not `HEAD`,
   so an uncommitted fix is what gets tested) into a sandbox, plants known failures, and asserts
-  `verify` reaches all 13 checks, prints `VERIFY FAILED`, counts issues independently, and keeps a
+  `verify` reaches all 14 checks, prints `VERIFY FAILED`, counts issues independently, and keeps a
   later passing check's ✓ intact. Proven by mutation: reverting `dev.sh` to the broken gate, or
   restoring either individual defect, each turns exactly the matching assertion red. Runs in CI
   next to `verify`. Five cases, including a deliberately crashing check.

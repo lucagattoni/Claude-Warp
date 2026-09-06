@@ -50,9 +50,13 @@ RAW="https://raw.githubusercontent.com/$REPO/main"
 LIST="$(curl -fsSL "https://api.github.com/repos/$REPO/contents/skills" 2>/dev/null)" || LIST=""
 ```
 
-**Validate before trusting it.** Unauthenticated `api.github.com` is rate-limited to 60/hr and
-answers with a **200-status JSON object** describing the error — which parses fine and contains no
-`type: "dir"` entries. Treating that as the remote list marks every installed skill an orphan:
+**Validate before trusting it.** Unauthenticated `api.github.com` is rate-limited to 60 requests
+per hour and answers with **403** (bad credentials give 401) and a JSON *object* describing the
+error. `curl -f` already turns those into a non-zero exit and an empty `LIST`, but the validation
+below is what makes the failure *safe* rather than merely likely: any body that is not a JSON
+**array** — an error object, truncated output, or an unexpected schema — parses without error and
+contains no `type: "dir"` entries, and treating it as the remote list marks every installed skill
+an orphan:
 
 ```bash
 REMOTE_SKILLS="$(printf '%s' "$LIST" | python3 -c "

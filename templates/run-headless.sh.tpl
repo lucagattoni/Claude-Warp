@@ -180,7 +180,11 @@ run_once() {
     report_trace "$BEFORE"
     exit 6
   fi
-  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
+  # Gated on a NON-ZERO exit: the marker is two ordinary English phrases, so a SUCCESSFUL run whose
+  # own output discusses rate limits would otherwise be killed as a FATAL. Measured: a stub exiting
+  # 0 while printing "Documented the usage limit handling" was reported exit 7. A real limit exits
+  # non-zero (observed: 1). Deliberately NOT applied to UNKNOWN_CMD_MARKER, which must fire on rc=0.
+  if [ "$rc" -ne 0 ] && tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
     local when; when="$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -iE "$SESSION_LIMIT_MARKER" | head -1 | tr -d '\r')"
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the account hit its session/usage limit — \"${when}\". That is a wall which lifts at a fixed time, not a transient drop, so every retry inside the backoff window would fail identically. NOT retried; reschedule after the stated reset." | tee -a "$LOG" >&2
     report_trace "$BEFORE"

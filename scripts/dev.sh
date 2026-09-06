@@ -438,6 +438,20 @@ check_runner_execution() {
   grep -q 'exhausted its --max-budget-usd cap' "$repo"/logs/*.log 2>/dev/null \
     && note_fail "a session-limit run was reported as budget exhaustion — the two markers do not discriminate"
 
+  # (d6) NEGATIVE POLE for (d5). The marker is two ordinary English phrases, so it must not fire on
+  # a run that SUCCEEDED and merely discussed them. Measured before the rc gate: a stub exiting 0
+  # while printing "Documented the usage limit handling" was reported FATAL, exit 7 — the guard
+  # would have killed a working loop.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "Done. Documented the usage limit handling. 2 files changed."; exit 0;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 0 ] && ! grep -q 'hit its session/usage limit' "$repo"/logs/*.log 2>/dev/null; then
+    note_ok "a successful run that merely mentions a usage limit is not killed (negative pole)"
+  else
+    note_fail "(d6) a SUCCESSFUL run mentioning 'usage limit' exited $rc and/or was reported as a session limit — the marker fires on prose, so (d5) proves nothing"
+  fi
+
   # (d4) NEGATIVE POLE — mandatory. The probe repo above leaves .claude/ untracked, so
   # `git status --porcelain` is never empty there and tree_dirty() is unconditionally true: a
   # positive-only assertion cannot tell "durable_trace was consulted" from "the note prints
@@ -716,14 +730,17 @@ verify() {
   check_skill_contracts
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
-  VERDICT_PRINTED=1
-  trap - EXIT
+  # Disarm only AFTER the banner is on screen. Setting VERDICT_PRINTED before the echo left a
+  # window in which a fault printed nothing at all — the exact pre-fix symptom this trap exists to
+  # close, and the invariant three lines above claims to hold.
   if [ "$FAIL" -eq 0 ]; then
     echo "VERIFY PASSED ✓"
   else
     echo "VERIFY FAILED ✗  ($FAIL issue(s))"
-    exit 1
   fi
+  VERDICT_PRINTED=1
+  trap - EXIT
+  [ "$FAIL" -eq 0 ] || exit 1
 }
 
 check_skill_contracts() {
@@ -756,7 +773,7 @@ check_skill_contracts() {
   grep -q 'SINCE="$(grep -oE' "$rt" \
     || note_fail "retro: --since is not derived from the dated sections Phase 3 actually reads"
   # An append-only file read top-down yields the OLDEST ten, the opposite of what Phase 3 wants.
-  grep -qE "grep -n '\^## ' \"\\\$STATE_FILE\" \| tail -10" "$rt" \
+  grep -qE "grep -nE '\^## \[0-9\]\{4\}" "$rt" \
     || note_fail "retro: Phase 3 gives no bounded command for the NEWEST 10 sections (a top-down read returns the oldest)"
   # A guard-fired skip writes neither STATE_FILE nor a commit, so silence must not read as success.
   grep -q 'GUARD_EVIDENCE' "$rt" \
@@ -783,7 +800,7 @@ check_skill_contracts() {
   grep -q 'the body is empty' "$up" \
     || note_fail "update: fetch-failed does not cover an empty 200 body — a working skill would be overwritten with nothing"
   grep -q 'could not reach GitHub' "$up" \
-    || note_fail "update: Phase 2 has no abort branch — a rate-limit response marks every installed skill an orphan"
+    || note_fail "update: Phase 2 has no abort branch — a non-array response (403 rate limit, truncation) marks every installed skill an orphan"
   check_ok "retro reads this loop only, over the window it analyses, with all six verdicts; update fetches byte-exact and fails closed"
   return 0
 }

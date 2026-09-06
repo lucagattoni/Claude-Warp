@@ -6,6 +6,9 @@
 # splits into a noisy retrieval stage and a sequential reasoning/write stage
 # that should not share context (the "KB Tracker" pattern).
 #
+# Exit codes: 0 done · 1 timeout/gave-up · 4 slash command did not resolve · 6 budget cap
+#             7 session/usage limit (reschedule after the reset) · 127 no `claude` binary
+#
 # {{ARTIFACT_PATH}} MUST be gitignored — it is the handoff between stages and
 # must survive the worktree's per-attempt reset (plain `git clean -fd`, no
 # `-x`, leaves ignored paths alone).
@@ -160,7 +163,11 @@ run_stage() {
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
     exit 6
   fi
-  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
+  # Gated on a NON-ZERO exit: the marker is two ordinary English phrases, so a SUCCESSFUL run whose
+  # own output discusses rate limits would otherwise be killed as a FATAL. Measured: a stub exiting
+  # 0 while printing "Documented the usage limit handling" was reported exit 7. A real limit exits
+  # non-zero (observed: 1). Deliberately NOT applied to UNKNOWN_CMD_MARKER, which must fire on rc=0.
+  if [ "$rc" -ne 0 ] && tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
     local when; when="$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -iE "$SESSION_LIMIT_MARKER" | head -1 | tr -d '\r')"
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the account hit its session/usage limit — \"${when}\". That is a wall which lifts at a fixed time, not a transient drop, so retrying now would fail identically. NOT retried; reschedule after the stated reset." | tee -a "$LOG" >&2
     exit 7
