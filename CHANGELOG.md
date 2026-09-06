@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Changed
+- **`CLAUDE.md` now points a fresh session at `CLAUDE_WARP_UPDATE_LOG.md` first.** The running
+  handoff record is gitignored and was referenced only from `docs/reference/skills.md` and the
+  `sync-research` skill, both in the narrow context of where sync findings get appended — so a new
+  session had no pointer telling it to read the OPEN / NOT DONE list. Repo-local agent guidance
+  only; no user-facing surface changes, so it stays unreleased rather than cutting v0.46.1.
+
+
 ## [0.46.0] — 2026-09-06 08:11 UTC
 
 An independent six-lens adversarial review of this branch (every finding put to its own refuter,

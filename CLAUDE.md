@@ -10,6 +10,7 @@ ClaudeWarp is a **loop harness for Claude Code** — loop scaffolding, schedulin
 | `scripts/` | Dev / verify tooling |
 | `docs/` · `mkdocs.yml` · `site/` | Documentation (published via MkDocs) |
 | `tests/` · `VERSION` · `CHANGELOG.md` · `plans/` | Tests, version, history, plans |
+| `CLAUDE_WARP_UPDATE_LOG.md` | **Read first in a fresh session.** Gitignored, local-only running record: session handoffs, what each release closed, and the current **OPEN / NOT DONE** list. Not in git, so it is invisible to cloud runs and other machines — treat its absence as "no handoff", not "nothing pending". |
 
 ## Python: always uv
 
