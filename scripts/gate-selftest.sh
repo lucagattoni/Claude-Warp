@@ -5,7 +5,7 @@
 # broken thing, not the artifact. The worst instance was the gate itself — `verify()` called every
 # check bare under `set -euo pipefail`, and six checks ended in `[ "$FAIL" -eq 0 ] && note_ok …`,
 # an AND-list that returns 1 when the tally is non-zero. So the first failing check killed the run:
-# one planted failure reached 7 of 13 checks and printed NO verdict banner at all. `verify` could
+# one planted failure reached 7 of 14 checks and printed NO verdict banner at all. `verify` could
 # not say "VERIFY FAILED". Every green run in this repo's history was green only because nothing
 # had ever failed.
 #
@@ -46,12 +46,12 @@ checks_reached() { grep -c '^\[' "$SANDBOX/out.txt" 2>/dev/null || echo 0; }
 echo "ClaudeWarp gate self-test — can \`dev.sh verify\` report a failure?"
 echo
 
-# ── 1. Baseline: the unmutated tree must pass, all 13 checks, exit 0 ────────────────────────
+# ── 1. Baseline: the unmutated tree must pass, all 14 checks, exit 0 ────────────────────────
 echo "[1/5] Baseline — clean tree passes"
 rc="$(run_gate)"
 n="$(checks_reached)"
 [ "$rc" = "0" ] || fail "clean tree: expected exit 0, got $rc"
-[ "$n" = "13" ] || fail "clean tree: expected 13 checks, got $n"
+[ "$n" = "14" ] || fail "clean tree: expected 14 checks, got $n"
 grep -q 'VERIFY PASSED' "$SANDBOX/out.txt" || fail "clean tree: no 'VERIFY PASSED' banner"
 [ "$FAIL" -eq 0 ] && pass "clean tree: 13 checks, VERIFY PASSED, exit 0"
 
@@ -62,7 +62,7 @@ before="$FAIL"
 perl -pi -e 's{^name: claude-warp-retro$}{name: DELIBERATELY-WRONG}' "$SANDBOX/skills/claude-warp-retro/SKILL.md"
 rc="$(run_gate)"; n="$(checks_reached)"
 [ "$rc" = "1" ]  || fail "check-1 failure: expected exit 1, got $rc"
-[ "$n" = "13" ]  || fail "check-1 failure: gate stopped after $n of 13 checks (it aborted early)"
+[ "$n" = "14" ]  || fail "check-1 failure: gate stopped after $n of 14 checks (it aborted early)"
 grep -q 'VERIFY FAILED' "$SANDBOX/out.txt" || fail "check-1 failure: no 'VERIFY FAILED' banner — the gate cannot report failure"
 grep -q '(1 issue(s))'  "$SANDBOX/out.txt" || fail "check-1 failure: issue count is not 1"
 # A later check that PASSED must still print its ✓ — the tally is per-check, not global.
@@ -78,7 +78,7 @@ perl -pi -e 's{5/6}{4/6}g' "$SANDBOX/docs/reference/architecture.md"
 perl -pi -e 's{^name: claude-warp-ledger$}{name: ALSO-WRONG}' "$SANDBOX/skills/claude-warp-ledger/SKILL.md"
 rc="$(run_gate)"; n="$(checks_reached)"
 [ "$rc" = "1" ] || fail "two failures: expected exit 1, got $rc"
-[ "$n" = "13" ] || fail "two failures: gate stopped after $n of 13 checks"
+[ "$n" = "14" ] || fail "two failures: gate stopped after $n of 14 checks"
 grep -q '(2 issue(s))' "$SANDBOX/out.txt" || fail "two failures: issue count is not 2 — failures are not tallied independently"
 perl -pi -e 's{4/6}{5/6}g' "$SANDBOX/docs/reference/architecture.md"
 perl -pi -e 's{^name: ALSO-WRONG$}{name: claude-warp-ledger}' "$SANDBOX/skills/claude-warp-ledger/SKILL.md"
@@ -100,7 +100,7 @@ grep -q 'not on PATH'   "$SANDBOX/live.txt" || fail "--live: missing the diagnos
 # must never look like silence: it is indistinguishable from "the gate never ran".
 echo "[5/5] A crashing check — the run still says something"
 before="$FAIL"
-perl -0pi -e 's{(echo "\[1/13\] Source integrity[^\n]*\n  check_begin\n)}{$1  ( exit 3 )\n}' "$SANDBOX/scripts/dev.sh"
+perl -0pi -e 's{(echo "\[1/14\] Source integrity[^\n]*\n  check_begin\n)}{$1  ( exit 3 )\n}' "$SANDBOX/scripts/dev.sh"
 grep -q '( exit 3 )' "$SANDBOX/scripts/dev.sh" || fail "crash case: could not plant the crash (dev.sh check-1 preamble moved)"
 rc="$(run_gate)"
 [ "$rc" != "0" ] || fail "crash case: a crashing check returned exit 0"

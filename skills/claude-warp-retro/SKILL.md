@@ -31,18 +31,61 @@ much rework?), not a run series.
 
 ## Phase 2 — Read git history
 
+First fix the window and the paths, because both defaults are wrong for a real loop.
+
+**Paths — this loop's, not every loop's.** Use the `STATE_FILE` you resolved in Phase 1 plus
+this loop's own skill directory. A pathspec *union* like `'*<slug>*' '*_LOG.md'` pulls in a
+sibling loop's commits, and the loop template explicitly anticipates several loops per repo.
+Do not narrow to `'*<slug>*'` alone either — the slug need not appear in the filename
+(`daily-dep-audit` → `DEP_AUDIT_LOG.md`).
+
+**Window — derived from the runs, not a constant.** Phase 3 analyses the last 10 dated
+sections; a fixed `--since="30 days ago"` silently disagrees with that on any cadence slower
+than daily (a weekly loop's last 10 runs span ~70 days, so 6 of them fall outside the window
+and the retro reports on history it never saw). Derive it:
+
 ```bash
-git log --oneline --since="30 days ago" -- '*<slug>*' '*_LOG.md' '*-STATE.md' 2>/dev/null | head -50
+STATE_FILE="<resolved in Phase 1>"           # e.g. DEP_AUDIT_LOG.md
+SKILL_DIR=".claude/skills/<slug>"
+
+# Oldest date among the last 10 dated sections — the window Phase 3 will actually read.
+SINCE="$(grep -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' "$STATE_FILE" | tail -10 | head -1 | awk '{print $2}')"
+[ -n "$SINCE" ] || SINCE="30 days ago"       # no dated sections yet: fall back
+
+git log --oneline --since="$SINCE" -- "$STATE_FILE" "$SKILL_DIR" 2>/dev/null | head -50
 ```
 
 Record:
 - `RUN_COMMITS` — commits matching `loop(<slug>): run` pattern (one per run)
 - `FIX_COMMITS` — commits that changed loop logic files (skill SKILL.md edits)
-- `FAIL_ENTRIES` — lines in state files marked FAILED, NEEDS_REVIEW, or timeout
+- `FAIL_ENTRIES` — lines in state files marked FAILED, NEEDS_REVIEW, timeout, or **stopped**
+  (`stopped` is a first-class verdict — a security or permission gate fired. Omitting it hides
+  exactly the failures most worth reading.)
+
+**Guard-fired skips are not in either input.** When the guard blocks a duplicate run it exits
+before the loop's Phase 2 and Phase 4, so it writes neither `STATE_FILE` nor a commit. Its only
+trace is `logs/<slug>-*.log`, which is gitignored. Read those logs if present:
+
+```bash
+grep -h '^\[guard\]' logs/<slug>-*.log 2>/dev/null | tail -20
+```
+
+If they are absent (rotated, or the loop ran elsewhere), record `GUARD_EVIDENCE=none` — and in
+Phase 4 answer the guard question *"not observable from the available inputs"*. Do not infer
+guard behaviour from the `skip` verdicts in `STATE_FILE`: those are the loop's own
+nothing-to-do skips, a structurally different event.
 
 ## Phase 3 — Read recent state entries
 
-**Loop / harness:** read the last 10 dated sections in the state file(s). For each entry, extract:
+**Loop / harness:** read the last 10 dated sections in the state file(s) — the *newest* ten.
+The file is append-only and never rotated, so reading top-down returns the **oldest** ten, which
+is the opposite of what this phase wants:
+
+```bash
+grep -n '^## ' "$STATE_FILE" | tail -10        # line numbers of the newest 10 sections
+```
+
+Read from the first of those line numbers to end of file. For each entry, extract:
 - Verdict (pass/skip/fail/handoff/timeout/stopped)
 - Any error output or NEEDS_REVIEW notes
 - Pattern: did the same failure recur across multiple runs?
@@ -59,7 +102,10 @@ Answer these questions:
 **What worked:**
 - Which runs passed cleanly?
 - Did the verification step catch real issues?
-- Did the guard prevent double-runs?
+- Did the guard prevent double-runs? Answer this **only** from `GUARD_EVIDENCE` (Phase 2). With
+  `GUARD_EVIDENCE=none`, write *"not observable — the guard leaves no trace in `STATE_FILE` or
+  git history"*. Never answer it from the `skip` verdicts in the state file, and never leave it
+  silently unanswered: an unasked question reads as a passing one.
 
 **What failed:**
 - Were there consecutive failures? What caused them?
@@ -92,7 +138,11 @@ Append to `RETRO.md` (create if absent). Use the header line that matches the de
 ## Retro: <SLUG> — <YYYY-MM-DD>
 
 **Period:** last <N> runs (since <start_date>)
-**Runs:** <total> total | <pass> pass | <fail> fail | <handoff> handoff | <skip> skip
+**Runs:** <total> total | <pass> pass | <fail> fail | <handoff> handoff | <skip> skip | <timeout> timeout | <stopped> stopped
+
+All six verdicts are listed, including zeros. The buckets **must sum to the stated total** — with
+`timeout` and `stopped` missing, a window containing either was short by exactly those runs and
+the arithmetic silently failed to add up.
 ```
 
 **Goal:**

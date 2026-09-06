@@ -433,7 +433,12 @@ Install path: `skills/claude-warp-inventory/SKILL.md`
 Retrospective over a loop, goal, or harness (or all). Reads state files and git history —
 does not modify any loop/goal files (RETRO.md is the only output).
 
-1. Detects each state file's schema (loop `<!-- state:` header / §2.2 `GOAL.md` / harness
+1. Scopes its git query to the **resolved** `STATE_FILE` and skill directory, and derives
+   `--since` from the oldest of the last 10 dated sections rather than a fixed 30 days (a weekly
+   loop's last 10 runs span ~70 days). Reads `logs/<slug>-*.log` for guard-fired skips, which
+   write neither the state file nor a commit — with no such evidence the guard question is
+   answered *"not observable"* rather than silently passed.
+2. Detects each state file's schema (loop `<!-- state:` header / §2.2 `GOAL.md` / harness
    `features.json`) and reads it accordingly — for a goal it analyses completion + rework,
    not a run series
 2. Reads git log for run commits and fix commits in the past 30 days

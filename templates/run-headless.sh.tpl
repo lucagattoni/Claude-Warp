@@ -8,6 +8,9 @@
 #   --max-retries N  Retry a transient failure up to N times with exponential
 #                    backoff (default: 2) — but ONLY when the failed attempt is
 #                    safe to retry (see below). A timeout is never retried.
+# Exit codes: 0 done · 1 timeout/gave-up · 4 slash command did not resolve · 6 budget cap
+#             7 session/usage limit (reschedule after the reset) · 127 no `claude` binary
+#
 #   --worktree       Run the session in a throwaway git worktree branched off
 #                     origin/<default-branch> instead of the primary checkout.
 #                     Use this for an AUTONOMY_LEVEL L3 loop (writes to production
@@ -148,6 +151,14 @@ UNKNOWN_CMD_MARKER="Unknown command:"
 # fails identically: observed live, a loop scaffolded with $0.25 burned all three attempts and
 # ~$0.75 to fail three times. Detected by message because the CLI exits 1, which is generic.
 BUDGET_MARKER="Exceeded USD budget"
+# A session/usage limit is a WALL, not a transient drop: it lifts at a fixed clock time that can be
+# hours away, so every retry inside the 30s/60s backoff window fails identically — the same
+# reasoning the budget branch above already applies. Observed live 2026-09-06 while dogfooding the
+# retro skill: `claude -p` printed "You've hit your session limit · resets 3:10am (Europe/Dublin)"
+# and exited **1**, the generic code this runner otherwise treats as a retryable transient. Matched
+# case-insensitively on a punctuation-free substring — the real message contains a typographic
+# apostrophe and a U+00B7 middle dot, neither of which is safe to hard-code.
+SESSION_LIMIT_MARKER="session limit|usage limit"
 
 run_once() {
   assert_skill_present
@@ -168,6 +179,12 @@ run_once() {
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the run exhausted its --max-budget-usd cap. Retrying would spend the same amount to fail the same way (each attempt gets a fresh cap), so this is NOT retried. Raise MAX_BUDGET_USD in this script, or narrow the loop's work." | tee -a "$LOG" >&2
     report_trace "$BEFORE"
     exit 6
+  fi
+  if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -qiE "$SESSION_LIMIT_MARKER"; then
+    local when; when="$(tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -iE "$SESSION_LIMIT_MARKER" | head -1 | tr -d '\r')"
+    echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the account hit its session/usage limit — \"${when}\". That is a wall which lifts at a fixed time, not a transient drop, so every retry inside the backoff window would fail identically. NOT retried; reschedule after the stated reset." | tee -a "$LOG" >&2
+    report_trace "$BEFORE"
+    exit 7
   fi
   if tail -c "+$((before_bytes + 1))" "$LOG" 2>/dev/null | grep -q "$UNKNOWN_CMD_MARKER"; then
     echo "[$(date '+%Y-%m-%d %H:%M %Z')] FATAL: the CLI printed '$UNKNOWN_CMD_MARKER' and exited $rc — /{{SKILL_SLUG}} did not resolve in $WORK_DIR. Not retrying; this is deterministic." | tee -a "$LOG" >&2

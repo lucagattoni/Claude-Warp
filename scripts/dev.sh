@@ -85,11 +85,11 @@ verify_crash_guard() {
   echo
   echo "VERIFY CRASHED ✗ — a check aborted before the verdict banner."
   echo "  This is a fault in the CHECK itself, not necessarily in the artifact it inspects."
-  echo "  The last '[N/13]' line above names the check that died."
+  echo "  The last '[N/14]' line above names the check that died."
 }
 
 check_source_integrity() {
-  echo "[1/13] Source integrity — every skill is well-formed"
+  echo "[1/14] Source integrity — every skill is well-formed"
   check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
@@ -106,7 +106,7 @@ check_source_integrity() {
 }
 
 check_setup_dynamic() {
-  echo "[2/13] Regression guard — setup installs skills dynamically (not a hardcoded list)"
+  echo "[2/14] Regression guard — setup installs skills dynamically (not a hardcoded list)"
   local f="skills/claude-warp-setup/SKILL.md"
   if grep -q 'for dir in "\$WARP_ROOT"/skills/\*/' "$f"; then
     note_ok "setup uses a dynamic copy loop over skills/*/"
@@ -117,7 +117,7 @@ check_setup_dynamic() {
 }
 
 check_copy_contract() {
-  echo "[3/13] Copy contract — the documented loop lands every skill"
+  echo "[3/14] Copy contract — the documented loop lands every skill"
   local tmp; tmp="$(mktemp -d)"
   local src_count; src_count="$(ls -d skills/*/ | wc -l | tr -d ' ')"
   # Replicate setup Phase 3's documented loop exactly:
@@ -140,7 +140,7 @@ check_copy_contract() {
 }
 
 check_placeholder_fill() {
-  echo "[4/13] Setup-filled templates leave no unfilled placeholder"
+  echo "[4/14] Setup-filled templates leave no unfilled placeholder"
   # Only the two templates /claude-warp-setup fills. Loop/guard/run templates are filled
   # later by /claude-warp-new-loop and are SUPPOSED to still contain {{...}} here.
   local claude_filled manifest_filled
@@ -169,7 +169,7 @@ check_placeholder_fill() {
 }
 
 check_docs_coherence() {
-  echo "[5/13] Docs coherence — every skill has a section in reference/skills.md + a README row"
+  echo "[5/14] Docs coherence — every skill has a section in reference/skills.md + a README row"
   check_begin
   for dir in skills/*/; do
     name="$(basename "$dir")"
@@ -181,7 +181,7 @@ check_docs_coherence() {
 }
 
 check_executable_selftests() {
-  echo "[6/13] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
+  echo "[6/14] Shared executables self-test — verifier-lib + ledger + reviewer-guard fail closed"
   # The shared executables carry their own --self-test. Gate their health here so a regression is
   # caught by CI, not only when a per-PR verifier happens to source one of them.
   if [ -f scripts/verifier-lib.sh ]; then
@@ -209,7 +209,7 @@ check_executable_selftests() {
 }
 
 check_claim_count_coherence() {
-  echo "[7/13] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
+  echo "[7/14] Behavioural-claim count coherence — the M/N verified-live count is single-sourced"
   check_begin
   local bc=BEHAVIOURAL-CLAIMS.md
   if [ ! -f "$bc" ]; then note_ok "BEHAVIOURAL-CLAIMS.md absent — skipped"; return; fi
@@ -230,7 +230,7 @@ check_claim_count_coherence() {
 }
 
 check_plugin_version_coherence() {
-  echo "[8/13] Plugin manifest version coherence — plugin.json tracks VERSION"
+  echo "[8/14] Plugin manifest version coherence — plugin.json tracks VERSION"
   local pj=.claude-plugin/plugin.json
   # Self-host safe: a source repo without a plugin manifest or VERSION has nothing to reconcile.
   if [ ! -f "$pj" ] || [ ! -f VERSION ]; then
@@ -269,7 +269,7 @@ verify_live() {
 }
 
 check_scheduled_env_preflight() {
-  echo "[9/13] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
+  echo "[9/14] Scheduled-run environment — runners resolve their binaries, cron template sets PATH"
   check_begin
   # cron and launchd run with a minimal PATH that omits ~/.local/bin (where `claude` lives), and
   # stock macOS has no `timeout` at all. Both were silent 127s that only appear when the scaffold
@@ -322,7 +322,7 @@ check_scheduled_env_preflight() {
 }
 
 check_runner_execution() {
-  echo "[10/13] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
+  echo "[10/14] Runner execution — fill a template and RUN it (greps cannot catch a behaviour bug)"
   # Checks 1-9 read source text. Three of their assertions were defeated live by whitespace, quotes
   # and a name prefix while still printing VERIFY PASSED, and two real behaviour bugs (CLAUDE_BIN
   # being outranked by a native install; the fan-out dropping an unterminated last line) were
@@ -414,6 +414,30 @@ check_runner_execution() {
     note_fail "timeout that COMMITTED work: expected exit 1 with both 'TIMEOUT: attempt exceeded' and a DURABLE TRACE note; got exit $rc"
   fi
 
+  # (d5) A session/usage limit is a wall, not a transient drop. Found live: `claude -p` printed
+  # "You've hit your session limit · resets 3:10am" and exited 1 — the generic code this runner
+  # retries — so a scheduled loop would burn its whole backoff window failing identically and
+  # report a bare failure, losing the reset time. Must exit 7 after exactly one attempt.
+  printf '#!/bin/bash\ncase "$1" in --help) echo "  --permission-prompts <target>";; *) echo "You'"'"'ve hit your session limit \xc2\xb7 resets 3:10am (Europe/Dublin)"; exit 1;; esac\n' > "$alt/claude"
+  rc=0
+  ( cd "$repo" && rm -f logs/*.log 2>/dev/null; env -i HOME="$home" PATH=/usr/bin:/bin CLAUDE_BIN="$alt/claude" \
+      /bin/bash scripts/run-probe.sh --max-minutes 1 >/dev/null 2>&1 ) || rc=$?
+  attempts=$(grep -c 'Starting probe' "$repo"/logs/*.log 2>/dev/null || echo 0)
+  if [ "$rc" -eq 7 ] && [ "$attempts" = "1" ]; then
+    note_ok "session limit is a wall, not a transient: exit 7 after 1 attempt (executed)"
+  else
+    note_fail "session limit: expected exit 7 after 1 attempt, got exit $rc after $attempts attempt(s) — a limit that reads as a generic transient burns the whole backoff window"
+  fi
+  # The reset time is the one fact the operator needs; a bare "it failed" loses it. Anchor on the
+  # runner's OWN diagnostic line: the stub's raw output is appended to the same log, so a bare
+  # `grep 'resets 3:10am'` passes even with the echo deleted (caught by mutating exactly that).
+  grep -qE 'FATAL: the account hit its session/usage limit .*resets 3:10am' "$repo"/logs/*.log 2>/dev/null \
+    || note_fail "session-limit branch did not carry the CLI's reset time into its own FATAL line"
+  # Markers must DISCRIMINATE: the budget stub above exits 6, this one 7. If either matched both,
+  # the two branches would be interchangeable and neither assertion would mean anything.
+  grep -q 'exhausted its --max-budget-usd cap' "$repo"/logs/*.log 2>/dev/null \
+    && note_fail "a session-limit run was reported as budget exhaustion — the two markers do not discriminate"
+
   # (d4) NEGATIVE POLE — mandatory. The probe repo above leaves .claude/ untracked, so
   # `git status --porcelain` is never empty there and tree_dirty() is unconditionally true: a
   # positive-only assertion cannot tell "durable_trace was consulted" from "the note prints
@@ -481,7 +505,7 @@ check_runner_execution() {
 }
 
 check_install_completeness() {
-  echo "[11/13] Install completeness — every template a scaffolder reads survives an install"
+  echo "[11/14] Install completeness — every template a scaffolder reads survives an install"
   # checks 3-4 verify that SKILLS land and that the two SETUP-filled templates are fillable. Nothing
   # verified that the templates the SCAFFOLDERS read are present in an installed project — and they
   # were not: install.sh deletes .claudewarp-templates/, so a real install had no templates at all
@@ -565,7 +589,7 @@ check_install_completeness() {
 }
 
 check_scaffolder_contract() {
-  echo "[12/13] Scaffolder contract — placeholders are derived, and --contract is honored"
+  echo "[12/14] Scaffolder contract — placeholders are derived, and --contract is honored"
   check_begin
   # The scaffolder's state-file stub must satisfy the two consumers it hands the file to: the
   # generated loop's Phase 2 (which READS six fields) and guard-<slug>.sh (which parses last_run /
@@ -643,7 +667,7 @@ PYX
 }
 
 check_emitted_gates() {
-  echo "[13/13] Emitted gates — hooks read the real payload, and every runner shape is hardened"
+  echo "[13/14] Emitted gates — hooks read the real payload, and every runner shape is hardened"
   check_begin
   local hk="skills/claude-warp-new-hook/SKILL.md"
   # A PreToolUse payload nests the command at tool_input.command. destructive-block read the
@@ -689,6 +713,7 @@ verify() {
   check_install_completeness
   check_scaffolder_contract
   check_emitted_gates
+  check_skill_contracts
   if [ "${1:-}" = "--live" ]; then verify_live; fi
   echo
   VERDICT_PRINTED=1
@@ -699,6 +724,45 @@ verify() {
     echo "VERIFY FAILED ✗  ($FAIL issue(s))"
     exit 1
   fi
+}
+
+check_skill_contracts() {
+  echo "[14/14] Skill contracts — retro's inputs and vocabulary match the loop it reads"
+  check_begin
+  local rt="skills/claude-warp-retro/SKILL.md"
+  # A retro is only as honest as its verdict vocabulary. `stopped` is a first-class verdict in the
+  # loop template; omitting it from FAIL_ENTRIES hides a security/permission gate firing, and
+  # omitting it (and `timeout`) from the Runs: line makes stated-total != sum-of-buckets by
+  # construction. Verified live against a 12-run fixture: the fixed skill emitted
+  # "10 total | 5 pass | 2 fail | 1 handoff | 1 skip | 1 timeout | 0 stopped", which sums to 10.
+  grep -qE '^- `FAIL_ENTRIES`.*stopped' "$rt" \
+    || note_fail "retro: FAIL_ENTRIES omits 'stopped' — a fired permission gate reads as a clean run"
+  local v
+  for v in pass fail handoff skip timeout stopped; do
+    grep -qE '^\*\*Runs:\*\*.*<'"$v"'>' "$rt" \
+      || note_fail "retro: the Runs: line names no <$v> bucket — the stated total cannot equal the sum"
+  done
+  # The git-history query must be scoped to THIS loop. A pathspec union pulls a sibling loop's
+  # commits into the retro, and the loop template explicitly anticipates several loops per repo.
+  grep -qE "git log .*'\*_LOG\.md'" "$rt" \
+    && note_fail "retro: git log still unions the generic '*_LOG.md' pathspec — a sibling loop's commits enter the retro"
+  grep -q 'git log --oneline --since="$SINCE" -- "$STATE_FILE"' "$rt" \
+    || note_fail "retro: git log is not scoped to the resolved STATE_FILE"
+  # The window must follow the runs, not a constant: a weekly loop's last 10 runs span ~70 days.
+  # Only the git query is forbidden from hard-coding the window; "30 days ago" survives as the
+  # documented FALLBACK for a state file with no dated sections yet, which is correct.
+  grep -qE 'git log .*--since="30 days ago"' "$rt" \
+    && note_fail "retro: the git window is still a hard-coded 30 days, which disagrees with the 10-run window Phase 3 reads"
+  grep -q 'SINCE="$(grep -oE' "$rt" \
+    || note_fail "retro: --since is not derived from the dated sections Phase 3 actually reads"
+  # An append-only file read top-down yields the OLDEST ten, the opposite of what Phase 3 wants.
+  grep -qE "grep -n '\^## ' \"\\\$STATE_FILE\" \| tail -10" "$rt" \
+    || note_fail "retro: Phase 3 gives no bounded command for the NEWEST 10 sections (a top-down read returns the oldest)"
+  # A guard-fired skip writes neither STATE_FILE nor a commit, so silence must not read as success.
+  grep -q 'GUARD_EVIDENCE' "$rt" \
+    || note_fail "retro: no GUARD_EVIDENCE input — the guard question is answered from data that cannot contain the answer"
+  check_ok "retro reads this loop only, over the window it analyses, with all six verdicts"
+  return 0
 }
 
 # ── dispatch ────────────────────────────────────────────────────────────────

@@ -44,6 +44,22 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   rebuilding the string inline. Retry semantics are unchanged: budget still fails after exactly one
   attempt. Under `--worktree` this adds a `git fetch` to those two paths — the same network
   exposure the generic branch already carried there, stated rather than widened silently.
+- **A session/usage limit was retried as a transient drop.** Found by execution, not review: the
+  live retro dogfood died with `You've hit your session limit · resets 3:10am (Europe/Dublin)` and
+  `claude -p` exited **1** — the generic code `run-headless.sh.tpl` treats as retryable. A limit is
+  a wall that lifts at a fixed clock time hours away, so all three attempts fail identically inside
+  a 30s/60s backoff window, and the run reports a bare failure that discards the one fact the
+  operator needs: when it resets. Both `run-headless` and `run-two-stage` now detect it, carry the
+  CLI's own reset line into their diagnostic, and exit **7** without retrying. Exit codes are
+  documented in the runner header.
+- **`/claude-warp-retro` was wrong in five ways on any loop with more than one run** — a shape it
+  had never been executed against. Its git query unioned `'*<slug>*' '*_LOG.md' '*-STATE.md'`, so a
+  **sibling loop's commits entered the retrospective** (the loop template explicitly anticipates
+  several loops per repo). Its `--since="30 days ago"` silently disagreed with the last-10-runs
+  window Phase 3 reads. "Read the last 10 dated sections" had no command, and the file is
+  append-only, so a top-down read returns the **oldest** ten. `FAIL_ENTRIES` omitted `stopped`,
+  hiding exactly the failures most worth reading. And the `Runs:` line listed five of six verdicts,
+  so the stated total could not equal the sum of its buckets. All five fixed and verified live.
 - **A crashing check ended `verify` in silence.** `errexit` is deliberately live inside check
   bodies (a broken `mktemp` must be fatal), so a bug in a check aborted the run before the banner —
   the same no-banner symptom fixed above for a check that merely *reports* a failure. Found by
@@ -64,6 +80,16 @@ Versioning follows [Semantic Versioning](https://semver.org/):
   cases prove nothing — the existing probe repo leaves `.claude/` untracked, so `tree_dirty()` is
   unconditionally true there. Mutations confirm: removing either call reddens only its own case;
   making the note unconditional reddens only the negative pole.
+- **`verify` check 14 (new) — skill contracts.** Pins retro's scoped pathspec, derived window,
+  newest-10 command, `GUARD_EVIDENCE` input and full six-verdict vocabulary. Six mutations, each
+  reddening only its own assertion.
+- **`verify` check 10 gained an executed session-limit case** — a stub reproducing the real message
+  must exit 7 after exactly one attempt, and the runner's own FATAL line must carry the reset time.
+  The first version of that assertion was **vacuous**: the stub's raw output lands in the same log,
+  so `grep 'resets 3:10am'` passed with the echo deleted. Caught by mutating it; now anchored to
+  the runner's diagnostic line.
+- **`tests/dogfood/retro-multirun/`** — a zero-token, rebuildable 12-run fixture with an answer key,
+  plus the first passing retro output as a reference.
 - **`verify` check 12 now executes the guard against the scaffolder's own seeded stub** — extracting
   the fenced block the scaffolder emits and running `guard.sh.tpl` on it, with a negative pole (a
   completed run today must still close the day) so the clear-to-run assertion cannot be vacuous.
